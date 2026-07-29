@@ -838,12 +838,16 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     /* ==== GENERIC PRINT — daybook, stock, payments, receipts, etc. ==== */
     /* JS adds .printing-region to <body> and .print-target to the section being printed. */
-    body.printing-region * { visibility: hidden !important; }
-    body.printing-region .print-target,
-    body.printing-region .print-target * { visibility: visible !important; }
+    /* Hide everything that is neither the print-target, an ancestor of it,
+       nor a descendant of it — at EVERY nesting level. Unlike visibility:hidden,
+       display:none removes the element from layout entirely, so hidden
+       panels can no longer reserve blank space and push .print-target onto
+       a later page. */
+    body.printing-region *:not(.print-target):not(.print-target *):not(:has(.print-target)) {
+        display: none !important;
+    }
     body.printing-region .print-target {
-        position: absolute !important;
-        left: 0; top: 0; right: 0;
+        position: static !important;
         width: 100% !important;
         height: auto !important;
         background: #fff !important;
@@ -868,12 +872,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     body.printing-region .no-print { display: none !important; }
 
     /* ==== INVOICE PRINT — printInvoiceDoc() adds .printing-invoice ==== */
-    body.printing-invoice * { visibility: hidden !important; }
-    body.printing-invoice #invoiceModal,
-    body.printing-invoice #invoiceModal * { visibility: visible !important; }
+    /* display:none (not visibility:hidden) removes hidden siblings from the
+       layout entirely, so their height can't push the invoice onto a later
+       page — it stays a normal in-flow element starting at the top of page 1. */
+    body.printing-invoice > *:not(#invoiceModal) { display: none !important; }
     body.printing-invoice #invoiceModal {
-        position: absolute !important;
-        left: 0; top: 0; right: 0;
+        position: static !important;
         width: 100% !important;
         height: auto !important;
         background: #fff !important;
@@ -921,12 +925,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     body.printing-invoice #invoiceModal h3 { color: #0f172a !important; }
 
     /* ==== LEDGER PRINT — printLedger() adds .printing-ledger ==== */
-    body.printing-ledger * { visibility: hidden !important; }
-    body.printing-ledger #ledgerPrintArea,
-    body.printing-ledger #ledgerPrintArea * { visibility: visible !important; }
+    /* Same fix as above: display:none removes hidden content from layout so
+       it can't push #ledgerPrintArea onto a blank later page. */
+    body.printing-ledger *:not(#ledgerPrintArea):not(#ledgerPrintArea *):not(:has(#ledgerPrintArea)) {
+        display: none !important;
+    }
     body.printing-ledger #ledgerPrintArea {
-        position: absolute !important;
-        left: 0; top: 0; right: 0;
+        position: static !important;
         width: 100% !important;
         height: auto !important;
         background: #fff !important;
