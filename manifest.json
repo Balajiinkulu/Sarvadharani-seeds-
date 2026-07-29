@@ -1,0 +1,27 @@
+{
+    "name": "Sarvadharani Seeds — Books",
+    "short_name": "Sarvadharani",
+    "description": "Tally-style accounting & inventory for Sarvadharani Seeds.",
+    "start_url": "./sarvadharani-earthy.html",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#F6F7F3",
+    "theme_color": "#2E5C3B",
+    "lang": "en-IN",
+    "categories": ["business", "productivity", "finance"],
+    "icons": [
+        {
+            "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='%232E5C3B'/><text x='256' y='210' text-anchor='middle' font-family='Outfit,Arial,sans-serif' font-size='90' font-weight='800' fill='%23F6F7F3'>SS</text><text x='256' y='330' text-anchor='middle' font-family='Outfit,Arial,sans-serif' font-size='44' font-weight='600' fill='%23A8D8B5'>seeds</text><text x='256' y='400' text-anchor='middle' font-family='Outfit,Arial,sans-serif' font-size='34' font-weight='500' fill='%23A8D8B5'>books</text></svg>",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='%232E5C3B'/><text x='256' y='210' text-anchor='middle' font-family='Outfit,Arial,sans-serif' font-size='90' font-weight='800' fill='%23F6F7F3'>SS</text><text x='256' y='330' text-anchor='middle' font-family='Outfit,Arial,sans-serif' font-size='44' font-weight='600' fill='%23A8D8B5'>seeds</text><text x='256' y='400' text-anchor='middle' font-family='Outfit,Arial,sans-serif' font-size='34' font-weight='500' fill='%23A8D8B5'>books</text></svg>",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}
