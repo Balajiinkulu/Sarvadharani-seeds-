@@ -14,7 +14,7 @@ self.addEventListener('fetch', (e) => {
     // Network-first for HTML so users always see the latest UI.
     if (e.request.mode === 'navigate') {
         e.respondWith(
-            fetch(e.request).catch(() => caches.match(e.request).then(r => r || caches.match('./sarvadharani-earthy.html')))
+            fetch(e.request).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
         );
         return;
     }

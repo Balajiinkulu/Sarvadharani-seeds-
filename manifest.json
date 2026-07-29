@@ -2,7 +2,7 @@
     "name": "Sarvadharani Seeds — Books",
     "short_name": "Sarvadharani",
     "description": "Tally-style accounting & inventory for Sarvadharani Seeds.",
-    "start_url": "./sarvadharani-earthy.html",
+    "start_url": "./index.html",
     "scope": "./",
     "display": "standalone",
     "orientation": "portrait",
