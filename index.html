@@ -1146,11 +1146,45 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     </div>
 </div>
 
+<!-- Change Password modal -->
+<div id="changePasswordModal" style="display:none; position:fixed; inset:0; background:rgba(20,32,26,0.55); z-index:150; padding:30px 16px; overflow-y:auto; justify-content:center; align-items:flex-start;">
+    <div class="edit-box" style="max-width:420px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h3 style="margin:0;">Change Password</h3>
+            <button type="button" onclick="closeChangePasswordModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
+            This protects the app from casual access on this device/browser only — it isn't a secure login, so don't reuse a password you rely on elsewhere.
+        </p>
+        <div class="login-error" id="changePasswordError" style="display:none;">
+            <span id="changePasswordErrorText"></span>
+            <button type="button" onclick="document.getElementById('changePasswordError').style.display='none'" aria-label="Dismiss">&times;</button>
+        </div>
+        <div class="login-error" id="changePasswordSuccess" style="display:none; background:#e6f4ea; color:#1e4620; border-color:#a8d8b5;">
+            <span>Password changed successfully.</span>
+            <button type="button" onclick="document.getElementById('changePasswordSuccess').style.display='none'" aria-label="Dismiss" style="color:#1e4620;">&times;</button>
+        </div>
+        <form id="changePasswordForm" onsubmit="return handleChangePassword(event)">
+            <label for="cpCurrent">Current Password</label>
+            <input type="password" id="cpCurrent" placeholder="Current password" autocomplete="current-password" required>
+
+            <label for="cpNew">New Password</label>
+            <input type="password" id="cpNew" placeholder="At least 6 characters" autocomplete="new-password" minlength="6" required>
+
+            <label for="cpConfirm">Confirm New Password</label>
+            <input type="password" id="cpConfirm" placeholder="Re-enter new password" autocomplete="new-password" minlength="6" required>
+
+            <button type="submit" class="btn-success" style="margin-top:16px;">Save New Password</button>
+        </form>
+    </div>
+</div>
+
 <div class="container">
     <header>
         <h1 class="brand-title">Sarvadharani seeds</h1>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <div class="fy-active-badge" id="fyActiveBadge" onclick="logoutAdmin()" title="Click to switch Financial Year / log out">FY —</div>
+            <button type="button" onclick="openChangePasswordModal()" style="width:auto; padding:6px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">Change Password</button>
             <div class="gst-badge">GSTIN: 21AFGFS0227N1Z2</div>
         </div>
     </header>
@@ -5730,7 +5764,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             rows.forEach(t => {
                 const isSaleType = (t.type === 'Sales' || t.type === 'OptionalSales');
                 if (isSaleType) salesTotal += t.grandTotal; else purchTotal += t.grandTotal;
-                const itemList = (t.items || []).map(it => `${escapeHtml(it.name)} (${it.qty} ${escapeHtml(it.uom)} @ \u20B9${it.inclRate.toFixed(2)})`).join(', ');
+                const itemList = (t.items || []).map(it => `${escapeHtml(it.name || 'Item')} (${it.qty || 0} ${escapeHtml(it.uom || '')} @ \u20B9${(typeof it.inclRate === 'number' ? it.inclRate : 0).toFixed(2)})`).join(', ');
                 const typeColor = isSaleType ? 'var(--success)' : 'var(--pink)';
                 body.innerHTML += `
                     <tr onclick="printInvoice(${t.id})" style="cursor:pointer;" title="Open invoice">
@@ -6647,8 +6681,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 // hidden inventory detail row
                 let itemRows = t.items.map(it =>
                     `<div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px dashed var(--border);">
-                        <span>${escapeHtml(it.name)} <span style="color:var(--text-muted);">(${escapeHtml(it.hsn)})</span></span>
-                        <span>${it.qty} ${escapeHtml(it.uom)} &times; \u20B9${it.inclRate.toFixed(2)} = <strong>\u20B9${it.lineTotal.toFixed(2)}</strong></span>
+                        <span>${escapeHtml(it.name || 'Item')} <span style="color:var(--text-muted);">(${escapeHtml(it.hsn || '')})</span></span>
+                        <span>${it.qty || 0} ${escapeHtml(it.uom || '')} &times; \u20B9${(typeof it.inclRate === 'number' ? it.inclRate : 0).toFixed(2)} = <strong>\u20B9${(typeof it.lineTotal === 'number' ? it.lineTotal : 0).toFixed(2)}</strong></span>
                     </div>`
                 ).join('');
                 if (t.narration) {
@@ -6734,16 +6768,30 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </tr>
             `;
         } else {
+            // Defensive rendering: older/imported transactions can carry line
+            // items missing a field (e.g. inclRate/lineTotal) if the app's
+            // item shape changed since they were saved, or a merged-in backup
+            // came from an earlier version. A raw `undefined.toFixed()` used
+            // to throw here, which aborted the WHOLE items loop silently and
+            // left the invoice showing stale/blank rows from whatever was in
+            // the modal before. Every field is now read safely with a
+            // fallback so one bad row degrades gracefully instead of
+            // breaking every row after it.
+            const safeNum = (v) => (typeof v === 'number' && !isNaN(v)) ? v : 0;
+            const safeText = (v, fallback) => (v === undefined || v === null || v === '') ? (fallback || '\u2014') : v;
+
             txn.items.forEach(it => {
-                const taxableCell = (it.taxable != null) ? `\u20B9${it.taxable.toFixed(2)}` : '\u2014';
+                const rate = safeNum(it.inclRate);
+                const lineTotal = (typeof it.lineTotal === 'number' && !isNaN(it.lineTotal)) ? it.lineTotal : rate * safeNum(it.qty);
+                const taxableCell = (it.taxable != null && !isNaN(it.taxable)) ? `\u20B9${safeNum(it.taxable).toFixed(2)}` : '\u2014';
                 itemsHtml += `
                     <tr>  
-                        <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(it.name)}</td>  
-                        <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(it.hsn)}</td>  
-                        <td style="border:1px solid #cbd5e1; padding:6px;">${it.qty} ${escapeHtml(it.uom)}</td>  
-                        <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${it.inclRate.toFixed(2)}</td>  
+                        <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(String(safeText(it.name, 'Item')))}</td>  
+                        <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(String(safeText(it.hsn, '')))}</td>  
+                        <td style="border:1px solid #cbd5e1; padding:6px;">${safeNum(it.qty)} ${escapeHtml(String(safeText(it.uom, '')))}</td>  
+                        <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${rate.toFixed(2)}</td>  
                         <td style="border:1px solid #cbd5e1; padding:6px;">${taxableCell}</td>  
-                        <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${it.lineTotal.toFixed(2)}</td>  
+                        <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${lineTotal.toFixed(2)}</td>  
                     </tr>  
                 `;
             });
@@ -7137,7 +7185,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 } else {
                     invDetails = (txn.items || []).map(it => 
                         `<div class="text-muted-print" style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
-                            \u21B3 ${escapeHtml(it.name)} : ${it.qty} ${escapeHtml(it.uom)} @ \u20B9${it.inclRate.toFixed(2)}
+                            \u21B3 ${escapeHtml(it.name || 'Item')} : ${it.qty || 0} ${escapeHtml(it.uom || '')} @ \u20B9${(typeof it.inclRate === 'number' ? it.inclRate : 0).toFixed(2)}
                         </div>`
                     ).join('');
                     if (txn.narration) {
@@ -8360,9 +8408,20 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
    constants below to set your real login.
 ========================================================= */
 const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'sarva@2026';
+const ADMIN_PASSWORD = 'sarva@2026'; // original default — only used if no password has ever been set on this device
+const ADMIN_PASSWORD_KEY = 'sarva_admin_password';
 const LOGIN_SESSION_KEY = 'sarva_admin_session';
 const ACTIVE_FY_KEY = 'sarva_active_fy';
+
+// The password actually in effect: whatever was last saved via "Change
+// Password" on this device, or the original default the very first time.
+// NOTE: same protection level as before — this still lives in the
+// browser (localStorage) with no server behind it, so it only guards
+// against casual access, not a determined person with access to the
+// device or the page's source.
+function getActivePassword() {
+    return localStorage.getItem(ADMIN_PASSWORD_KEY) || ADMIN_PASSWORD;
+}
 
 // Indian financial year runs Apr 1 - Mar 31. Returns the starting
 // calendar year of the FY that "today" falls in.
@@ -8437,7 +8496,7 @@ function handleAdminLogin(e) {
     e.preventDefault();
     const u = document.getElementById('loginUser').value.trim();
     const p = document.getElementById('loginPass').value;
-    if (u === ADMIN_USERNAME && p === ADMIN_PASSWORD) {
+    if (u === ADMIN_USERNAME && p === getActivePassword()) {
         const fy = selectedFY();
         localStorage.setItem(LOGIN_SESSION_KEY, '1');
         localStorage.setItem(ACTIVE_FY_KEY, String(fy));
@@ -8462,6 +8521,55 @@ function logoutAdmin() {
     if (!confirm('Log out of the admin panel?')) return;
     localStorage.removeItem(LOGIN_SESSION_KEY);
     location.reload();
+}
+
+// ---- Change Password (updates the client-side login gate only) ----
+function openChangePasswordModal() {
+    document.getElementById('changePasswordForm').reset();
+    document.getElementById('changePasswordError').style.display = 'none';
+    document.getElementById('changePasswordSuccess').style.display = 'none';
+    document.getElementById('changePasswordModal').style.display = 'flex';
+    document.getElementById('cpCurrent').focus();
+}
+
+function closeChangePasswordModal() {
+    document.getElementById('changePasswordModal').style.display = 'none';
+}
+
+function showChangePasswordError(msg) {
+    document.getElementById('changePasswordErrorText').textContent = msg;
+    document.getElementById('changePasswordError').style.display = 'flex';
+    document.getElementById('changePasswordSuccess').style.display = 'none';
+}
+
+function handleChangePassword(e) {
+    e.preventDefault();
+    const current = document.getElementById('cpCurrent').value;
+    const next = document.getElementById('cpNew').value;
+    const confirmVal = document.getElementById('cpConfirm').value;
+
+    if (current !== getActivePassword()) {
+        showChangePasswordError('Current password is incorrect.');
+        return false;
+    }
+    if (next.length < 6) {
+        showChangePasswordError('New password must be at least 6 characters.');
+        return false;
+    }
+    if (next !== confirmVal) {
+        showChangePasswordError('New password and confirmation do not match.');
+        return false;
+    }
+    if (next === current) {
+        showChangePasswordError('New password must be different from the current one.');
+        return false;
+    }
+
+    localStorage.setItem(ADMIN_PASSWORD_KEY, next);
+    document.getElementById('changePasswordError').style.display = 'none';
+    document.getElementById('changePasswordSuccess').style.display = 'flex';
+    document.getElementById('changePasswordForm').reset();
+    return false;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
