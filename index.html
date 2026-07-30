@@ -1124,13 +1124,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <p class="login-welcome">Welcome to Sarvadharani Seeds Admin login panel.</p>
 
         <div class="login-error" id="loginError">
-            <span id="loginErrorText">Invalid Username or Password!</span>
+            <span id="loginErrorText">Invalid email or password!</span>
             <button type="button" onclick="dismissLoginError()" aria-label="Dismiss">&times;</button>
         </div>
 
         <form id="loginForm" onsubmit="return handleAdminLogin(event)">
-            <label for="loginUser">User Name</label>
-            <input type="text" id="loginUser" placeholder="User Name" autocomplete="username" required>
+            <label for="loginUser">Email</label>
+            <input type="email" id="loginUser" placeholder="you@example.com" autocomplete="username" required>
 
             <label for="loginPass">Password</label>
             <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password" required>
@@ -1141,7 +1141,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <select id="fyOtherSelect"></select>
             </div>
 
-            <button type="submit" class="btn-success">Login</button>
+            <button type="submit" class="btn-success" id="loginSubmitBtn">Login</button>
         </form>
     </div>
 </div>
@@ -1154,7 +1154,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <button type="button" onclick="closeChangePasswordModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
         </div>
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
-            This protects the app from casual access on this device/browser only — it isn't a secure login, so don't reuse a password you rely on elsewhere.
+            This changes the password for whichever account you're currently signed in as.
         </p>
         <div class="login-error" id="changePasswordError" style="display:none;">
             <span id="changePasswordErrorText"></span>
@@ -1184,6 +1184,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <h1 class="brand-title">Sarvadharani seeds</h1>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <div class="fy-active-badge" id="fyActiveBadge" title="Current Financial Year">FY —</div>
+            <div class="gst-badge" id="signedInBadge" style="display:none;" title="Signed in account"></div>
             <div class="gst-badge">GSTIN: 21AFGFS0227N1Z2</div>
             <button type="button" id="powerBtn" onclick="togglePowerMenu()" title="Log out" aria-haspopup="true" aria-expanded="false"
                 style="width:auto; padding:8px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:50%; line-height:1; font-size:1rem; position:relative;">
@@ -3281,6 +3282,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 ==================================================================== -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyDssPwJJfCpDJCdxqDlrSzMDqWn4xJdvLI",
@@ -3294,6 +3296,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     firebase.initializeApp(firebaseConfig);
     const cloudDb = firebase.firestore();
+    const cloudAuth = firebase.auth();
+
+    // Real Firebase Authentication (email/password) — each staff member
+    // signs in with their own account (created ahead of time by an admin
+    // in the Firebase Console: Authentication > Users > Add user, not
+    // self-registered here). Firestore's security rule checks this same
+    // sign-in via `request.auth != null`, so the login screen and the
+    // database access are backed by the same real accounts. See
+    // handleAdminLogin() further down for where sign-in actually happens.
 
     // Lets the app keep working with no internet and push the queued
     // changes automatically once the connection comes back.
@@ -3356,25 +3367,35 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (typeof render === 'function') render();
     }
 
-    // Live listener — fires immediately on load with whatever is
+    // Live listener — fires immediately once signed in with whatever is
     // already saved, and again any time this device or ANY other
-    // device (phone/laptop) changes the data.
-    CLOUD_DOC.onSnapshot(snap => {
-        if (!snap.exists) {
-            // Nothing in the cloud yet (genuinely first ever run) — mark
-            // bootstrapped FIRST, then seed the cloud with whatever this
-            // device already has.
-            cloudBootstrapped = true;
-            syncCloud();
-        } else if (!snap.metadata.hasPendingWrites) {
-            // Confirmed server data (own write acknowledged, or a change
-            // pushed from another device) — safe to apply.
-            cloudBootstrapped = true;
-            applyCloudData(snap.data());
-        } else {
-            cloudBootstrapped = true;
+    // device (phone/laptop) changes the data. Only starts after real
+    // Firebase Auth confirms a signed-in user, so it lines up with a
+    // Firestore rule like `allow read, write: if request.auth != null`.
+    let cloudListenerStarted = false;
+    cloudAuth.onAuthStateChanged(user => {
+        if (user && !cloudListenerStarted) {
+            cloudListenerStarted = true;
+            CLOUD_DOC.onSnapshot(snap => {
+                if (!snap.exists) {
+                    // Nothing in the cloud yet (genuinely first ever run) — mark
+                    // bootstrapped FIRST, then seed the cloud with whatever this
+                    // device already has.
+                    cloudBootstrapped = true;
+                    syncCloud();
+                } else if (!snap.metadata.hasPendingWrites) {
+                    // Confirmed server data (own write acknowledged, or a change
+                    // pushed from another device) — safe to apply.
+                    cloudBootstrapped = true;
+                    applyCloudData(snap.data());
+                } else {
+                    cloudBootstrapped = true;
+                }
+            }, err => console.error('Cloud listener error:', err));
+        } else if (!user) {
+            console.warn('Cloud sync waiting for authentication...');
         }
-    }, err => console.error('Cloud listener error:', err));
+    });
 </script>
 
 <script>  
@@ -8426,29 +8447,16 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 <script>
 /* =========================================================
    ADMIN LOGIN GATE
-   Simple local username/password gate for this single-shop
-   admin panel, plus a Financial Year picker (Apr–Mar, Indian
-   convention) that replaces the old "Database" session field.
-   This does NOT touch Firebase sync or filter any data by FY
-   yet — it just records which year the session is working in
-   and shows it as a badge in the header. Change the two
-   constants below to set your real login.
+   Each person signs in with their own real Firebase Auth
+   email + password (accounts created ahead of time in the
+   Firebase Console — no self sign-up from this screen). This
+   same sign-in is what the Firestore security rule checks, so
+   the login screen and database access are backed by the same
+   accounts. Also includes a Financial Year picker (Apr–Mar,
+   Indian convention) that just records which year the session
+   is working in and shows it as a badge in the header.
 ========================================================= */
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'sarva@2026'; // original default — only used if no password has ever been set on this device
-const ADMIN_PASSWORD_KEY = 'sarva_admin_password';
-const LOGIN_SESSION_KEY = 'sarva_admin_session';
 const ACTIVE_FY_KEY = 'sarva_active_fy';
-
-// The password actually in effect: whatever was last saved via "Change
-// Password" on this device, or the original default the very first time.
-// NOTE: same protection level as before — this still lives in the
-// browser (localStorage) with no server behind it, so it only guards
-// against casual access, not a determined person with access to the
-// device or the page's source.
-function getActivePassword() {
-    return localStorage.getItem(ADMIN_PASSWORD_KEY) || ADMIN_PASSWORD;
-}
 
 // Indian financial year runs Apr 1 - Mar 31. Returns the starting
 // calendar year of the FY that "today" falls in.
@@ -8519,19 +8527,35 @@ function dismissLoginError() {
     document.getElementById('loginError').style.display = 'none';
 }
 
+// Login now goes straight through real Firebase Auth — each person
+// signs in with their own email + password (created ahead of time by
+// an admin in the Firebase Console, not self-registered here). There
+// is no shared local password anymore; Firestore's security rule
+// checks this same sign-in, so the login screen and the database
+// access are backed by the same real accounts.
 function handleAdminLogin(e) {
     e.preventDefault();
-    const u = document.getElementById('loginUser').value.trim();
+    const email = document.getElementById('loginUser').value.trim();
     const p = document.getElementById('loginPass').value;
-    if (u === ADMIN_USERNAME && p === getActivePassword()) {
-        const fy = selectedFY();
-        localStorage.setItem(LOGIN_SESSION_KEY, '1');
-        localStorage.setItem(ACTIVE_FY_KEY, String(fy));
-        enterApp(fy);
-    } else {
-        document.getElementById('loginErrorText').textContent = 'Invalid Username or Password!';
-        document.getElementById('loginError').style.display = 'flex';
-    }
+    const btn = document.getElementById('loginSubmitBtn');
+    dismissLoginError();
+    btn.disabled = true;
+    btn.textContent = 'Signing in\u2026';
+
+    cloudAuth.signInWithEmailAndPassword(email, p)
+        .then(() => {
+            const fy = selectedFY();
+            localStorage.setItem(ACTIVE_FY_KEY, String(fy));
+            enterApp(fy);
+        })
+        .catch(err => {
+            document.getElementById('loginErrorText').textContent = 'Invalid email or password!';
+            document.getElementById('loginError').style.display = 'flex';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.textContent = 'Login';
+        });
     return false;
 }
 
@@ -8542,12 +8566,16 @@ function enterApp(fy) {
         badge.textContent = fyLabel(Number(fy || localStorage.getItem(ACTIVE_FY_KEY) || currentFinancialYearStart()));
         badge.style.display = 'inline-block';
     }
+    const signedInBadge = document.getElementById('signedInBadge');
+    if (signedInBadge && cloudAuth.currentUser) {
+        signedInBadge.textContent = cloudAuth.currentUser.email;
+        signedInBadge.style.display = 'inline-block';
+    }
 }
 
 function logoutAdmin() {
     if (!confirm('Log out of the admin panel?')) return;
-    localStorage.removeItem(LOGIN_SESSION_KEY);
-    location.reload();
+    cloudAuth.signOut().finally(() => location.reload());
 }
 
 // ---- Power icon menu (extreme right of header) ----
@@ -8594,9 +8622,10 @@ function handleChangePassword(e) {
     const current = document.getElementById('cpCurrent').value;
     const next = document.getElementById('cpNew').value;
     const confirmVal = document.getElementById('cpConfirm').value;
+    const user = cloudAuth.currentUser;
 
-    if (current !== getActivePassword()) {
-        showChangePasswordError('Current password is incorrect.');
+    if (!user) {
+        showChangePasswordError('You are not signed in.');
         return false;
     }
     if (next.length < 6) {
@@ -8612,21 +8641,41 @@ function handleChangePassword(e) {
         return false;
     }
 
-    localStorage.setItem(ADMIN_PASSWORD_KEY, next);
-    document.getElementById('changePasswordError').style.display = 'none';
-    document.getElementById('changePasswordSuccess').style.display = 'flex';
-    document.getElementById('changePasswordForm').reset();
+    // Firebase requires a recent sign-in before it will let you change a
+    // password, so re-prove identity with the current password first.
+    const credential = firebase.auth.EmailAuthProvider.credential(user.email, current);
+    user.reauthenticateWithCredential(credential)
+        .then(() => user.updatePassword(next))
+        .then(() => {
+            document.getElementById('changePasswordError').style.display = 'none';
+            document.getElementById('changePasswordSuccess').style.display = 'flex';
+            document.getElementById('changePasswordForm').reset();
+        })
+        .catch(err => {
+            if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-login-credentials') {
+                showChangePasswordError('Current password is incorrect.');
+            } else {
+                showChangePasswordError('Could not update password. Please try again.');
+                console.error('Password change failed:', err);
+            }
+        });
     return false;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     populateFYOptions();
-    if (localStorage.getItem(LOGIN_SESSION_KEY) === '1') {
+    document.getElementById('loginUser').focus();
+});
+
+// Restores the session automatically on reload — Firebase Auth keeps
+// people signed in on this device/browser until they log out, so a
+// returning user skips straight past the login screen.
+cloudAuth.onAuthStateChanged(user => {
+    if (user) {
         enterApp(localStorage.getItem(ACTIVE_FY_KEY));
-    } else {
-        document.getElementById('loginUser').focus();
     }
 });
+
 </script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a22d31767a307eea',t:'MTc4NTMzOTMyMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
