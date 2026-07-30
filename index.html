@@ -1119,6 +1119,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="login-mark">SS</div>
             <h1>Sarvadharani Seeds</h1>
             <div class="login-tagline">Books &amp; Inventory</div>
+            <div id="loginCompanyAddress" style="display:none; font-size:0.78rem; color:var(--text-muted, #6b7a70); margin-top:4px;"></div>
+            <div id="loginCompanyMobile" style="display:none; font-size:0.78rem; color:var(--text-muted, #6b7a70);"></div>
         </div>
         <h2>Admin Login</h2>
         <p class="login-welcome">Welcome to Sarvadharani Seeds Admin login panel.</p>
@@ -1179,9 +1181,63 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     </div>
 </div>
 
+<!-- Company Address modal -->
+<div id="companyAddressModal" style="display:none; position:fixed; inset:0; background:rgba(20,32,26,0.55); z-index:150; padding:30px 16px; overflow-y:auto; justify-content:center; align-items:flex-start;">
+    <div class="edit-box" style="max-width:420px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h3 style="margin:0;">Company Address</h3>
+            <button type="button" onclick="closeCompanyAddressModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
+            Shown under your company name on printed invoices and used as the "from" address on e-Way bills. Leave blank to show nothing.
+        </p>
+        <div class="login-error" id="companyAddressSuccess" style="display:none; background:#e6f4ea; color:#1e4620; border-color:#a8d8b5;">
+            <span>Company address saved.</span>
+            <button type="button" onclick="document.getElementById('companyAddressSuccess').style.display='none'" aria-label="Dismiss" style="color:#1e4620;">&times;</button>
+        </div>
+        <form id="companyAddressForm" onsubmit="return handleSaveCompanyAddress(event)">
+            <label for="companyAddressInput">Company Address</label>
+            <textarea id="companyAddressInput" rows="3" placeholder="e.g. Shop No. 4, Main Market Road, Bilaspur, Chhattisgarh, 495001"></textarea>
+
+            <button type="submit" class="btn-success" style="margin-top:16px;">Save Address</button>
+        </form>
+    </div>
+</div>
+
+<!-- Company Mobile Number modal -->
+<div id="companyMobileModal" style="display:none; position:fixed; inset:0; background:rgba(20,32,26,0.55); z-index:150; padding:30px 16px; overflow-y:auto; justify-content:center; align-items:flex-start;">
+    <div class="edit-box" style="max-width:420px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h3 style="margin:0;">Company Mobile Number</h3>
+            <button type="button" onclick="closeCompanyMobileModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
+            Shown under your company name on printed invoices. Leave blank to show nothing.
+        </p>
+        <div class="login-error" id="companyMobileError" style="display:none;">
+            <span id="companyMobileErrorText"></span>
+            <button type="button" onclick="document.getElementById('companyMobileError').style.display='none'" aria-label="Dismiss">&times;</button>
+        </div>
+        <div class="login-error" id="companyMobileSuccess" style="display:none; background:#e6f4ea; color:#1e4620; border-color:#a8d8b5;">
+            <span>Mobile number saved.</span>
+            <button type="button" onclick="document.getElementById('companyMobileSuccess').style.display='none'" aria-label="Dismiss" style="color:#1e4620;">&times;</button>
+        </div>
+        <form id="companyMobileForm" onsubmit="return handleSaveCompanyMobile(event)">
+            <label for="companyMobileInput">Mobile Number</label>
+            <input type="tel" id="companyMobileInput" placeholder="e.g. 98765 43210" inputmode="numeric">
+
+            <button type="submit" class="btn-success" style="margin-top:16px;">Save Mobile Number</button>
+        </form>
+    </div>
+</div>
+
 <div class="container">
     <header>
-        <h1 class="brand-title">Sarvadharani seeds</h1>
+        <div>
+            <h1 class="brand-title" style="margin-bottom:0;">Sarvadharani seeds</h1>
+            <div id="headerCompanyAddress" style="display:none; font-size:0.75rem; color:var(--text-invert); opacity:0.85; margin-top:2px;"></div>
+            <div id="headerCompanyMobile" style="display:none; font-size:0.75rem; color:var(--text-invert); opacity:0.85;"></div>
+        </div>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <div class="fy-active-badge" id="fyActiveBadge" title="Current Financial Year">FY —</div>
             <div class="gst-badge" id="signedInBadge" style="display:none;" title="Signed in account"></div>
@@ -1256,6 +1312,16 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <span class="tile-icon">&#128272;</span>
                 <div class="tile-name">Change Password</div>
                 <div class="tile-sub">Update the admin login password</div>
+            </div>
+            <div class="tile" onclick="openCompanyAddressModal()">
+                <span class="tile-icon">&#127968;</span>
+                <div class="tile-name">Company Address</div>
+                <div class="tile-sub">Shown on invoices &amp; e-Way bills</div>
+            </div>
+            <div class="tile" onclick="openCompanyMobileModal()">
+                <span class="tile-icon">&#128241;</span>
+                <div class="tile-name">Company Mobile Number</div>
+                <div class="tile-sub">Shown on printed invoices</div>
             </div>
         </div>
     </div>
@@ -3100,6 +3166,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     </div>
                     <div style="text-align: right;">
                         <div style="font-weight:bold; color:var(--text-muted); font-size:0.85rem;">Sarvadharani seeds</div>
+                        <div id="ledgerCompanyAddress" style="display:none; color:var(--text-muted); font-size:0.75rem; margin-top:2px;"></div>
+                        <div id="ledgerCompanyMobile" style="display:none; color:var(--text-muted); font-size:0.75rem;"></div>
                         <div class="no-print" style="display:flex; gap:6px; margin-top:8px;">
                             <button onclick="printLedger()" class="btn-success" style="width:auto; padding:6px 14px; font-size:0.8rem;">Save as PDF</button>
                             <button onclick="exportLedgerCSV()" style="width:auto; padding:6px 14px; font-size:0.8rem;">Save CSV</button>
@@ -3133,7 +3201,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <div style="display:flex; justify-content:space-between; border-bottom: 2px solid #0f172a; padding-bottom:12px;">
             <div>
                 <h3 id="invDocTitle" style="margin:0; color:#0f172a; border-bottom:none; padding-bottom:0; font-size:1.3rem;">TAX INVOICE</h3>
-                <div style="font-size:0.85rem; margin-top:4px;"><strong>Sarvadharani seeds</strong><br>GSTIN: 21AFGFS0227N1Z2</div>
+                <div style="font-size:0.85rem; margin-top:4px;">
+                    <strong>Sarvadharani seeds</strong><br>
+                    GSTIN: 21AFGFS0227N1Z2
+                    <div id="invCompanyAddress" style="display:none;"></div>
+                    <div id="invCompanyMobile" style="display:none;"></div>
+                </div>
             </div>
             <div style="text-align:right; font-size:0.85rem;">
                 <div><strong>Invoice No:</strong> <span id="invNo"></span></div>
@@ -7952,11 +8025,16 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     'use strict';
 
     // ---- Company defaults (used by e-Way bill) ----
+    // addr1 is shared with the Settings > Company Address field (see
+    // COMPANY_ADDRESS_KEY in the main app script) so there's one true
+    // source for the business address rather than two that can drift
+    // apart. Falls back to the original placeholder only if Settings
+    // has never been used to set a real address yet.
     const COMPANY = {
         gstin: '21AFGFS0227N1Z2',
         name: 'Sarvadharani seeds',
         stateCode: 21, // from GSTIN prefix
-        addr1: 'Sarvadharani Seeds Office',
+        addr1: localStorage.getItem('sarva_company_address') || 'Sarvadharani Seeds Office',
         pincode: 495001,
         place: 'Bilaspur'
     };
@@ -8664,8 +8742,103 @@ function handleChangePassword(e) {
     return false;
 }
 
+// ---- Company Address & Mobile Number (Settings) ----
+// Both are purely local display/print details — empty by default, never
+// synced to Firestore, never required to use the app. They're read once
+// on page load (see applyCompanyDetailsToUI below) and re-applied instantly
+// whenever saved, so every place the company name appears (login screen,
+// app header, printed invoice, printed ledger statement) shows the same
+// values without needing a page reload.
+const COMPANY_ADDRESS_KEY = 'sarva_company_address';
+const COMPANY_MOBILE_KEY = 'sarva_company_mobile';
+
+function getCompanyAddress() {
+    return localStorage.getItem(COMPANY_ADDRESS_KEY) || '';
+}
+function getCompanyMobile() {
+    return localStorage.getItem(COMPANY_MOBILE_KEY) || '';
+}
+
+function openCompanyAddressModal() {
+    document.getElementById('companyAddressForm').reset();
+    document.getElementById('companyAddressInput').value = getCompanyAddress();
+    document.getElementById('companyAddressSuccess').style.display = 'none';
+    document.getElementById('companyAddressModal').style.display = 'flex';
+    document.getElementById('companyAddressInput').focus();
+}
+function closeCompanyAddressModal() {
+    document.getElementById('companyAddressModal').style.display = 'none';
+}
+function handleSaveCompanyAddress(e) {
+    e.preventDefault();
+    const value = document.getElementById('companyAddressInput').value.trim();
+    localStorage.setItem(COMPANY_ADDRESS_KEY, value);
+    applyCompanyDetailsToUI();
+    document.getElementById('companyAddressSuccess').style.display = 'flex';
+    return false;
+}
+
+function openCompanyMobileModal() {
+    document.getElementById('companyMobileForm').reset();
+    document.getElementById('companyMobileInput').value = getCompanyMobile();
+    document.getElementById('companyMobileError').style.display = 'none';
+    document.getElementById('companyMobileSuccess').style.display = 'none';
+    document.getElementById('companyMobileModal').style.display = 'flex';
+    document.getElementById('companyMobileInput').focus();
+}
+function closeCompanyMobileModal() {
+    document.getElementById('companyMobileModal').style.display = 'none';
+}
+function handleSaveCompanyMobile(e) {
+    e.preventDefault();
+    const raw = document.getElementById('companyMobileInput').value.trim();
+    // Light validation only: allow digits, spaces, +, -, ( ) so Indian
+    // numbers with or without a country code both work. Blank is fine —
+    // that's how it clears the field back to "not shown".
+    if (raw && !/^[0-9+\-()\s]{6,20}$/.test(raw)) {
+        document.getElementById('companyMobileErrorText').textContent = 'Please enter a valid phone number.';
+        document.getElementById('companyMobileError').style.display = 'flex';
+        document.getElementById('companyMobileSuccess').style.display = 'none';
+        return false;
+    }
+    localStorage.setItem(COMPANY_MOBILE_KEY, raw);
+    applyCompanyDetailsToUI();
+    document.getElementById('companyMobileError').style.display = 'none';
+    document.getElementById('companyMobileSuccess').style.display = 'flex';
+    return false;
+}
+
+// Pushes the current saved address/mobile (or hides the row if empty)
+// into every place the company's own details are shown. Safe to call
+// even if some of these elements aren't in the DOM yet.
+function applyCompanyDetailsToUI() {
+    const addr = getCompanyAddress();
+    const mobile = getCompanyMobile();
+    const mobileLabel = mobile ? `Mobile: ${mobile}` : '';
+
+    const targets = [
+        { addr: 'loginCompanyAddress', mobile: 'loginCompanyMobile' },
+        { addr: 'headerCompanyAddress', mobile: 'headerCompanyMobile' },
+        { addr: 'invCompanyAddress', mobile: 'invCompanyMobile' },
+        { addr: 'ledgerCompanyAddress', mobile: 'ledgerCompanyMobile' }
+    ];
+    targets.forEach(t => {
+        const addrEl = document.getElementById(t.addr);
+        const mobileEl = document.getElementById(t.mobile);
+        if (addrEl) {
+            addrEl.textContent = addr;
+            addrEl.style.display = addr ? 'block' : 'none';
+        }
+        if (mobileEl) {
+            mobileEl.textContent = mobileLabel;
+            mobileEl.style.display = mobile ? 'block' : 'none';
+        }
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     populateFYOptions();
+    applyCompanyDetailsToUI();
     document.getElementById('loginUser').focus();
 });
 
