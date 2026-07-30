@@ -3425,7 +3425,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 firstArg.indexOf('Cloud sync failed') !== -1 ||
                 firstArg.indexOf('Cloud listener error') !== -1
             )) {
-                showSyncToast('error', "Cloud sync failed — your latest change may not have saved. Check your connection; this device will keep retrying.");
+                const errObj = args[1];
+                const detail = errObj && (errObj.code || errObj.message) ? ` (${errObj.code || errObj.message})` : '';
+                showSyncToast('error', "Cloud sync failed" + detail + " — your latest change may not have saved. This device will keep retrying.");
             }
         };
 
