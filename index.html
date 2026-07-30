@@ -6747,13 +6747,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             const acc = accounts.find(a => a.id == id);
             if (!acc) return;
             headerText = `${acc.name} (${acc.type})`;
-            ledgerTxns = transactions.filter(t => t.accountId == id && inRange(t.date, range));
+            const asOf = acc.openingAsOf || '2000-01-01';
+            ledgerTxns = transactions.filter(t => t.accountId == id && inRange(t.date, range) && t.date >= asOf);
         } else {
             const party = parties.find(p => p.id == id);
             if (!party) return;
             headerText = `${party.name} (${party.type})`;
+            const asOf = party.openingAsOf || '2000-01-01';
             ledgerTxns = transactions.filter(t =>
-                t.partyId == id && inRange(t.date, range)
+                t.partyId == id && inRange(t.date, range) && t.date >= asOf
                 && !(t.customVoucherTypeId && t.inMainBooks === false)
             );
         }
@@ -6793,6 +6795,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         if (isAccount) {
             const acc = accounts.find(a => a.id == id);
+            const asOf = acc.openingAsOf || '2000-01-01';
+            if (asOf !== '2000-01-01') {
+                document.getElementById('ledgerFilterLabel').innerText +=
+                    (document.getElementById('ledgerFilterLabel').innerText ? ' \u2022 ' : '') +
+                    `Opening balance carried forward as of ${asOf} — earlier vouchers aren't included below (they're already folded into the Opening Balance).`;
+            }
             if (acc && acc.opening) {
                 if (acc.opening > 0) totalDebit += acc.opening;
                 else totalCredit += Math.abs(acc.opening);
@@ -6804,6 +6812,29 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td style="vertical-align:top;">-</td>
                         <td style="vertical-align:top;">${acc.opening > 0 ? acc.opening.toFixed(2) : ''}</td>
                         <td style="vertical-align:top;">${acc.opening < 0 ? Math.abs(acc.opening).toFixed(2) : ''}</td>
+                        <td style="vertical-align:top;">-</td>
+                    </tr>
+                `;
+            }
+        } else if (!isAggregate) {
+            const party = parties.find(p => p.id == id);
+            const asOf = party.openingAsOf || '2000-01-01';
+            if (asOf !== '2000-01-01') {
+                document.getElementById('ledgerFilterLabel').innerText +=
+                    (document.getElementById('ledgerFilterLabel').innerText ? ' \u2022 ' : '') +
+                    `Opening balance carried forward as of ${asOf} — earlier vouchers aren't included below (they're already folded into the Opening Balance).`;
+            }
+            if (party && party.opening) {
+                if (party.opening > 0) totalDebit += party.opening;
+                else totalCredit += Math.abs(party.opening);
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="vertical-align:top;">-</td>
+                        <td><strong>Opening Balance</strong></td>
+                        <td style="vertical-align:top;">-</td>
+                        <td style="vertical-align:top;">-</td>
+                        <td style="vertical-align:top;">${party.opening > 0 ? party.opening.toFixed(2) : ''}</td>
+                        <td style="vertical-align:top;">${party.opening < 0 ? Math.abs(party.opening).toFixed(2) : ''}</td>
                         <td style="vertical-align:top;">-</td>
                     </tr>
                 `;
