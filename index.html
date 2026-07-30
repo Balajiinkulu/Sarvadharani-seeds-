@@ -571,7 +571,7 @@ table button {
     animation: syncToastIn 180ms ease-out;
     max-width: 90vw;
 }
-#syncToast.visible { display: inline-flex; }
+#syncToast.show { display: inline-flex; }
 .syncToastDot {
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--warning);
@@ -955,14 +955,204 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
     body.printing-ledger .text-muted-print { color: #475569 !important; }
 }
+
+/* =========================================================
+   ADMIN LOGIN GATE
+   Full-screen overlay shown until a valid login is entered.
+   Reuses the app's existing color/font/radius tokens.
+========================================================= */
+#loginGate {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 18px;
+    background:
+        radial-gradient(circle at 30% 20%, rgba(168,216,181,0.20), transparent 55%),
+        radial-gradient(circle at 80% 85%, rgba(74,139,127,0.28), transparent 55%),
+        linear-gradient(160deg, #14251A 0%, #1E3A26 45%, #2E5C3B 100%);
+    overflow-y: auto;
+}
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 50px -15px rgba(10,20,12,0.45);
+    padding: 34px 30px 30px;
+    margin: auto;
+}
+.login-brand {
+    text-align: center;
+    margin-bottom: 22px;
+}
+.login-brand .login-mark {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: var(--grad-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-invert);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: -0.02em;
+}
+.login-brand h1 {
+    font-size: 1.5rem;
+    margin: 0;
+}
+.login-brand .login-tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+.login-card h2 {
+    font-size: 1.15rem;
+    text-align: center;
+    margin: 0 0 6px;
+}
+.login-welcome {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0 0 20px;
+    line-height: 1.5;
+}
+.login-error {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #FBE9E7;
+    border: 1px solid #F0BDB6;
+    color: var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+.login-error button {
+    all: unset;
+    cursor: pointer;
+    color: var(--danger);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 2px;
+}
+.login-card label { margin-top: 14px; }
+.login-card label:first-of-type { margin-top: 0; }
+.fy-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+    align-items: stretch;
+}
+.fy-current {
+    flex: 1;
+    text-align: center;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    cursor: pointer;
+    background: var(--bg-card);
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.fy-current:hover { border-color: var(--accent); }
+.fy-current.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+}
+.fy-current-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+.fy-current.active .fy-current-label { color: var(--accent-hover); }
+.fy-current-sub {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+#fyOtherSelect {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    text-align: center;
+    text-align-last: center;
+}
+.login-card button[type="submit"] { margin-top: 22px; }
+.fy-active-badge {
+    display: none;
+    background: rgba(246,247,243,0.08);
+    border: 1px solid rgba(246,247,243,0.18);
+    color: var(--text-invert);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+}
     </style>
 </head>
 <body>
 
+<div id="loginGate">
+    <div class="login-card">
+        <div class="login-brand">
+            <div class="login-mark">SS</div>
+            <h1>Sarvadharani Seeds</h1>
+            <div class="login-tagline">Books &amp; Inventory</div>
+        </div>
+        <h2>Admin Login</h2>
+        <p class="login-welcome">Welcome to Sarvadharani Seeds Admin login panel.</p>
+
+        <div class="login-error" id="loginError">
+            <span id="loginErrorText">Invalid Username or Password!</span>
+            <button type="button" onclick="dismissLoginError()" aria-label="Dismiss">&times;</button>
+        </div>
+
+        <form id="loginForm" onsubmit="return handleAdminLogin(event)">
+            <label for="loginUser">User Name</label>
+            <input type="text" id="loginUser" placeholder="User Name" autocomplete="username" required>
+
+            <label for="loginPass">Password</label>
+            <input type="password" id="loginPass" placeholder="Password" autocomplete="current-password" required>
+
+            <label>Financial Year</label>
+            <div class="fy-row">
+                <div class="fy-current" id="fyCurrentOption"></div>
+                <select id="fyOtherSelect"></select>
+            </div>
+
+            <button type="submit" class="btn-success">Login</button>
+        </form>
+    </div>
+</div>
+
 <div class="container">
     <header>
         <h1 class="brand-title">Sarvadharani seeds</h1>
-        <div class="gst-badge">GSTIN: 21AFGFS0227N1Z2</div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div class="fy-active-badge" id="fyActiveBadge" onclick="logoutAdmin()" title="Click to switch Financial Year / log out">FY —</div>
+            <div class="gst-badge">GSTIN: 21AFGFS0227N1Z2</div>
+        </div>
     </header>
 
     <!-- Dashboard Metrics -->
@@ -2820,8 +3010,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <select id="ledPeriod" onchange="onLedPeriodChange()">
                         <option value="thisMonth">This Month</option>
                         <option value="lastMonth">Last Month</option>
-                        <option value="thisYear">This Year</option>
-                        <option value="all" selected>All Time</option>
+                        <option value="thisYear" selected>Financial Year</option>
+                        <option value="all">All Time</option>
                         <option value="custom">Custom...</option>
                     </select>
                 </div>
@@ -3162,14 +3352,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             const textEl = document.getElementById('syncToastText');
             if (!el || !textEl) return;
             textEl.innerText = message;
-            el.classList.remove('sync-error', 'sync-recovered');
-            el.classList.add(kind === 'recovered' ? 'sync-recovered' : 'sync-error');
+            el.classList.remove('sync-error', 'sync-recovered', 'sync-ok');
+            const cls = (kind === 'recovered') ? 'sync-recovered' : (kind === 'ok') ? 'sync-ok' : 'sync-error';
+            el.classList.add(cls);
             el.classList.add('show');
             clearTimeout(toastTimer);
-            // Errors stay up longer (until dismissed or the next event);
-            // the brief "recovered" note clears itself.
-            if (kind === 'recovered') {
-                toastTimer = setTimeout(() => el.classList.remove('show'), 5000);
+            // Only genuine errors stay up until dismissed; both "recovered"
+            // and plain "ok" confirmations are transient and self-clear.
+            if (kind === 'recovered' || kind === 'ok') {
+                toastTimer = setTimeout(() => el.classList.remove('show'), kind === 'ok' ? 3000 : 5000);
             }
         };
 
@@ -3885,31 +4076,40 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         render();
     });
 
-    function accountBalance(accId) {
+    // Balance for a Cash/Bank account as of a given date (exclusive of the
+    // cutoff itself) — i.e. the manual opening balance plus every
+    // transaction from openingAsOf up to but not including `cutoff`.
+    // Pass cutoff=null for "everything, no upper bound" (= accountBalance).
+    function accountBalanceAsOf(accId, cutoff) {
         const acc = accounts.find(a => a.id == accId);
         if (!acc) return 0;
         const asOf = acc.openingAsOf || '2000-01-01';
         let bal = acc.opening || 0;
         transactions.forEach(t => {
-            if (t.accountId == accId && t.date >= asOf) {
+            if (t.accountId == accId && t.date >= asOf && (!cutoff || t.date < cutoff)) {
                 if (t.type === 'Receipt') bal += t.grandTotal;   // money in
                 else if (t.type === 'Payment') bal -= t.grandTotal; // money out
             }
         });
         return bal;
     }
+    function accountBalance(accId) {
+        return accountBalanceAsOf(accId, null);
+    }
 
-    // Net closing balance for a party — positive (Dr) means they owe us,
-    // negative (Cr) means we owe them. Same "opening + everything since
-    // openingAsOf" pattern as accountBalance, so Start New Financial Year
-    // (below) can treat parties and accounts identically.
-    function partyBalance(partyId) {
+    // Net closing balance for a party as of a given date (exclusive) —
+    // positive (Dr) means they owe us, negative (Cr) means we owe them.
+    // Pass cutoff=null for "everything, no upper bound" (= partyBalance).
+    // Same "opening + everything since openingAsOf" pattern as
+    // accountBalanceAsOf, so Start New Financial Year (below) and the
+    // per-Financial-Year ledger statement can both use it identically.
+    function partyBalanceAsOf(partyId, cutoff) {
         const p = parties.find(x => x.id == partyId);
         if (!p) return 0;
         const asOf = p.openingAsOf || '2000-01-01';
         let bal = p.opening || 0;
         transactions.forEach(t => {
-            if (t.partyId == partyId && t.date >= asOf) {
+            if (t.partyId == partyId && t.date >= asOf && (!cutoff || t.date < cutoff)) {
                 if (t.type === 'Sales') bal += t.grandTotal;
                 else if (t.type === 'Receipt') bal -= t.grandTotal;
                 else if (t.type === 'Purchase' || t.type === 'RawPurchase') bal -= t.grandTotal;
@@ -3917,6 +4117,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             }
         });
         return bal;
+    }
+    function partyBalance(partyId) {
+        return partyBalanceAsOf(partyId, null);
     }
 
     // ---- Trial Balance ----
@@ -5251,6 +5454,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     // Returns {from, to} Date bounds (inclusive) for the chosen preset, or null for all.
+    // Local-timezone-safe YYYY-MM-DD (avoids the UTC day-shift that
+    // toISOString() can cause for date-only comparisons).
+    function dateToYMD(d) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
     function periodRange(preset, fromStr, toStr) {
         const now = new Date();
         if (preset === 'all') return null;
@@ -5263,8 +5472,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                      to: new Date(now.getFullYear(), now.getMonth(), 0) };
         }
         if (preset === 'thisYear') {
-            // Financial year Apr 1 – Mar 31 (Indian convention)
-            const y = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+            // Financial year Apr 1 - Mar 31 (Indian convention), following
+            // whichever Financial Year is currently active (chosen at
+            // login / the header FY badge) rather than always "today".
+            const y = Number(localStorage.getItem(ACTIVE_FY_KEY)) || currentFinancialYearStart();
             return { from: new Date(y, 3, 1), to: new Date(y + 1, 2, 31) };
         }
         if (preset === 'custom') {
@@ -6793,52 +7004,69 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         let totalDebit = 0;
         let totalCredit = 0;
 
+        // Opening Balance: whatever this ledger's running balance was as of
+        // the moment before this statement's period starts (the active
+        // Financial Year's Apr 1 by default, or the chosen period's start
+        // date if the user picked a different one, or the manual opening
+        // if "All Time" is selected). Always shown — including a plain
+        // ₹0.00 row when there's genuinely no prior balance — so opening
+        // balance behaves the same for every ledger and party rather than
+        // silently disappearing when there's nothing to carry forward.
+        const openingCutoff = (range && range.from) ? dateToYMD(range.from) : null;
         if (isAccount) {
             const acc = accounts.find(a => a.id == id);
             const asOf = acc.openingAsOf || '2000-01-01';
+            const cutoff = openingCutoff || asOf; // no explicit period start -> just the manual base, no txns folded in
+            const opening = accountBalanceAsOf(id, cutoff);
             if (asOf !== '2000-01-01') {
                 document.getElementById('ledgerFilterLabel').innerText +=
                     (document.getElementById('ledgerFilterLabel').innerText ? ' \u2022 ' : '') +
-                    `Opening balance carried forward as of ${asOf} — earlier vouchers aren't included below (they're already folded into the Opening Balance).`;
+                    `Opening Balance reflects everything up to ${cutoff} (manual opening carried forward from ${asOf}) — those vouchers aren't listed again below.`;
+            } else if (openingCutoff) {
+                document.getElementById('ledgerFilterLabel').innerText +=
+                    (document.getElementById('ledgerFilterLabel').innerText ? ' \u2022 ' : '') +
+                    `Opening Balance reflects everything before ${cutoff} — those vouchers aren't listed again below.`;
             }
-            if (acc && acc.opening) {
-                if (acc.opening > 0) totalDebit += acc.opening;
-                else totalCredit += Math.abs(acc.opening);
-                tbody.innerHTML += `
-                    <tr>
-                        <td style="vertical-align:top;">-</td>
-                        <td><strong>Opening Balance</strong></td>
-                        <td style="vertical-align:top;">-</td>
-                        <td style="vertical-align:top;">-</td>
-                        <td style="vertical-align:top;">${acc.opening > 0 ? acc.opening.toFixed(2) : ''}</td>
-                        <td style="vertical-align:top;">${acc.opening < 0 ? Math.abs(acc.opening).toFixed(2) : ''}</td>
-                        <td style="vertical-align:top;">-</td>
-                    </tr>
-                `;
-            }
+            if (opening > 0) totalDebit += opening;
+            else if (opening < 0) totalCredit += Math.abs(opening);
+            tbody.innerHTML += `
+                <tr>
+                    <td style="vertical-align:top;">-</td>
+                    <td><strong>Opening Balance</strong></td>
+                    <td style="vertical-align:top;">-</td>
+                    <td style="vertical-align:top;">-</td>
+                    <td style="vertical-align:top;">${opening > 0 ? opening.toFixed(2) : (opening === 0 ? '0.00' : '')}</td>
+                    <td style="vertical-align:top;">${opening < 0 ? Math.abs(opening).toFixed(2) : ''}</td>
+                    <td style="vertical-align:top;">-</td>
+                </tr>
+            `;
         } else if (!isAggregate) {
             const party = parties.find(p => p.id == id);
             const asOf = party.openingAsOf || '2000-01-01';
+            const cutoff = openingCutoff || asOf;
+            const opening = partyBalanceAsOf(id, cutoff);
             if (asOf !== '2000-01-01') {
                 document.getElementById('ledgerFilterLabel').innerText +=
                     (document.getElementById('ledgerFilterLabel').innerText ? ' \u2022 ' : '') +
-                    `Opening balance carried forward as of ${asOf} — earlier vouchers aren't included below (they're already folded into the Opening Balance).`;
+                    `Opening Balance reflects everything up to ${cutoff} (manual opening carried forward from ${asOf}) — those vouchers aren't listed again below.`;
+            } else if (openingCutoff) {
+                document.getElementById('ledgerFilterLabel').innerText +=
+                    (document.getElementById('ledgerFilterLabel').innerText ? ' \u2022 ' : '') +
+                    `Opening Balance reflects everything before ${cutoff} — those vouchers aren't listed again below.`;
             }
-            if (party && party.opening) {
-                if (party.opening > 0) totalDebit += party.opening;
-                else totalCredit += Math.abs(party.opening);
-                tbody.innerHTML += `
-                    <tr>
-                        <td style="vertical-align:top;">-</td>
-                        <td><strong>Opening Balance</strong></td>
-                        <td style="vertical-align:top;">-</td>
-                        <td style="vertical-align:top;">-</td>
-                        <td style="vertical-align:top;">${party.opening > 0 ? party.opening.toFixed(2) : ''}</td>
-                        <td style="vertical-align:top;">${party.opening < 0 ? Math.abs(party.opening).toFixed(2) : ''}</td>
-                        <td style="vertical-align:top;">-</td>
-                    </tr>
-                `;
-            }
+            if (opening > 0) totalDebit += opening;
+            else if (opening < 0) totalCredit += Math.abs(opening);
+            tbody.innerHTML += `
+                <tr>
+                    <td style="vertical-align:top;">-</td>
+                    <td><strong>Opening Balance</strong></td>
+                    <td style="vertical-align:top;">-</td>
+                    <td style="vertical-align:top;">-</td>
+                    <td style="vertical-align:top;">${opening > 0 ? opening.toFixed(2) : (opening === 0 ? '0.00' : '')}</td>
+                    <td style="vertical-align:top;">${opening < 0 ? Math.abs(opening).toFixed(2) : ''}</td>
+                    <td style="vertical-align:top;">-</td>
+                </tr>
+            `;
         }
 
         if (ledgerTxns.length === 0) {
@@ -8119,6 +8347,131 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         injectUI();
     }
 })();
+</script>
+<script>
+/* =========================================================
+   ADMIN LOGIN GATE
+   Simple local username/password gate for this single-shop
+   admin panel, plus a Financial Year picker (Apr–Mar, Indian
+   convention) that replaces the old "Database" session field.
+   This does NOT touch Firebase sync or filter any data by FY
+   yet — it just records which year the session is working in
+   and shows it as a badge in the header. Change the two
+   constants below to set your real login.
+========================================================= */
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'sarva@2026';
+const LOGIN_SESSION_KEY = 'sarva_admin_session';
+const ACTIVE_FY_KEY = 'sarva_active_fy';
+
+// Indian financial year runs Apr 1 - Mar 31. Returns the starting
+// calendar year of the FY that "today" falls in.
+function currentFinancialYearStart() {
+    const now = new Date();
+    return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+}
+function fyLabel(startYear) {
+    return `FY ${startYear}-${String(startYear + 1).slice(-2)}`;
+}
+
+// Tracks whichever Financial Year is currently chosen on the login
+// screen — set by either clicking the "Current Year" chip or picking
+// a year from the "Other year" dropdown.
+let fySelectedValue = null;
+
+function populateFYOptions() {
+    const curBox = document.getElementById('fyCurrentOption');
+    const sel = document.getElementById('fyOtherSelect');
+    if (!curBox || !sel) return;
+
+    const cur = currentFinancialYearStart();
+    const saved = Number(localStorage.getItem(ACTIVE_FY_KEY)) || cur;
+    fySelectedValue = saved;
+
+    curBox.innerHTML = `<span class="fy-current-label">${fyLabel(cur)}</span><span class="fy-current-sub">Current Year</span>`;
+    curBox.onclick = () => {
+        fySelectedValue = cur;
+        curBox.classList.add('active');
+        sel.value = '';
+    };
+
+    sel.innerHTML = '<option value="">Other year\u2026</option>';
+    // One year ahead through four years back, newest first, skipping
+    // the current year since that's already covered by the chip.
+    for (let y = cur + 1; y >= cur - 4; y--) {
+        if (y === cur) continue;
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = fyLabel(y);
+        sel.appendChild(opt);
+    }
+    sel.onchange = () => {
+        if (sel.value) {
+            fySelectedValue = Number(sel.value);
+            curBox.classList.remove('active');
+        } else {
+            fySelectedValue = cur;
+            curBox.classList.add('active');
+        }
+    };
+
+    // Reflect whatever was saved last time (may not be the current year).
+    if (saved === cur) {
+        curBox.classList.add('active');
+        sel.value = '';
+    } else {
+        curBox.classList.remove('active');
+        sel.value = String(saved);
+    }
+}
+
+function selectedFY() {
+    return fySelectedValue || currentFinancialYearStart();
+}
+
+function dismissLoginError() {
+    document.getElementById('loginError').style.display = 'none';
+}
+
+function handleAdminLogin(e) {
+    e.preventDefault();
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPass').value;
+    if (u === ADMIN_USERNAME && p === ADMIN_PASSWORD) {
+        const fy = selectedFY();
+        localStorage.setItem(LOGIN_SESSION_KEY, '1');
+        localStorage.setItem(ACTIVE_FY_KEY, String(fy));
+        enterApp(fy);
+    } else {
+        document.getElementById('loginErrorText').textContent = 'Invalid Username or Password!';
+        document.getElementById('loginError').style.display = 'flex';
+    }
+    return false;
+}
+
+function enterApp(fy) {
+    document.getElementById('loginGate').style.display = 'none';
+    const badge = document.getElementById('fyActiveBadge');
+    if (badge) {
+        badge.textContent = fyLabel(Number(fy || localStorage.getItem(ACTIVE_FY_KEY) || currentFinancialYearStart()));
+        badge.style.display = 'inline-block';
+    }
+}
+
+function logoutAdmin() {
+    if (!confirm('Log out of the admin panel?')) return;
+    localStorage.removeItem(LOGIN_SESSION_KEY);
+    location.reload();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    populateFYOptions();
+    if (localStorage.getItem(LOGIN_SESSION_KEY) === '1') {
+        enterApp(localStorage.getItem(ACTIVE_FY_KEY));
+    } else {
+        document.getElementById('loginUser').focus();
+    }
+});
 </script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a22d31767a307eea',t:'MTc4NTMzOTMyMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
