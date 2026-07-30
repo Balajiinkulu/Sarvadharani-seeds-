@@ -1882,6 +1882,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelCashReport','Payments &amp; Receipts Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('cashReportBody','payments-receipts-report')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+                <button type="button" data-sort-toggle="cashReport" onclick="toggleSortDir('cashReport', renderCashReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
@@ -2189,6 +2190,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelCustomVoucherList','Voucher Entries')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('customVoucherListBody','voucher-entries')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+                <button type="button" data-sort-toggle="customVoucherList" onclick="toggleSortDir('customVoucherList', renderCustomVoucherList)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -2211,6 +2213,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Sub-Ledger Category Detail (drill-down from Sub-Ledger Report) -->
     <div class="panel" id="panelCategoryDetail">
         <div class="panel-head"><h3 id="catDetailTitle">Category Detail</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+            <button type="button" data-sort-toggle="categoryDetail" onclick="toggleSortDir('categoryDetail', () => openCategoryDetail(currentCategoryDetail))" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+        </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
             <div class="summary-card"><div>Sales in Category</div><div id="catSalesTotal" style="color:var(--success);">&#8377;0.00</div></div>
             <div class="summary-card"><div>Purchases in Category</div><div id="catPurchTotal" style="color:var(--pink);">&#8377;0.00</div></div>
@@ -2316,6 +2321,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelSalesStatement','Sales Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('salesStatementBody','sales-statement')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+                <button type="button" data-sort-toggle="salesStatement" onclick="toggleSortDir('salesStatement', renderSalesStatement)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -2365,6 +2371,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelGstLiability','GST Liability')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('gstLiabilityBody','gst-liability')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+                <button type="button" data-sort-toggle="gstLiability" onclick="toggleSortDir('gstLiability', renderGstLiability)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
@@ -2418,6 +2425,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelPurchaseReport','Purchase Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('purchaseReportBody','purchase-report')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+                <button type="button" data-sort-toggle="purchaseReport" onclick="toggleSortDir('purchaseReport', renderPurchaseReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -2472,6 +2480,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelDeliveryNotes','Delivery Notes')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('deliveryNotesBody','delivery-notes')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+                <button type="button" data-sort-toggle="deliveryNotes" onclick="toggleSortDir('deliveryNotes', renderDeliveryNotes)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -2631,6 +2640,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelProcessedReport','Processed Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('processedReportBody','processed-report')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+                <button type="button" data-sort-toggle="processedReport" onclick="toggleSortDir('processedReport', renderProcessedReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
@@ -2702,6 +2712,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelRawPurchaseReport','Raw Purchase Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('rawPurchaseReportBody','raw-purchase-report')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+                <button type="button" data-sort-toggle="rawPurchaseReport" onclick="toggleSortDir('rawPurchaseReport', renderRawPurchaseReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
@@ -2794,6 +2805,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="summary-card"><div>Optional Sales Total</div><div id="optSalesTotal" style="color:var(--success);">&#8377;0.00</div></div>
             <div class="summary-card"><div>Optional Purchases Total</div><div id="optPurchTotal" style="color:var(--pink);">&#8377;0.00</div></div>
             <div class="summary-card"><div>Optional Vouchers</div><div id="optCount" style="color:var(--accent);">0</div></div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+            <button type="button" data-sort-toggle="optionalVouchers" onclick="toggleSortDir('optionalVouchers', renderOptional)" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
         </div>
         <div class="table-responsive">
             <table>
@@ -3010,6 +3024,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Daybook -->
     <div class="panel" id="panelDaybook">
         <div class="panel-head"><h3>Daybook Transactions</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+            <button type="button" data-sort-toggle="daybook" onclick="toggleSortDir('daybook', render)" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+        </div>
         <div class="table-responsive">
             <table>
                 <thead>
@@ -3055,6 +3072,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelPayments','Payments Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('paymentsBody','payments-statement')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+                <button type="button" data-sort-toggle="payments" onclick="toggleSortDir('payments', () => renderCashList('Payment'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -3103,6 +3121,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelReceipts','Receipts Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('receiptsBody','receipts-statement')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+                <button type="button" data-sort-toggle="receipts" onclick="toggleSortDir('receipts', () => renderCashList('Receipt'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -3153,6 +3172,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <div style="flex:1.5; min-width:200px;">
                     <label>Filter within this ledger</label>
                     <input type="text" id="ledRowFilter" placeholder="Voucher no., party, item..." oninput="refreshLedgerView()" autocomplete="off">
+                </div>
+                <div style="display:flex; flex-direction:column; justify-content:flex-end;">
+                    <label>&nbsp;</label>
+                    <button type="button" data-sort-toggle="ledgerStatement" onclick="toggleSortDir('ledgerStatement', refreshLedgerView)" style="width:auto; padding:10px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); white-space:nowrap;">&#8681; Newest first</button>
                 </div>
                 <button onclick="closeActiveLedger()" style="width:auto; padding:10px 18px; background:#64748b; color:#fff;">&#8592; Choose a different ledger</button>
             </div>
@@ -3716,6 +3739,59 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     function escapeHtml(str) {
         return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // ================================================================
+    // DATE-WISE SORTING (shared by every ledger/report/transaction list)
+    //
+    // Sorts by the transaction's own Date field first (not by when it was
+    // created — those can differ if a voucher is backdated). Same-day
+    // entries keep the order they were actually entered in, using id as
+    // a tiebreaker (ids are creation-time timestamps).
+    //
+    // sortDirFor(listKey) reads/remembers which direction ('desc'/'asc')
+    // each individual list is currently showing, defaulting to 'desc'
+    // (newest date first) the first time a list is opened.
+    // ================================================================
+    const listSortDirs = {};
+
+    function sortDirFor(listKey) {
+        if (!listSortDirs[listKey]) listSortDirs[listKey] = 'desc';
+        return listSortDirs[listKey];
+    }
+
+    function toggleSortDir(listKey, rerenderFn) {
+        listSortDirs[listKey] = (sortDirFor(listKey) === 'desc') ? 'asc' : 'desc';
+        if (typeof rerenderFn === 'function') rerenderFn();
+        else if (typeof window[rerenderFn] === 'function') window[rerenderFn]();
+        updateSortToggleLabel(listKey);
+    }
+
+    // Keeps every "Sort: Newest first / Oldest first" button's label and
+    // icon in sync with the list's actual current direction.
+    function updateSortToggleLabel(listKey) {
+        document.querySelectorAll(`[data-sort-toggle="${listKey}"]`).forEach(btn => {
+            const dir = sortDirFor(listKey);
+            btn.innerHTML = dir === 'desc'
+                ? '&#8681; Newest first'
+                : '&#8679; Oldest first';
+        });
+    }
+
+    // Sorts an array of transaction-like objects (each with .date and .id)
+    // by date, honoring the given list's current direction, with same-day
+    // entries kept in entry order (ascending id) regardless of the overall
+    // direction — so "added one after another" always reads top-to-bottom
+    // the way it was actually entered, even when the list itself is newest-first.
+    function sortByDate(rows, listKey) {
+        const dir = sortDirFor(listKey);
+        const mult = (dir === 'desc') ? -1 : 1;
+        return rows.slice().sort((a, b) => {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            if (dateA !== dateB) return mult * (dateA - dateB);
+            return a.id - b.id; // same-day tiebreak: always entry order
+        });
     }
 
     // Normalizes a name for duplicate-detection purposes only (never used
@@ -5658,9 +5734,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const toStr = document.getElementById(isPay ? 'payTo' : 'rcptTo').value;
         const range = periodRange(preset, fromStr, toStr);
 
-        const rows = transactions
-            .filter(t => t.type === kind && inRange(t.date, range))
-            .sort((a, b) => b.id - a.id);
+        const rows = sortByDate(
+            transactions.filter(t => t.type === kind && inRange(t.date, range)),
+            isPay ? 'payments' : 'receipts'
+        );
 
         const body = document.getElementById(isPay ? 'paymentsBody' : 'receiptsBody');
         body.innerHTML = '';
@@ -5732,7 +5809,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                                   document.getElementById('crFrom').value,
                                   document.getElementById('crTo').value);
 
-        const rows = transactions
+        const rows = sortByDate(transactions
             .filter(t => (t.type === 'Payment' || t.type === 'Receipt'))
             .filter(t => typeFilter === 'both' || t.type === typeFilter)
             .filter(t => {
@@ -5741,8 +5818,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 if (accFilter === 'group:Bank') return bankAccts.some(a => a.id == t.accountId);
                 return t.accountId == accFilter;
             })
-            .filter(t => inRange(t.date, range))
-            .sort((a, b) => b.id - a.id);
+            .filter(t => inRange(t.date, range)), 'cashReport');
 
         const body = document.getElementById('cashReportBody');
         body.innerHTML = '';
@@ -5866,18 +5942,21 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     // Drill into one sub-ledger category: every sale/purchase (incl. optional)
     // tagged with it, each with its inventory line items shown inline.
+    let currentCategoryDetail = null;
+
     function openCategoryDetail(name) {
+        currentCategoryDetail = name;
         document.getElementById('catDetailTitle').innerText = `Category: ${name}`;
         const body = document.getElementById('categoryDetailBody');
         body.innerHTML = '';
 
-        const rows = transactions.filter(t => {
+        const rows = sortByDate(transactions.filter(t => {
             const isSale = (t.type === 'Sales' || t.type === 'OptionalSales');
             const isPurch = (t.type === 'Purchase' || t.type === 'OptionalPurchase');
             if (!isSale && !isPurch) return false;
             const cat = t.subLedger && t.subLedger.trim() ? t.subLedger : 'Uncategorized';
             return cat === name;
-        }).sort((a, b) => b.id - a.id);
+        }), 'categoryDetail');
 
         let salesTotal = 0, purchTotal = 0;
 
@@ -5918,9 +5997,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const range = periodRange(document.getElementById('salesPeriod').value,
                                   document.getElementById('salesFrom').value,
                                   document.getElementById('salesTo').value);
-        const rows = transactions
-            .filter(t => t.type === 'Sales' && inRange(t.date, range))
-            .sort((a, b) => b.id - a.id);
+        const rows = sortByDate(
+            transactions.filter(t => t.type === 'Sales' && inRange(t.date, range)),
+            'salesStatement'
+        );
 
         const body = document.getElementById('salesStatementBody');
         body.innerHTML = '';
@@ -5967,9 +6047,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const range = periodRange(document.getElementById('purchPeriod').value,
                                   document.getElementById('purchFrom').value,
                                   document.getElementById('purchTo').value);
-        const rows = transactions
-            .filter(t => (t.type === 'Purchase' || t.type === 'RawPurchase') && inRange(t.date, range))
-            .sort((a, b) => b.id - a.id);
+        const rows = sortByDate(
+            transactions.filter(t => (t.type === 'Purchase' || t.type === 'RawPurchase') && inRange(t.date, range)),
+            'purchaseReport'
+        );
 
         const body = document.getElementById('purchaseReportBody');
         body.innerHTML = '';
@@ -6024,9 +6105,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         // Same rule the dashboard figure itself uses: Output tax from Sales,
         // Input tax from Purchase only (Raw Purchase is tracked separately
         // and deliberately excluded from the main GST/Purchase totals).
-        const rows = transactions
-            .filter(t => (t.type === 'Sales' || t.type === 'Purchase') && inRange(t.date, range))
-            .sort((a, b) => b.id - a.id);
+        const rows = sortByDate(
+            transactions.filter(t => (t.type === 'Sales' || t.type === 'Purchase') && inRange(t.date, range)),
+            'gstLiability'
+        );
 
         const body = document.getElementById('gstLiabilityBody');
         body.innerHTML = '';
@@ -6072,9 +6154,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const range = periodRange(document.getElementById('dnPeriod').value,
                                   document.getElementById('dnFrom').value,
                                   document.getElementById('dnTo').value);
-        const rows = transactions
-            .filter(t => t.deliveryNote && inRange(t.date, range))
-            .sort((a, b) => b.id - a.id);
+        const rows = sortByDate(
+            transactions.filter(t => t.deliveryNote && inRange(t.date, range)),
+            'deliveryNotes'
+        );
 
         const body = document.getElementById('deliveryNotesBody');
         body.innerHTML = '';
@@ -6471,9 +6554,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const range = periodRange(document.getElementById('prPeriod').value,
                                   document.getElementById('prFrom').value,
                                   document.getElementById('prTo').value);
-        const rows = transactions
-            .filter(t => t.conversion && inRange(t.date, range))
-            .sort((a, b) => b.id - a.id);
+        const rows = sortByDate(
+            transactions.filter(t => t.conversion && inRange(t.date, range)),
+            'processedReport'
+        );
 
         const body = document.getElementById('processedReportBody');
         body.innerHTML = '';
@@ -6550,10 +6634,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                                   document.getElementById('rprTo').value);
         const varietyId = document.getElementById('rprVariety').value;
 
-        const rows = transactions
+        const rows = sortByDate(transactions
             .filter(t => t.type === 'RawPurchase' && inRange(t.date, range))
-            .filter(t => !varietyId || (t.items[0] && t.items[0].itemId == varietyId))
-            .sort((a, b) => b.id - a.id);
+            .filter(t => !varietyId || (t.items[0] && t.items[0].itemId == varietyId)), 'rawPurchaseReport');
 
         const body = document.getElementById('rawPurchaseReportBody');
         body.innerHTML = '';
@@ -6743,9 +6826,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const range = periodRange(document.getElementById('cvPeriod').value,
                                   document.getElementById('cvFrom').value,
                                   document.getElementById('cvTo').value);
-        const rows = transactions
-            .filter(t => t.customVoucherTypeId === currentCustomTypeId && inRange(t.date, range))
-            .sort((a, b) => b.id - a.id);
+        const rows = sortByDate(
+            transactions.filter(t => t.customVoucherTypeId === currentCustomTypeId && inRange(t.date, range)),
+            'customVoucherList'
+        );
 
         const body = document.getElementById('customVoucherListBody');
         body.innerHTML = '';
@@ -6773,7 +6857,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function renderOptional() {
-        const optTxns = transactions.filter(t => t.optional).sort((a, b) => b.id - a.id);
+        const optTxns = sortByDate(transactions.filter(t => t.optional), 'optionalVouchers');
         const body = document.getElementById('optionalBody');
         body.innerHTML = '';
 
@@ -7170,7 +7254,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         tbody.innerHTML = '';
         tfoot.innerHTML = '';
 
-        ledgerTxns = ledgerTxns.slice().sort((a, b) => a.id - b.id);
+        ledgerTxns = sortByDate(ledgerTxns, 'ledgerStatement');
 
         let totalDebit = 0;
         let totalCredit = 0;
@@ -7944,7 +8028,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         const lBody = document.getElementById('ledgerBody');  
         lBody.innerHTML = '';  
-        transactions.slice().reverse().forEach(t => {  
+        sortByDate(transactions, 'daybook').forEach(t => {  
             if (t.optional || t.deliveryNote || t.conversion) return; // shown in their own tiles instead
             const isCash = (t.type === 'Payment' || t.type === 'Receipt');
             const detailCol = isCash ? (escapeHtml(t.accountName || 'Cash') + (t.refInvoiceNo ? ' &rarr; ' + escapeHtml(t.refInvoiceNo) : '')) : `${t.items ? t.items.length : 1} item(s)`;
