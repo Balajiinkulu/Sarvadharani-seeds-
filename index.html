@@ -1146,6 +1146,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <div class="tile-name">Raw Purchase Report</div>
                 <div class="tile-sub">Raw seed bought, by variety &amp; period</div>
             </div>
+            <div class="tile" onclick="openPanel('panelTrialBalance')">
+                <span class="tile-icon">&#9878;&#65039;</span>
+                <div class="tile-name">Trial Balance</div>
+                <div class="tile-sub">Every ledger's Dr/Cr closing balance</div>
+            </div>
         </div>
     </div>
 
@@ -1193,6 +1198,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="col-2">
                 <label>GSTIN (Optional)</label>
                 <input type="text" id="pGstin" placeholder="21AFGFS0227N1Z2">
+            </div>
+            <div>
+                <label>Opening Balance (&#8377;)</label>
+                <input type="number" id="pOpening" step="any" value="0" placeholder="0.00">
+            </div>
+            <div>
+                <label>Balance Type</label>
+                <select id="pOpeningType">
+                    <option value="Dr">Dr (They owe us)</option>
+                    <option value="Cr">Cr (We owe them)</option>
+                </select>
             </div>
             <div class="col-2">
                 <label>Address</label>
@@ -1387,6 +1403,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <label>Opening Balance (&#8377;)</label>
                 <input type="number" id="acctOpening" step="any" value="0" placeholder="0.00">
             </div>
+            <div class="col-2">
+                <label>Opening Balance As Of <span style="color:var(--text-muted); font-weight:normal;">(transactions before this date don't affect the running balance)</span></label>
+                <input type="date" id="acctOpeningAsOf">
+            </div>
             <button type="submit" id="acctSubmitBtn" class="btn-success col-2">Create Account</button>
             <button type="button" id="acctCancelBtn" onclick="cancelAcctEdit()" style="display:none; background:#64748b; color:#fff;" class="col-2">Cancel Edit</button>
         </form>
@@ -1506,6 +1526,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Payments & Receipts Report -->
     <div class="panel" id="panelCashReport">
         <div class="panel-head"><h3>Payments &amp; Receipts Report</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div id="crBalanceStrip" class="dashboard-summary" style="margin-bottom:16px;"></div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;">
             <div style="flex:1; min-width:150px;">
                 <label>Type</label>
@@ -1513,6 +1534,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <option value="both">Payments &amp; Receipts</option>
                     <option value="Receipt">Receipts only</option>
                     <option value="Payment">Payments only</option>
+                </select>
+            </div>
+            <div style="flex:1; min-width:170px;">
+                <label>Cash / Bank Account</label>
+                <select id="crAccount" onchange="renderCashReport()">
+                    <option value="all">All Accounts</option>
+                    <option value="group:Cash">All Cash Accounts</option>
+                    <option value="group:Bank">All Bank Accounts</option>
                 </select>
             </div>
             <div style="flex:1; min-width:150px;">
@@ -1652,6 +1681,21 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="col-2">
                 <label>GSTIN (Optional)</label>
                 <input type="text" id="apGstin" placeholder="21AFGFS0227N1Z2">
+            </div>
+            <div>
+                <label>Opening Balance (&#8377;)</label>
+                <input type="number" id="apOpening" step="any" placeholder="0.00">
+            </div>
+            <div>
+                <label>Balance Type</label>
+                <select id="apOpeningType">
+                    <option value="Dr">Dr (They owe us)</option>
+                    <option value="Cr">Cr (We owe them)</option>
+                </select>
+            </div>
+            <div class="col-2">
+                <label>Opening Balance As Of <span style="color:var(--text-muted); font-weight:normal;">(transactions before this date don't affect the running balance)</span></label>
+                <input type="date" id="apOpeningAsOf">
             </div>
             <div class="col-2">
                 <label>Address</label>
@@ -2377,6 +2421,48 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="rawStockBody"></tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Trial Balance -->
+    <div class="panel" id="panelTrialBalance">
+        <div class="panel-head"><h3>Trial Balance</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div style="background: rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:var(--cyan); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+            &#9432; Every party and Cash/Bank/Capital account's closing balance, as of today, plus Sales, Purchase, and net GST (Duties &amp; Taxes) accumulated all-time. Total Dr should equal Total Cr &mdash; if not, it's usually a sign an Opening Balance was entered inconsistently somewhere. This does not include the value of stock on hand as a ledger figure, since stock is tracked separately in the Stock reports.
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+            <button onclick="printRegion('panelTrialBalance','Trial Balance')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
+            <button onclick="exportTableCSV('trialBalanceBody','trial-balance')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
+        </div>
+        <div class="dashboard-summary" style="margin-bottom:18px;">
+            <div class="summary-card"><div>Total Debit</div><div id="tbTotalDr" style="color:var(--success);">&#8377;0.00</div></div>
+            <div class="summary-card"><div>Total Credit</div><div id="tbTotalCr" style="color:var(--danger);">&#8377;0.00</div></div>
+            <div class="summary-card"><div>Difference</div><div id="tbDifference" style="color:var(--text-muted);">&#8377;0.00</div></div>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Ledger</th>
+                        <th>Group</th>
+                        <th>Debit</th>
+                        <th>Credit</th>
+                    </tr>
+                </thead>
+                <tbody id="trialBalanceBody"></tbody>
+            </table>
+        </div>
+
+        <div class="section-label" style="margin-top:26px;">Start New Financial Year</div>
+        <div style="background: rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); color:#fbbf24; padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:14px;">
+            &#9432; This takes every party's and account's CURRENT closing balance (shown above) and sets it as their new Opening Balance, dated from the day you choose below. It does <strong>not</strong> delete, hide, or lock any past voucher &mdash; every past entry stays fully visible, editable, and deletable exactly as before. It only changes where each ledger's running balance "starts counting from" going forward. You can always undo this manually afterwards by editing a party/account's Opening Balance and Opening Balance As Of date back in Alter Party / Accounts.
+        </div>
+        <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+            <div style="flex:1; min-width:200px;">
+                <label>New Financial Year Starts On</label>
+                <input type="date" id="fyCarryForwardDate">
+            </div>
+            <button type="button" onclick="startNewFinancialYear()" class="btn-success" style="width:auto; padding:11px 18px;">Carry Forward Balances</button>
         </div>
     </div>
 
@@ -3164,20 +3250,34 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         return g ? g.name : 'Uncategorized';
     }
 
-    function nextRefNo(type) {
-        return nextVoucherNo(type, type === 'Receipt' ? 'RCPT' : 'PYMT');
+    // Indian financial year label (1 Apr - 31 Mar), e.g. "25-26" for any
+    // date between 1 Apr 2025 and 31 Mar 2026. Parsed at noon to avoid any
+    // timezone edge case shifting the date across midnight.
+    function financialYearLabel(dateStr) {
+        const d = dateStr ? new Date(dateStr + 'T12:00:00') : new Date();
+        let startYear = d.getFullYear();
+        if (d.getMonth() < 3) startYear -= 1; // Jan/Feb/Mar belong to the FY that started the previous April
+        return String(startYear).slice(-2) + '-' + String(startYear + 1).slice(-2);
     }
 
-    // Sequential, gap-free numbering for every voucher type — required for
-    // GST tax invoices (no repeats, no gaps), and just good bookkeeping
-    // practice everywhere else. Each "key" (Sales, Purchase, DeliveryNote,
-    // a specific custom voucher type id, etc.) gets its own running counter
-    // stored in refCounter, the same object Payment/Receipt already used.
-    function nextVoucherNo(key, prefix, pad) {
-        refCounter[key] = (refCounter[key] || 0) + 1;
+    function nextRefNo(type, dateStr) {
+        return nextVoucherNo(type, type === 'Receipt' ? 'RCPT' : 'PYMT', null, dateStr);
+    }
+
+    // Sequential, gap-free, financial-year-aware numbering for every
+    // voucher type — required for GST tax invoices (no repeats, no gaps
+    // within a year), automatically resets to 1 at the start of each new
+    // financial year (1 April), and branded "SDS" (Sarvadharani Seeds).
+    // Each "key" + financial-year combination gets its own independent
+    // counter stored in refCounter, e.g. Sales_25-26, Sales_26-27, ...
+    // Format: SDS/25-26/INV/0001
+    function nextVoucherNo(key, prefix, pad, dateStr) {
+        const fy = financialYearLabel(dateStr);
+        const counterKey = key + '_' + fy;
+        refCounter[counterKey] = (refCounter[counterKey] || 0) + 1;
         localStorage.setItem('tally_mob_refcounter', JSON.stringify(refCounter));
         syncCloud();
-        return prefix + '-' + String(refCounter[key]).padStart(pad || 4, '0');
+        return `SDS/${fy}/${prefix}/` + String(refCounter[counterKey]).padStart(pad || 4, '0');
     }
 
     // Outstanding still due on a Sales/Purchase invoice (grandTotal minus
@@ -3307,7 +3407,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         panelPendingReceivable: 'groupReports', panelPendingPayable: 'groupReports',
         panelDeliveryNotes: 'groupTransactions',
         panelRawPurchase: 'groupTransactions', panelConversion: 'groupTransactions',
-        panelProcessedReport: 'groupReports', panelRawPurchaseReport: 'groupReports'
+        panelProcessedReport: 'groupReports', panelRawPurchaseReport: 'groupReports', panelTrialBalance: 'groupReports'
     };
     let currentGroup = null;
 
@@ -3359,6 +3459,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (id === 'panelConversion') { populateConversionDropdowns(); document.getElementById('cvDate').valueAsDate = new Date(); }
         if (id === 'panelProcessedReport') renderProcessedReport();
         if (id === 'panelRawPurchaseReport') renderRawPurchaseReport();
+        if (id === 'panelTrialBalance') renderTrialBalance();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -3387,6 +3488,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             if (!proceed) return;
         }
 
+        const openingAmt = Math.abs(parseFloat(document.getElementById('pOpening').value) || 0);
+        const openingSign = document.getElementById('pOpeningType').value === 'Cr' ? -1 : 1;
+
         parties.push({  
             id: Date.now(),  
             type: document.getElementById('pType').value,
@@ -3394,12 +3498,16 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             phone: document.getElementById('pPhone').value.trim(),  
             gstin: document.getElementById('pGstin').value.trim(),
             address: document.getElementById('pAddress').value.trim(),
-            groupId: groupId
+            groupId: groupId,
+            opening: openingAmt * openingSign,
+            openingAsOf: '2000-01-01'
         });  
         localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
         syncCloud();  
         document.getElementById('pGroupQuickAdd').classList.remove('active');
         document.getElementById('pGroupQuickInput').value = '';
+        document.getElementById('pOpening').value = '0';
+        document.getElementById('pOpeningType').value = 'Dr';
         e.target.reset();  
         render();  
     });  
@@ -3436,12 +3544,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             return;
         }
         parties.forEach(p => {
+            const bal = partyBalance(p.id);
             body.innerHTML += `
                 <tr>
                     <td><strong>${escapeHtml(p.name)}</strong></td>
                     <td>${escapeHtml(p.type)}</td>
                     <td>${escapeHtml(p.phone || '-')}</td>
-                    <td>${escapeHtml(p.gstin || '-')}</td>
+                    <td style="color:${bal >= 0 ? 'var(--success)' : 'var(--danger)'};">\u20B9${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}</td>
                     <td><button onclick="editPartyAlter(${p.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button></td>
                 </tr>
             `;
@@ -3464,6 +3573,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('apName').value = p.name;
         groupSel.value = p.groupId || '';
         document.getElementById('apGstin').value = p.gstin || '';
+        document.getElementById('apOpening').value = Math.abs(p.opening || 0);
+        document.getElementById('apOpeningType').value = (p.opening || 0) < 0 ? 'Cr' : 'Dr';
+        document.getElementById('apOpeningAsOf').value = p.openingAsOf || '2000-01-01';
         document.getElementById('apAddress').value = p.address || '';
         document.getElementById('alterPartyForm').style.display = 'grid';
         window.scrollTo({ top: document.getElementById('alterPartyForm').offsetTop - 20, behavior: 'smooth' });
@@ -3489,6 +3601,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         p.groupId = groupId;
         p.gstin = document.getElementById('apGstin').value.trim();
         p.address = document.getElementById('apAddress').value.trim();
+        const openingAmt = Math.abs(parseFloat(document.getElementById('apOpening').value) || 0);
+        const openingSign = document.getElementById('apOpeningType').value === 'Cr' ? -1 : 1;
+        p.opening = openingAmt * openingSign;
+        p.openingAsOf = document.getElementById('apOpeningAsOf').value || '2000-01-01';
 
         localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
         syncCloud();
@@ -3754,7 +3870,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             name: document.getElementById('acctName').value.trim(),
             type: document.getElementById('acctType').value,
             groupId: groupId,
-            opening: parseFloat(document.getElementById('acctOpening').value) || 0
+            opening: parseFloat(document.getElementById('acctOpening').value) || 0,
+            openingAsOf: document.getElementById('acctOpeningAsOf').value || '2000-01-01'
         };
         if (editId) {
             const acc = accounts.find(a => a.id == editId);
@@ -3771,14 +3888,139 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     function accountBalance(accId) {
         const acc = accounts.find(a => a.id == accId);
         if (!acc) return 0;
+        const asOf = acc.openingAsOf || '2000-01-01';
         let bal = acc.opening || 0;
         transactions.forEach(t => {
-            if (t.accountId == accId) {
+            if (t.accountId == accId && t.date >= asOf) {
                 if (t.type === 'Receipt') bal += t.grandTotal;   // money in
                 else if (t.type === 'Payment') bal -= t.grandTotal; // money out
             }
         });
         return bal;
+    }
+
+    // Net closing balance for a party — positive (Dr) means they owe us,
+    // negative (Cr) means we owe them. Same "opening + everything since
+    // openingAsOf" pattern as accountBalance, so Start New Financial Year
+    // (below) can treat parties and accounts identically.
+    function partyBalance(partyId) {
+        const p = parties.find(x => x.id == partyId);
+        if (!p) return 0;
+        const asOf = p.openingAsOf || '2000-01-01';
+        let bal = p.opening || 0;
+        transactions.forEach(t => {
+            if (t.partyId == partyId && t.date >= asOf) {
+                if (t.type === 'Sales') bal += t.grandTotal;
+                else if (t.type === 'Receipt') bal -= t.grandTotal;
+                else if (t.type === 'Purchase' || t.type === 'RawPurchase') bal -= t.grandTotal;
+                else if (t.type === 'Payment') bal += t.grandTotal;
+            }
+        });
+        return bal;
+    }
+
+    // ---- Trial Balance ----
+    function renderTrialBalance() {
+        // Default the carry-forward date to the next 1 April if the user
+        // hasn't picked one yet, purely as a convenient starting point.
+        const dateInput = document.getElementById('fyCarryForwardDate');
+        if (!dateInput.value) {
+            const today = new Date();
+            let nextApril = today.getMonth() < 3 ? today.getFullYear() : today.getFullYear() + 1;
+            dateInput.value = `${nextApril}-04-01`;
+        }
+
+        const rows = [];
+        let totalDr = 0, totalCr = 0;
+
+        parties.forEach(p => {
+            const bal = partyBalance(p.id);
+            if (Math.abs(bal) < 0.005) return;
+            const group = ledgerGroups.find(g => g.id == p.groupId);
+            rows.push({ name: p.name, group: group ? group.name : '-', dr: bal > 0 ? bal : 0, cr: bal < 0 ? -bal : 0 });
+            if (bal > 0) totalDr += bal; else totalCr += -bal;
+        });
+
+        accounts.forEach(a => {
+            const bal = accountBalance(a.id);
+            if (Math.abs(bal) < 0.005) return;
+            const group = ledgerGroups.find(g => g.id == a.groupId);
+            rows.push({ name: `${a.name} (${a.type})`, group: group ? group.name : '-', dr: bal > 0 ? bal : 0, cr: bal < 0 ? -bal : 0 });
+            if (bal > 0) totalDr += bal; else totalCr += -bal;
+        });
+
+        // Sales / Purchase / Raw Purchase Accounts — all-time taxable value
+        // (the GST itself is booked separately, below, as Duties & Taxes).
+        const salesTaxable = transactions.filter(t => t.type === 'Sales').reduce((s, t) => s + t.taxable, 0);
+        if (salesTaxable > 0.005) { rows.push({ name: 'Sales Account', group: 'Income', dr: 0, cr: salesTaxable }); totalCr += salesTaxable; }
+
+        const purchaseTaxable = transactions.filter(t => t.type === 'Purchase').reduce((s, t) => s + t.taxable, 0);
+        if (purchaseTaxable > 0.005) { rows.push({ name: 'Purchase Account', group: 'Expenses', dr: purchaseTaxable, cr: 0 }); totalDr += purchaseTaxable; }
+
+        const rawPurchaseTaxable = transactions.filter(t => t.type === 'RawPurchase').reduce((s, t) => s + t.taxable, 0);
+        if (rawPurchaseTaxable > 0.005) { rows.push({ name: 'Raw Purchase Account', group: 'Expenses', dr: rawPurchaseTaxable, cr: 0 }); totalDr += rawPurchaseTaxable; }
+
+        // Duties & Taxes — net GST (Output from Sales minus Input from
+        // Purchase), same convention as the GST Liability report.
+        const outputTax = transactions.filter(t => t.type === 'Sales').reduce((s, t) => s + t.totalTax, 0);
+        const inputTax = transactions.filter(t => t.type === 'Purchase').reduce((s, t) => s + t.totalTax, 0);
+        const netGst = outputTax - inputTax;
+        if (netGst > 0.005) { rows.push({ name: 'Duties & Taxes (GST Payable)', group: 'Liabilities', dr: 0, cr: netGst }); totalCr += netGst; }
+        else if (netGst < -0.005) { rows.push({ name: 'Duties & Taxes (GST Credit Carried Forward)', group: 'Assets', dr: -netGst, cr: 0 }); totalDr += -netGst; }
+
+        rows.sort((a, b) => a.name.localeCompare(b.name));
+
+        const body = document.getElementById('trialBalanceBody');
+        if (rows.length === 0) {
+            body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No ledger balances yet.</td></tr>';
+        } else {
+            body.innerHTML = rows.map(r => `
+                <tr>
+                    <td>${escapeHtml(r.name)}</td>
+                    <td style="color:var(--text-muted);">${escapeHtml(r.group)}</td>
+                    <td style="color:var(--success);">${r.dr > 0 ? '\u20B9' + r.dr.toFixed(2) : '-'}</td>
+                    <td style="color:var(--danger);">${r.cr > 0 ? '\u20B9' + r.cr.toFixed(2) : '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('tbTotalDr').innerText = `\u20B9${totalDr.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('tbTotalCr').innerText = `\u20B9${totalCr.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        const diff = totalDr - totalCr;
+        const diffEl = document.getElementById('tbDifference');
+        diffEl.innerText = `\u20B9${Math.abs(diff).toFixed(2)}`;
+        diffEl.style.color = Math.abs(diff) < 0.01 ? 'var(--success)' : 'var(--danger)';
+    }
+
+    // Snapshots every party's and account's CURRENT closing balance as
+    // their new Opening Balance from the chosen date onward. Nothing is
+    // deleted — every past voucher stays exactly as editable/deletable as
+    // it always was; this only moves where the running-balance count
+    // starts from, same as closing a financial year in any accounting
+    // system.
+    function startNewFinancialYear() {
+        const asOfDate = document.getElementById('fyCarryForwardDate').value;
+        if (!asOfDate) return alert("Please choose the date the new financial year starts on.");
+
+        const confirmMsg = `This will set every party's and account's current closing balance as their new Opening Balance, effective ${asOfDate}.\n\nPast vouchers are NOT deleted or locked — they stay fully visible and editable.\n\nProceed?`;
+        if (!confirm(confirmMsg)) return;
+
+        parties.forEach(p => {
+            p.opening = partyBalance(p.id);
+            p.openingAsOf = asOfDate;
+        });
+        accounts.forEach(a => {
+            a.opening = accountBalance(a.id);
+            a.openingAsOf = asOfDate;
+        });
+
+        localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
+        localStorage.setItem('tally_mob_accounts', JSON.stringify(accounts));
+        syncCloud();
+
+        render();
+        renderTrialBalance();
+        alert(`Done. Opening balances carried forward as of ${asOfDate}.`);
     }
 
     function editAccount(accId) {
@@ -3789,6 +4031,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('acctType').value = acc.type;
         document.getElementById('acctGroup').value = acc.groupId || '';
         document.getElementById('acctOpening').value = acc.opening;
+        document.getElementById('acctOpeningAsOf').value = acc.openingAsOf || '2000-01-01';
         document.getElementById('acctPanelTitle').innerText = 'Edit Account';
         document.getElementById('acctSubmitBtn').innerText = 'Save Changes';
         document.getElementById('acctCancelBtn').style.display = 'block';
@@ -4318,7 +4561,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
             const cashTxn = {
                 id: Date.now(),
-                invNo: nextRefNo(type),
+                invNo: nextRefNo(type, document.getElementById('vDate').value),
                 date: document.getElementById('vDate').value,
                 type: type,
                 accountId: accountId,
@@ -4367,7 +4610,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
             const dnTxn = {
                 id: Date.now(),
-                invNo: nextVoucherNo('DeliveryNote', 'DN'),
+                invNo: nextVoucherNo('DeliveryNote', 'DN', null, document.getElementById('vDate').value),
                 date: document.getElementById('vDate').value,
                 type: 'DeliveryNote',
                 deliveryNote: true,
@@ -4447,7 +4690,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
             const ctTxn = {
                 id: Date.now(),
-                invNo: nextVoucherNo('custom_' + type, customType.prefix || 'CV'),
+                invNo: nextVoucherNo('custom_' + type, customType.prefix || 'CV', null, document.getElementById('vDate').value),
                 date: document.getElementById('vDate').value,
                 type: type,
                 customVoucherTypeId: type,
@@ -4495,7 +4738,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
             const optTxn = {
                 id: Date.now(),
-                invNo: isSale ? nextVoucherNo('OptionalSales', 'OPT-S') : nextVoucherNo('OptionalPurchase', 'OPT-P'),
+                invNo: isSale ? nextVoucherNo('OptionalSales', 'OPT-S', null, document.getElementById('vDate').value) : nextVoucherNo('OptionalPurchase', 'OPT-P', null, document.getElementById('vDate').value),
                 date: document.getElementById('vDate').value,
                 type: type,
                 optional: true,
@@ -4579,7 +4822,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const counterKey = type === 'Sales' ? 'Sales' : isRawPurchase ? 'RawPurchase' : 'Purchase';
         const txn = {
             id: Date.now(),
-            invNo: nextVoucherNo(counterKey, invPrefix),
+            invNo: nextVoucherNo(counterKey, invPrefix, null, document.getElementById('vDate').value),
             date: document.getElementById('vDate').value,
             type: type,
             rawPurchase: isRawPurchase,
@@ -5091,7 +5334,32 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function renderCashReport() {
+        // Keep the account filter's option list current (accounts can be
+        // added/renamed at any time).
+        const accSel = document.getElementById('crAccount');
+        const prevAccSel = accSel.value;
+        accSel.innerHTML = '<option value="all">All Accounts</option><option value="group:Cash">All Cash Accounts</option><option value="group:Bank">All Bank Accounts</option>';
+        accounts.forEach(a => {
+            accSel.innerHTML += `<option value="${a.id}">${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`;
+        });
+        if ([...accSel.options].some(o => o.value === prevAccSel)) accSel.value = prevAccSel;
+
+        // Live balance strip — every Cash account and every Bank account
+        // shown separately, so the two are never lumped into one figure.
+        const stripEl = document.getElementById('crBalanceStrip');
+        const cashAccts = accounts.filter(a => a.type === 'Cash');
+        const bankAccts = accounts.filter(a => a.type === 'Bank');
+        let stripHtml = '';
+        cashAccts.forEach(a => {
+            stripHtml += `<div class="summary-card" style="cursor:default;"><div>Cash: ${escapeHtml(a.name)}</div><div style="color:var(--success);">\u20B9${accountBalance(a.id).toLocaleString('en-IN', {minimumFractionDigits: 2})}</div></div>`;
+        });
+        bankAccts.forEach(a => {
+            stripHtml += `<div class="summary-card" style="cursor:default;"><div>Bank: ${escapeHtml(a.name)}</div><div style="color:var(--accent);">\u20B9${accountBalance(a.id).toLocaleString('en-IN', {minimumFractionDigits: 2})}</div></div>`;
+        });
+        stripEl.innerHTML = stripHtml || '<div class="summary-card" style="cursor:default;"><div>No Cash/Bank accounts yet</div><div style="color:var(--text-muted);">Add one under Accounts</div></div>';
+
         const typeFilter = document.getElementById('crType').value;
+        const accFilter = accSel.value;
         const range = periodRange(document.getElementById('crPeriod').value,
                                   document.getElementById('crFrom').value,
                                   document.getElementById('crTo').value);
@@ -5099,6 +5367,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const rows = transactions
             .filter(t => (t.type === 'Payment' || t.type === 'Receipt'))
             .filter(t => typeFilter === 'both' || t.type === typeFilter)
+            .filter(t => {
+                if (accFilter === 'all') return true;
+                if (accFilter === 'group:Cash') return cashAccts.some(a => a.id == t.accountId);
+                if (accFilter === 'group:Bank') return bankAccts.some(a => a.id == t.accountId);
+                return t.accountId == accFilter;
+            })
             .filter(t => inRange(t.date, range))
             .sort((a, b) => b.id - a.id);
 
@@ -5630,7 +5904,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         const txn = {
             id: Date.now(),
-            invNo: nextVoucherNo('RawPurchase', 'RPUR'),
+            invNo: nextVoucherNo('RawPurchase', 'RPUR', null, document.getElementById('rpDate').value),
             date: document.getElementById('rpDate').value,
             type: 'RawPurchase',
             rawPurchase: true,
@@ -5760,7 +6034,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         const conv = {
             id: Date.now(),
-            invNo: nextVoucherNo('Conversion', 'CONV'),
+            invNo: nextVoucherNo('Conversion', 'CONV', null, document.getElementById('cvDate').value),
             date: document.getElementById('cvDate').value,
             type: 'Conversion',
             conversion: true,
