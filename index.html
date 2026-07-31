@@ -3847,8 +3847,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     const PERMISSION_DEFS = [
         { key: 'editVoucher',    label: 'Edit a voucher' },
         { key: 'deleteVoucher',  label: 'Delete a voucher' },
+        { key: 'editParty',      label: 'Edit a party' },
         { key: 'deleteParty',    label: 'Delete a party' },
+        { key: 'editAccount',    label: 'Edit a cash/bank account' },
         { key: 'deleteAccount',  label: 'Delete a cash/bank account' },
+        { key: 'editItem',       label: 'Edit a stock item' },
         { key: 'deleteItem',     label: 'Delete a stock item' },
         { key: 'deleteGroup',    label: 'Delete a ledger/stock group' },
         { key: 'editOpening',    label: 'Edit opening balances' },
@@ -4184,6 +4187,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     document.getElementById('alterPartyForm').addEventListener('submit', (e) => {
         e.preventDefault();
+        if (!isAdmin() && !hasPermission('editParty')) return alert("Only an admin, or a user with 'Edit a party' turned on, can edit a party.");
         const editId = document.getElementById('apEditId').value;
         const p = parties.find(x => x.id == editId);
         if (!p) return;
@@ -4237,6 +4241,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         };
 
         if (editId) {
+            if (!isAdmin() && !hasPermission('editItem')) return alert("Only an admin, or a user with 'Edit a stock item' turned on, can edit a stock item.");
             const item = stockItems.find(s => s.id == editId);
             if (item) Object.assign(item, data);
         } else {
@@ -4478,6 +4483,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (editId) {
             const acc = accounts.find(a => a.id == editId);
             if (!acc) return;
+            if (!isAdmin() && !hasPermission('editAccount')) return alert("Only an admin, or a user with 'Edit a cash/bank account' turned on, can edit an account.");
             if ((data.opening !== (acc.opening || 0) || data.openingAsOf !== (acc.openingAsOf || '2000-01-01')) && !isAdmin() && !hasPermission('editOpening')) {
                 return alert("You don't have access to change an account's Opening Balance. The rest of your changes were not saved either — please undo the Opening Balance edit and try again.");
             }
