@@ -1241,6 +1241,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <div class="fy-active-badge" id="fyActiveBadge" title="Current Financial Year">FY —</div>
             <div class="gst-badge" id="signedInBadge" style="display:none;" title="Signed in account"></div>
+            <div class="gst-badge" id="roleBadge" style="display:none;" title="Your access level"></div>
             <div class="gst-badge">GSTIN: 21AFGFS0227N1Z2</div>
             <button type="button" id="powerBtn" onclick="togglePowerMenu()" title="Log out" aria-haspopup="true" aria-expanded="false"
                 style="width:auto; padding:8px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:50%; line-height:1; font-size:1rem; position:relative;">
@@ -1298,15 +1299,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             </div>
             <div class="tile" onclick="openGroup('groupSettings')">
                 <span class="tile-icon">&#9881;&#65039;</span>
-                <div class="tile-name">Settings</div>
-                <div class="tile-sub">Password &amp; app preferences</div>
+                <div class="tile-name">Admin</div>
+                <div class="tile-sub">Password, users &amp; app preferences</div>
             </div>
         </div>
     </div>
 
-    <!-- SUB-MENU: SETTINGS -->
+    <!-- SUB-MENU: SETTINGS (tile renamed to "Admin"; internal ids unchanged) -->
     <div class="submenu" id="groupSettings">
-        <div class="panel-head"><h3>Settings</h3><button class="back-btn" onclick="backToGroups()">&#8592; Back</button></div>
+        <div class="panel-head"><h3>Admin</h3><button class="back-btn" onclick="backToGroups()">&#8592; Back</button></div>
         <div class="tile-grid">
             <div class="tile" onclick="openChangePasswordModal()">
                 <span class="tile-icon">&#128272;</span>
@@ -1323,6 +1324,60 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <div class="tile-name">Company Mobile Number</div>
                 <div class="tile-sub">Shown on printed invoices</div>
             </div>
+            <div class="tile" id="manageStaffTile" onclick="openPanel('panelManageStaff')" style="display:none;">
+                <span class="tile-icon">&#128100;</span>
+                <div class="tile-name">Users</div>
+                <div class="tile-sub">Who can sign in, and exactly what they can do</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users (renamed from "Manage Staff Access"; internal ids unchanged) -->
+    <div class="panel" id="panelManageStaff">
+        <div class="panel-head"><h3>Users</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div style="background: rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:var(--cyan); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+            &#9432; <strong>Admin</strong> always has full authority over everything. Everyone else is a <strong>User</strong> &mdash; open a user below to turn their individual permissions on or off exactly as needed, instead of one fixed bundle. Each account must already exist in the Firebase Console (Authentication &gt; Users) before you can assign it here.
+        </div>
+        <div style="display:flex; gap:8px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:220px;">
+                <label>User's Email</label>
+                <input type="email" id="newStaffEmail" placeholder="staff@example.com">
+            </div>
+            <div style="flex:1; min-width:140px;">
+                <label>Role</label>
+                <select id="newStaffRole">
+                    <option value="staff">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <button type="button" onclick="setStaffRole()" class="btn-success" style="width:auto; padding:11px 18px;">Save</button>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="manageStaffBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Per-user permission toggles (opened from the Users list) -->
+    <div id="userPermissionsModal" style="display:none; position:fixed; inset:0; background:rgba(20,32,26,0.55); z-index:150; padding:30px 16px; overflow-y:auto; justify-content:center; align-items:flex-start;">
+        <div class="edit-box" style="max-width:520px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <h3 style="margin:0;">Permissions for <span id="permUserEmail" style="color:var(--accent);"></span></h3>
+                <button type="button" onclick="closeUserPermissionsModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
+                Turn on exactly what this person should be able to do. Everything starts off &mdash; nothing here is assumed.
+            </p>
+            <div id="permUserToggleList" style="display:flex; flex-direction:column; gap:2px; margin-bottom:8px;"></div>
+            <button type="button" onclick="saveUserPermissions()" class="btn-success" style="margin-top:12px;">Save Permissions</button>
         </div>
     </div>
 
@@ -3430,7 +3485,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             CLOUD_DOC.set({
                 parties, stockItems, transactions, accounts,
                 stockGroups, ledgerGroups, refCounter, subLedgers,
-                customVoucherTypes, updatedAt: Date.now()
+                customVoucherTypes, userRoles, updatedAt: Date.now()
             }, { merge: true }).catch(err => console.error('Cloud sync failed:', err));
         }, 400);
     }
@@ -3449,6 +3504,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         refCounter = data.refCounter || { Payment: 0, Receipt: 0 };
         subLedgers = data.subLedgers || [];
         customVoucherTypes = data.customVoucherTypes || [];
+        userRoles = data.userRoles || {};
 
         localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
         localStorage.setItem('tally_mob_stock', JSON.stringify(stockItems));
@@ -3459,6 +3515,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         localStorage.setItem('tally_mob_refcounter', JSON.stringify(refCounter));
         localStorage.setItem('tally_mob_subledgers', JSON.stringify(subLedgers));
         localStorage.setItem('tally_mob_vouchertypes', JSON.stringify(customVoucherTypes));
+        localStorage.setItem('tally_mob_userroles', JSON.stringify(userRoles));
 
         if (typeof render === 'function') render();
     }
@@ -3484,6 +3541,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     // pushed from another device) — safe to apply.
                     cloudBootstrapped = true;
                     applyCloudData(snap.data());
+                    ensureRoleBootstrap();
                 } else {
                     cloudBootstrapped = true;
                 }
@@ -3492,6 +3550,36 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             console.warn('Cloud sync waiting for authentication...');
         }
     });
+
+    // The very first person ever to sign in (before any roles exist at
+    // all) becomes admin automatically — after that, every other account
+    // defaults to 'staff' explicitly and must be promoted by an admin.
+    // This only runs once: as soon as userRoles has any entry, it does
+    // nothing on subsequent logins.
+    function ensureRoleBootstrap() {
+        const email = cloudAuth.currentUser && cloudAuth.currentUser.email;
+        if (!email) return;
+        if (Object.keys(userRoles).length === 0) {
+            userRoles[email] = 'admin';
+            localStorage.setItem('tally_mob_userroles', JSON.stringify(userRoles));
+            syncCloud();
+        } else if (!(email in userRoles)) {
+            userRoles[email] = 'staff';
+            localStorage.setItem('tally_mob_userroles', JSON.stringify(userRoles));
+            syncCloud();
+        }
+        if (typeof applyRolePermissions === 'function') applyRolePermissions();
+    }
+
+    function isAdmin() {
+        const email = cloudAuth.currentUser && cloudAuth.currentUser.email;
+        if (!email) return false;
+        return userRoles[email] === 'admin';
+    }
+
+    function currentUserEmail() {
+        return (cloudAuth.currentUser && cloudAuth.currentUser.email) || '';
+    }
 </script>
 
 <script>  
@@ -3575,6 +3663,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     let refCounter = JSON.parse(localStorage.getItem('tally_mob_refcounter')) || { Payment: 0, Receipt: 0 };
     let subLedgers = JSON.parse(localStorage.getItem('tally_mob_subledgers')) || [];
     let customVoucherTypes = JSON.parse(localStorage.getItem('tally_mob_vouchertypes')) || [];
+    let userRoles = JSON.parse(localStorage.getItem('tally_mob_userroles')) || {};
     let currentVoucherItems = [];
 
     // Seed the three default sale/purchase categories the first time only.
@@ -3742,6 +3831,80 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     // ================================================================
+    // PER-USER GRANULAR PERMISSIONS
+    //
+    // "Admin" is unchanged — userRoles[email] === 'admin' still means full
+    // authority over everything, exactly as before.
+    //
+    // A "User" (renamed from the old fixed "Staff" role) is no longer one
+    // fixed bundle. userRoles[email] for a User is now an OBJECT of
+    // individual Yes/No permission flags, not the plain string 'staff'.
+    // Older accounts that still have the plain string 'staff' saved from
+    // before this change are treated as ALL PERMISSIONS OFF by default —
+    // exactly what the old "Staff" role already restricted them to for
+    // deletes/opening-balance/FY, so nobody who already existed suddenly
+    // gains new abilities just because the data shape changed under them.
+    // An admin can open Users at any time and turn on whichever specific
+    // permissions that account should actually have.
+    // ================================================================
+    const PERMISSION_DEFS = [
+        { key: 'editVoucher',    label: 'Edit a voucher' },
+        { key: 'deleteVoucher',  label: 'Delete a voucher' },
+        { key: 'deleteParty',    label: 'Delete a party' },
+        { key: 'deleteAccount',  label: 'Delete a cash/bank account' },
+        { key: 'deleteGroup',    label: 'Delete a ledger/stock group' },
+        { key: 'editOpening',    label: 'Edit opening balances' },
+        { key: 'newFinancialYear', label: 'Start a new financial year' },
+        { key: 'manageUsers',    label: "Manage other users' access" },
+        { key: 'createMasters',  label: 'Create parties, items, accounts (Masters)' },
+        { key: 'postVouchers',   label: 'Post new vouchers (Sales, Purchase, Payment, Receipt, etc.)' },
+        { key: 'viewReports',    label: 'View reports (Ledger, Sales Statement, GST Liability, etc.)' },
+        { key: 'exportPrint',    label: 'Export / print (PDF, CSV, invoices)' },
+        { key: 'rawAndConversion', label: 'View/access Raw Purchase &amp; Conversion (stock processing) features and reports' }
+    ];
+
+    // The role object a brand-new User account starts with — every
+    // permission off, same as the old fixed Staff restriction, until an
+    // admin explicitly turns something on for them.
+    function blankPermissions() {
+        const perms = {};
+        PERMISSION_DEFS.forEach(p => { perms[p.key] = false; });
+        return perms;
+    }
+
+    // True/false for one specific permission, for a given email (defaults
+    // to the currently signed-in user). Admins always pass every check.
+    // Handles both the new object shape and an older plain 'staff' string
+    // (no permissions) so nothing breaks for an account created before
+    // this feature existed.
+    function hasPermission(permKey, email) {
+        const who = email || currentUserEmail();
+        if (!who) return false;
+        if (userRoles[who] === 'admin') return true;
+        const entry = userRoles[who];
+        if (!entry || typeof entry === 'string') return false; // old 'staff' string, or no entry at all
+        return !!entry[permKey];
+    }
+
+    // Panels that require a specific permission just to open. Anything
+    // NOT listed here has always been open to any signed-in user (posting
+    // the main voucher screen itself, viewing the dashboard, etc. are
+    // intentionally left unrestricted — only the sensitive/admin-style
+    // areas are gated).
+    const PANEL_PERMISSIONS = {
+        panelParty: 'createMasters', panelItem: 'createMasters', panelAccounts: 'createMasters',
+        panelStockGroup: 'createMasters', panelLedgerGroup: 'createMasters',
+        panelVoucherTypes: 'createMasters',
+        panelRawPurchase: 'rawAndConversion', panelConversion: 'rawAndConversion',
+        panelProcessedReport: 'rawAndConversion', panelRawPurchaseReport: 'rawAndConversion',
+        panelLedger: 'viewReports', panelSalesStatement: 'viewReports', panelPurchaseReport: 'viewReports',
+        panelGstLiability: 'viewReports', panelSubLedgerReport: 'viewReports', panelCashReport: 'viewReports',
+        panelPendingReceivable: 'viewReports', panelPendingPayable: 'viewReports',
+        panelTrialBalance: 'viewReports', panelCategoryDetail: 'viewReports',
+        panelDaybook: 'viewReports', panelDeliveryNotes: 'viewReports'
+    };
+
+    // ================================================================
     // DATE-WISE SORTING (shared by every ledger/report/transaction list)
     //
     // Sorts by the transaction's own Date field first (not by when it was
@@ -3831,7 +3994,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         panelPendingReceivable: 'groupReports', panelPendingPayable: 'groupReports',
         panelDeliveryNotes: 'groupTransactions',
         panelRawPurchase: 'groupTransactions', panelConversion: 'groupTransactions',
-        panelProcessedReport: 'groupReports', panelRawPurchaseReport: 'groupReports', panelTrialBalance: 'groupReports'
+        panelProcessedReport: 'groupReports', panelRawPurchaseReport: 'groupReports', panelTrialBalance: 'groupReports',
+        panelManageStaff: 'groupSettings'
     };
     let currentGroup = null;
 
@@ -3859,6 +4023,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     // Open a specific panel (remembers which sub-menu it belongs to).
     function openPanel(id) {
+        const requiredPerm = PANEL_PERMISSIONS[id];
+        if (requiredPerm && !isAdmin() && !hasPermission(requiredPerm)) {
+            alert("Your account doesn't have access to this. Ask an admin to enable it for you under Admin \u2192 Users.");
+            return;
+        }
         hideAllMenus();
         currentGroup = PANEL_GROUP[id] || null;
         const panel = document.getElementById(id);
@@ -3884,6 +4053,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (id === 'panelProcessedReport') renderProcessedReport();
         if (id === 'panelRawPurchaseReport') renderRawPurchaseReport();
         if (id === 'panelTrialBalance') renderTrialBalance();
+        if (id === 'panelManageStaff') {
+            if (!isAdmin() && !hasPermission('manageUsers')) { alert("Only an admin, or a user with 'Manage other users' access' turned on, can open Users."); closePanel(); return; }
+            renderManageStaff();
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -4025,10 +4198,16 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         p.groupId = groupId;
         p.gstin = document.getElementById('apGstin').value.trim();
         p.address = document.getElementById('apAddress').value.trim();
+
         const openingAmt = Math.abs(parseFloat(document.getElementById('apOpening').value) || 0);
         const openingSign = document.getElementById('apOpeningType').value === 'Cr' ? -1 : 1;
-        p.opening = openingAmt * openingSign;
-        p.openingAsOf = document.getElementById('apOpeningAsOf').value || '2000-01-01';
+        const newOpening = openingAmt * openingSign;
+        const newOpeningAsOf = document.getElementById('apOpeningAsOf').value || '2000-01-01';
+        if ((newOpening !== (p.opening || 0) || newOpeningAsOf !== (p.openingAsOf || '2000-01-01')) && !isAdmin() && !hasPermission('editOpening')) {
+            return alert("You don't have access to change a party's Opening Balance. The rest of your changes were not saved either — please undo the Opening Balance edit and try again.");
+        }
+        p.opening = newOpening;
+        p.openingAsOf = newOpeningAsOf;
 
         localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
         syncCloud();
@@ -4228,6 +4407,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function deleteStockGroup(groupId) {
+        if (!isAdmin() && !hasPermission('deleteGroup')) return alert("Only an admin, or a user with 'Delete a ledger/stock group' turned on, can delete a group.");
         const used = stockItems.some(i => i.groupId == groupId);
         if (used) return alert("Cannot delete a group that has stock items in it. Move those items to another group first.");
         const g = stockGroups.find(s => s.id == groupId);
@@ -4299,7 +4479,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         };
         if (editId) {
             const acc = accounts.find(a => a.id == editId);
-            if (acc) Object.assign(acc, data);
+            if (!acc) return;
+            if ((data.opening !== (acc.opening || 0) || data.openingAsOf !== (acc.openingAsOf || '2000-01-01')) && !isAdmin() && !hasPermission('editOpening')) {
+                return alert("You don't have access to change an account's Opening Balance. The rest of your changes were not saved either — please undo the Opening Balance edit and try again.");
+            }
+            Object.assign(acc, data);
         } else {
             accounts.push({ id: Date.now(), ...data });
         }
@@ -4435,6 +4619,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // starts from, same as closing a financial year in any accounting
     // system.
     function startNewFinancialYear() {
+        if (!isAdmin() && !hasPermission('newFinancialYear')) return alert("Only an admin, or a user with 'Start a new financial year' turned on, can do this.");
         const asOfDate = document.getElementById('fyCarryForwardDate').value;
         if (!asOfDate) return alert("Please choose the date the new financial year starts on.");
 
@@ -4457,6 +4642,124 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         render();
         renderTrialBalance();
         alert(`Done. Opening balances carried forward as of ${asOfDate}.`);
+    }
+
+    // ---- Manage Staff Access (admin-only) ----
+    function renderManageStaff() {
+        const body = document.getElementById('manageStaffBody');
+        const emails = Object.keys(userRoles);
+        if (emails.length === 0) {
+            body.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">No accounts yet.</td></tr>';
+            return;
+        }
+        body.innerHTML = emails.sort().map(email => {
+            const entry = userRoles[email];
+            const isAdminRole = entry === 'admin';
+            const isMe = email === currentUserEmail();
+            return `
+                <tr>
+                    <td>${escapeHtml(email)}${isMe ? ' <span style="color:var(--text-muted); font-size:0.78rem;">(you)</span>' : ''}</td>
+                    <td><strong style="color:${isAdminRole ? 'var(--success)' : 'var(--text-main)'};">${isAdminRole ? 'Admin' : 'User'}</strong></td>
+                    <td style="display:flex; gap:6px; flex-wrap:wrap;">
+                        ${!isAdminRole ? `<button onclick="openUserPermissionsModal('${email}')" style="padding:4px 10px; font-size:0.75rem; width:auto;">Permissions</button>` : ''}
+                        <button onclick="toggleStaffRole('${email}')" style="padding:4px 10px; font-size:0.75rem; width:auto;">Make ${isAdminRole ? 'User' : 'Admin'}</button>
+                        ${!isMe ? `<button onclick="removeStaffRole('${email}')" class="btn-danger" style="padding:4px 10px; font-size:0.75rem; width:auto;">Remove</button>` : ''}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function setStaffRole() {
+        const email = document.getElementById('newStaffEmail').value.trim().toLowerCase();
+        const role = document.getElementById('newStaffRole').value;
+        if (!email) return alert("Enter the user's email.");
+        // Admin stays a plain string, unchanged. A brand-new User starts
+        // with every individual permission OFF — an admin turns on
+        // specifically what that person needs via the Permissions button.
+        userRoles[email] = (role === 'admin') ? 'admin' : blankPermissions();
+        localStorage.setItem('tally_mob_userroles', JSON.stringify(userRoles));
+        syncCloud();
+        document.getElementById('newStaffEmail').value = '';
+        renderManageStaff();
+    }
+
+    function toggleStaffRole(email) {
+        if (email === currentUserEmail()) return alert("You can't change your own role — ask another admin to do it.");
+        const isCurrentlyAdmin = userRoles[email] === 'admin';
+        // Switching Admin -> User starts them with everything off (same as
+        // a brand-new User) rather than guessing what they should keep.
+        // Switching User -> Admin simply grants full authority, as before.
+        userRoles[email] = isCurrentlyAdmin ? blankPermissions() : 'admin';
+        localStorage.setItem('tally_mob_userroles', JSON.stringify(userRoles));
+        syncCloud();
+        renderManageStaff();
+    }
+
+    function removeStaffRole(email) {
+        if (email === currentUserEmail()) return alert("You can't remove your own access this way.");
+        if (!confirm(`Remove ${email}'s access role? They will default back to a User with everything off if they sign in again (their Firebase login itself is unaffected — remove that separately in the Firebase Console if needed).`)) return;
+        delete userRoles[email];
+        localStorage.setItem('tally_mob_userroles', JSON.stringify(userRoles));
+        syncCloud();
+        renderManageStaff();
+    }
+
+    // ---- Per-user permission toggles ----
+    let permModalEmail = null;
+
+    function openUserPermissionsModal(email) {
+        permModalEmail = email;
+        document.getElementById('permUserEmail').textContent = email;
+        const entry = userRoles[email];
+        // Normalize: an old plain 'staff' string, or a missing entry,
+        // starts the toggle list from all-off rather than crashing.
+        const perms = (entry && typeof entry === 'object') ? entry : blankPermissions();
+
+        const list = document.getElementById('permUserToggleList');
+        list.innerHTML = PERMISSION_DEFS.map(p => `
+            <label style="display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid var(--border); cursor:pointer; font-weight:normal;">
+                <input type="checkbox" data-perm-key="${p.key}" ${perms[p.key] ? 'checked' : ''} style="width:18px; height:18px; flex-shrink:0;">
+                <span>${p.label}</span>
+            </label>
+        `).join('');
+
+        document.getElementById('userPermissionsModal').style.display = 'flex';
+    }
+
+    function closeUserPermissionsModal() {
+        document.getElementById('userPermissionsModal').style.display = 'none';
+        permModalEmail = null;
+    }
+
+    function saveUserPermissions() {
+        if (!permModalEmail) return;
+        const perms = blankPermissions();
+        document.querySelectorAll('#permUserToggleList input[data-perm-key]').forEach(cb => {
+            perms[cb.dataset.permKey] = cb.checked;
+        });
+        userRoles[permModalEmail] = perms;
+        localStorage.setItem('tally_mob_userroles', JSON.stringify(userRoles));
+        syncCloud();
+        closeUserPermissionsModal();
+        renderManageStaff();
+        alert('Permissions saved.');
+    }
+
+    // Updates the parts of the UI that depend on role — called after
+    // login and whenever userRoles/render refreshes. The real
+    // enforcement lives in the gated functions themselves (deleteX(),
+    // startNewFinancialYear(), etc.) — this just keeps the buttons a
+    // staff account sees in line with what they're actually allowed to do.
+    function applyRolePermissions() {
+        const admin = isAdmin();
+        const roleBadge = document.getElementById('roleBadge');
+        if (roleBadge) {
+            roleBadge.style.display = 'inline-block';
+            roleBadge.textContent = admin ? 'Admin' : 'User';
+        }
+        const staffTile = document.getElementById('manageStaffTile');
+        if (staffTile) staffTile.style.display = (admin || hasPermission('manageUsers')) ? '' : 'none';
     }
 
     function editAccount(accId) {
@@ -4485,6 +4788,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function deleteAccount(accId) {
+        if (!isAdmin() && !hasPermission('deleteAccount')) return alert("Only an admin, or a user with 'Delete a cash/bank account' turned on, can delete an account.");
         const used = transactions.some(t => t.accountId == accId);
         if (used) return alert("Cannot delete an account that has transactions linked to it.");
         const acc = accounts.find(a => a.id == accId);
@@ -4535,6 +4839,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function deleteLedgerGroup(groupId) {
+        if (!isAdmin() && !hasPermission('deleteGroup')) return alert("Only an admin, or a user with 'Delete a ledger/stock group' turned on, can delete a group.");
         const used = accounts.some(a => a.groupId == groupId) || parties.some(p => p.groupId == groupId);
         if (used) return alert("Cannot delete a group that has ledgers in it. Move those ledgers to another group first.");
         const g = ledgerGroups.find(l => l.id == groupId);
@@ -4969,6 +5274,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     });
 
     function submitVoucher() {
+        if (!isAdmin() && !hasPermission('postVouchers')) return alert("Only an admin, or a user with 'Post new vouchers' turned on, can post a voucher.");
         const type = document.getElementById('vType').value;
         const partyId = document.getElementById('vParty').value;
         if (!partyId) return alert("Please select a party.");
@@ -5360,6 +5666,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function openEditModal(txnId) {
+        if (!isAdmin() && !hasPermission('editVoucher')) { alert("Only an admin, or a user with 'Edit a voucher' turned on, can edit a voucher."); return; }
         const txn = transactions.find(t => t.id == txnId);
         if (!txn) return;
         document.getElementById('editTxnId').value = txn.id;
@@ -5629,6 +5936,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function deleteTransaction(txnId) {
+        if (!isAdmin() && !hasPermission('deleteVoucher')) return alert("Only an admin, or a user with 'Delete a voucher' turned on, can delete a voucher.");
         const txnIndex = transactions.findIndex(t => t.id == txnId);
         if (txnIndex === -1) return;
         const txn = transactions[txnIndex];
@@ -6195,6 +6503,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function deleteDeliveryNote(txnId) {
+        if (!isAdmin() && !hasPermission('deleteVoucher')) return alert("Only an admin, or a user with 'Delete a voucher' turned on, can delete a voucher.");
         const t = transactions.find(x => x.id == txnId);
         if (!t) return;
         if (!confirm(`Delete delivery note ${t.invNo}?`)) return;
@@ -6329,6 +6638,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     document.getElementById('rawPurchaseForm').addEventListener('submit', (e) => {
         e.preventDefault();
+        if (!isAdmin() && !hasPermission('postVouchers')) return alert("Only an admin, or a user with 'Post new vouchers' turned on, can post a voucher.");
         const partyId = document.getElementById('rpParty').value;
         const itemId = document.getElementById('rpItem').value;
         const qty = parseFloat(document.getElementById('rpQty').value);
@@ -6461,6 +6771,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     document.getElementById('conversionForm').addEventListener('submit', (e) => {
         e.preventDefault();
+        if (!isAdmin() && !hasPermission('postVouchers')) return alert("Only an admin, or a user with 'Post new vouchers' turned on, can post a voucher.");
         const rawId = document.getElementById('cvRawItem').value;
         const procId = document.getElementById('cvProcessedItem').value;
         const rawQty = parseFloat(document.getElementById('cvRawQty').value);
@@ -6519,6 +6830,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     });
 
     function deleteConversion(convId) {
+        if (!isAdmin() && !hasPermission('deleteVoucher')) return alert("Only an admin, or a user with 'Delete a voucher' turned on, can delete a voucher.");
         const conv = transactions.find(t => t.id == convId);
         if (!conv) return;
         if (!confirm(`Delete conversion ${conv.invNo}? This will reverse the stock movement (raw stock restored, processed stock reduced).`)) return;
@@ -6917,6 +7229,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function deleteOptional(txnId) {
+        if (!isAdmin() && !hasPermission('deleteVoucher')) return alert("Only an admin, or a user with 'Delete a voucher' turned on, can delete a voucher.");
         const txn = transactions.find(t => t.id == txnId);
         if (!txn) return;
         if (!confirm(`Delete optional voucher ${txn.invNo}?`)) return;
@@ -7487,6 +7800,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // Print any region (panel/statement) on its own page -> browser's
     // print dialog lets the user save it as PDF.
     function printRegion(elementId, title) {
+        if (!isAdmin() && !hasPermission('exportPrint')) { alert("Only an admin, or a user with 'Export / print' turned on, can print or export."); return; }
         const el = document.getElementById(elementId);
         if (!el) return;
         const prevTitle = document.title;
@@ -7659,6 +7973,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     // Export the table that owns the given tbody, skipping any buttons.
     function exportTableCSV(tbodyId, filename) {
+        if (!isAdmin() && !hasPermission('exportPrint')) { alert("Only an admin, or a user with 'Export / print' turned on, can print or export."); return; }
         const tbody = document.getElementById(tbodyId);
         if (!tbody) return;
         const table = tbody.closest('table');
@@ -7678,6 +7993,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function exportLedgerCSV() {
+        if (!isAdmin() && !hasPermission('exportPrint')) return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
         if (document.getElementById('ledgerPrintArea').style.display !== 'block') {
             return alert("Please view a ledger statement first.");
         }
@@ -7698,6 +8014,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function printLedger() {
+        if (!isAdmin() && !hasPermission('exportPrint')) return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
         if (document.getElementById('ledgerPrintArea').style.display !== 'block') {
             return alert("Please view a party's ledger statement first.");
         }
@@ -7713,6 +8030,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function printInvoiceDoc() {
+        if (!isAdmin() && !hasPermission('exportPrint')) return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
         document.body.classList.add('printing-invoice');
         const cleanup = () => {
             document.body.classList.remove('printing-invoice');
@@ -7932,6 +8250,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // Delete a party from within the group view. Blocked if the party has
     // any transactions (protects the ledger's integrity).
     function deletePartyFromGroup(partyId) {
+        if (!isAdmin() && !hasPermission('deleteParty')) return alert("Only an admin, or a user with 'Delete a party' turned on, can delete a party.");
         const p = parties.find(x => x.id == partyId);
         if (!p) return;
         const hasTxns = transactions.some(t => t.partyId == partyId);
@@ -8735,6 +9054,7 @@ function enterApp(fy) {
         signedInBadge.textContent = cloudAuth.currentUser.email;
         signedInBadge.style.display = 'inline-block';
     }
+    if (typeof applyRolePermissions === 'function') applyRolePermissions();
 }
 
 function logoutAdmin() {
