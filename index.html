@@ -1235,14 +1235,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <header>
         <div>
             <h1 class="brand-title" style="margin-bottom:0;">Sarvadharani seeds</h1>
-            <div id="headerCompanyAddress" style="display:none; font-size:0.75rem; color:var(--text-invert); opacity:0.85; margin-top:2px;"></div>
-            <div id="headerCompanyMobile" style="display:none; font-size:0.75rem; color:var(--text-invert); opacity:0.85;"></div>
         </div>
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <div class="fy-active-badge" id="fyActiveBadge" title="Current Financial Year">FY —</div>
-            <div class="gst-badge" id="signedInBadge" style="display:none;" title="Signed in account"></div>
             <div class="gst-badge" id="roleBadge" style="display:none;" title="Your access level"></div>
-            <div class="gst-badge">GSTIN: 21AFGFS0227N1Z2</div>
             <button type="button" id="powerBtn" onclick="togglePowerMenu()" title="Log out" aria-haspopup="true" aria-expanded="false"
                 style="width:auto; padding:8px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:50%; line-height:1; font-size:1rem; position:relative;">
                 &#9211;
@@ -1266,10 +1262,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <div class="summary-card" onclick="openPanel('panelPendingPayable')" style="cursor:pointer;" title="View pending purchase invoices">
             <div>Pending to Pay (Purchase)</div>
             <div id="statPayable" style="color: var(--danger);">&#8377;0.00</div>
-        </div>
-        <div class="summary-card" onclick="openPanel('panelGstLiability')" style="cursor:pointer;" title="View GST-contributing transactions">
-            <div>Net GST Liability</div>
-            <div id="statGst" style="color: var(--warning);">&#8377;0.00</div>
         </div>
     </div>
 
@@ -1523,6 +1515,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <span class="tile-icon">&#9878;&#65039;</span>
                 <div class="tile-name">Trial Balance</div>
                 <div class="tile-sub">Every ledger's Dr/Cr closing balance</div>
+            </div>
+            <div class="tile" onclick="openPanel('panelGstLiability')">
+                <span class="tile-icon">&#129297;</span>
+                <div class="tile-name">GST Liability</div>
+                <div class="tile-sub">Output vs input tax, by period</div>
             </div>
         </div>
     </div>
@@ -3852,6 +3849,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         { key: 'deleteVoucher',  label: 'Delete a voucher' },
         { key: 'deleteParty',    label: 'Delete a party' },
         { key: 'deleteAccount',  label: 'Delete a cash/bank account' },
+        { key: 'deleteItem',     label: 'Delete a stock item' },
         { key: 'deleteGroup',    label: 'Delete a ledger/stock group' },
         { key: 'editOpening',    label: 'Edit opening balances' },
         { key: 'newFinancialYear', label: 'Start a new financial year' },
@@ -5972,6 +5970,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function deleteItem(itemId) {
+        if (!isAdmin() && !hasPermission('deleteItem')) return alert("Only an admin, or a user with 'Delete a stock item' turned on, can delete a stock item.");
         const item = stockItems.find(s => s.id == itemId);
         if (!item) return;
 
@@ -8398,7 +8397,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         document.getElementById('statReceivable').innerText = `\u20B9${totalReceivable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         document.getElementById('statPayable').innerText = `\u20B9${totalPayable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-        document.getElementById('statGst').innerText = `\u20B9${(outputGst - inputGst).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        // Net GST Liability is now shown only in Reports > GST Liability
+        // (see panelGstLiability / renderGstLiability), not on the
+        // dashboard, so there's no #statGst element to write to any more.
 
         // Keep the Conversion screen's raw/processed item lists (and stock
         // availability note) in sync if it happens to be open — stock can
@@ -9049,11 +9050,6 @@ function enterApp(fy) {
         badge.textContent = fyLabel(Number(fy || localStorage.getItem(ACTIVE_FY_KEY) || currentFinancialYearStart()));
         badge.style.display = 'inline-block';
     }
-    const signedInBadge = document.getElementById('signedInBadge');
-    if (signedInBadge && cloudAuth.currentUser) {
-        signedInBadge.textContent = cloudAuth.currentUser.email;
-        signedInBadge.style.display = 'inline-block';
-    }
     if (typeof applyRolePermissions === 'function') applyRolePermissions();
 }
 
@@ -9222,7 +9218,6 @@ function applyCompanyDetailsToUI() {
 
     const targets = [
         { addr: 'loginCompanyAddress', mobile: 'loginCompanyMobile' },
-        { addr: 'headerCompanyAddress', mobile: 'headerCompanyMobile' },
         { addr: 'invCompanyAddress', mobile: 'invCompanyMobile' },
         { addr: 'ledgerCompanyAddress', mobile: 'ledgerCompanyMobile' }
     ];
