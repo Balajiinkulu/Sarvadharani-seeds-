@@ -522,23 +522,26 @@ table button {
 /* ---------- Party autocomplete ---------- */
 .party-ac-list {
     position: absolute;
-    z-index: 40;
-    background: var(--bg-card);
+    z-index: 400;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
-    box-shadow: 0 6px 18px -6px rgba(20,32,26,0.15);
+    box-shadow: 0 12px 32px -8px rgba(20,32,26,0.28);
     max-height: 240px;
     overflow-y: auto;
     width: 100%;
     margin-top: 2px;
 }
 .party-ac-item {
-    padding: 8px 12px;
+    padding: 10px 12px;
     cursor: pointer;
     font-size: 0.85rem;
+    background: transparent;
     border-bottom: 1px solid var(--border);
 }
-.party-ac-item:hover { background: var(--accent-soft); color: var(--accent-hover); }
+.party-ac-item:hover, .party-ac-item.active { background: var(--accent-soft); color: var(--accent-hover); }
 .party-ac-empty { padding: 10px 12px; color: var(--text-muted); font-size: 0.82rem; }
 
 /* ---------- Invoice modal ---------- */
