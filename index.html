@@ -69,6 +69,11 @@
 
 * { box-sizing: border-box; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
 
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 body {
     color: var(--text-main);
     margin: 0;
@@ -270,6 +275,8 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
     padding-bottom: 14px;
     margin-bottom: 18px;
     border-bottom: 1px solid var(--border);
@@ -1285,19 +1292,20 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <div class="fy-active-badge" id="fyActiveBadge" title="Current Financial Year">FY —</div>
             <div class="gst-badge" id="roleBadge" style="display:none;" title="Your access level"></div>
-            <button type="button" id="powerBtn" onclick="togglePowerMenu()" title="Log out" aria-haspopup="true" aria-expanded="false"
-                style="width:auto; padding:8px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:50%; line-height:1; font-size:1rem; position:relative;">
-                &#9211;
-            </button>
+            <div style="position:relative; display:inline-block;">
+                <button type="button" id="powerBtn" onclick="togglePowerMenu()" title="Log out" aria-haspopup="true" aria-expanded="false"
+                    style="width:auto; padding:8px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:50%; line-height:1; font-size:1rem;">
+                    &#9211;
+                </button>
+                <!-- Power menu: anchored directly below the power icon, wherever it actually sits -->
+                <div id="powerMenu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--bg-card); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.18); z-index:200; min-width:160px; overflow:hidden;">
+                    <button type="button" onclick="logoutAdmin()" style="width:100%; padding:12px 16px; background:none; border:none; text-align:left; color:var(--text-main); border-radius:0; font-size:0.9rem;">
+                        &#9211;&nbsp; Logout
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
-
-    <!-- Power menu: appears under the power icon, extreme right of the header -->
-    <div id="powerMenu" style="display:none; position:absolute; right:16px; margin-top:6px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.18); z-index:200; min-width:160px; overflow:hidden;">
-        <button type="button" onclick="logoutAdmin()" style="width:100%; padding:12px 16px; background:none; border:none; text-align:left; color:var(--text-main); border-radius:0; font-size:0.9rem;">
-            &#9211;&nbsp; Logout
-        </button>
-    </div>
 
     <!-- Dashboard Metrics -->
     <div class="dashboard-summary" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));">
@@ -2459,6 +2467,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <option value="custom">Custom...</option>
                 </select>
             </div>
+            <div style="flex:1; min-width:170px;">
+                <label>Summary</label>
+                <select id="gstView" onchange="renderGstLiability()">
+                    <option value="all">All (Taxed + Nil)</option>
+                    <option value="taxed">Taxed GST Summary</option>
+                    <option value="nil">Nil GST Summary</option>
+                </select>
+            </div>
             <div id="gstCustomWrap" style="display:none; flex:2; min-width:220px;">
                 <label>From &ndash; To</label>
                 <div style="display:flex; gap:6px;">
@@ -2473,9 +2489,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             </div>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
-            <div class="summary-card"><div>Output Tax (Sales)</div><div id="gstOutputTax" style="color:var(--success);">&#8377;0.00</div></div>
-            <div class="summary-card"><div>Input Tax (Purchases)</div><div id="gstInputTax" style="color:var(--pink);">&#8377;0.00</div></div>
-            <div class="summary-card"><div>Net Payable</div><div id="gstNetPayable" style="color:var(--warning);">&#8377;0.00</div></div>
+            <div class="summary-card"><div id="gstCard1Label">Output Tax (Sales)</div><div id="gstOutputTax" style="color:var(--success);">&#8377;0.00</div></div>
+            <div class="summary-card"><div id="gstCard2Label">Input Tax (Purchases)</div><div id="gstInputTax" style="color:var(--pink);">&#8377;0.00</div></div>
+            <div class="summary-card"><div id="gstCard3Label">Net Payable</div><div id="gstNetPayable" style="color:var(--warning);">&#8377;0.00</div></div>
         </div>
         <div class="table-responsive">
             <table>
@@ -2650,7 +2666,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <select id="rpTaxType">
                     <option value="INTRA">Intra-state (CGST + SGST)</option>
                     <option value="INTER">Inter-state (IGST)</option>
-                    <option value="EXEMPT">GST Exempt (no tax charged)</option>
+                    <option value="EXEMPT">Nil GST (no tax charged)</option>
                 </select>
             </div>
             <div class="col-2" id="rpTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 12px; border:1px solid var(--border);">
@@ -2984,7 +3000,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <select id="vTaxType" onchange="onRateModeChange()">
                     <option value="INTRA">Intra-state (CGST + SGST)</option>
                     <option value="INTER">Inter-state (IGST)</option>
-                    <option value="EXEMPT">GST Exempt (no tax charged)</option>
+                    <option value="EXEMPT">Nil GST (no tax charged)</option>
                 </select>
             </div>
 
@@ -5055,9 +5071,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const lbl = document.getElementById('vRateLabel');
         const title = document.getElementById('itemBuilderTitle');
         const head = document.getElementById('tempRateHead');
-        if (lbl) lbl.innerHTML = exempt ? 'Rate/Unit (\u20B9, GST Exempt)' : 'Rate/Unit (\u20B9 Incl. GST)';
-        if (title) title.innerText = exempt ? 'Add Line Item (GST Exempt)' : 'Add Line Item (Inclusive Rates)';
-        if (head) head.innerText = exempt ? 'Rate (Exempt)' : 'Incl. Rate';
+        if (lbl) lbl.innerHTML = exempt ? 'Rate/Unit (\u20B9, Nil GST)' : 'Rate/Unit (\u20B9 Incl. GST)';
+        if (title) title.innerText = exempt ? 'Add Line Item (Nil GST)' : 'Add Line Item (Inclusive Rates)';
+        if (head) head.innerText = exempt ? 'Rate (Nil GST)' : 'Incl. Rate';
         renderTempItems();
     }
 
@@ -6460,27 +6476,35 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const range = periodRange(document.getElementById('gstPeriod').value,
                                   document.getElementById('gstFrom').value,
                                   document.getElementById('gstTo').value);
+        const view = document.getElementById('gstView').value; // 'all' | 'taxed' | 'nil'
 
         // Same rule the dashboard figure itself uses: Output tax from Sales,
         // Input tax from Purchase only (Raw Purchase is tracked separately
         // and deliberately excluded from the main GST/Purchase totals).
-        const rows = sortByDate(
-            transactions.filter(t => (t.type === 'Sales' || t.type === 'Purchase') && inRange(t.date, range)),
-            'gstLiability'
-        );
+        let rows = transactions.filter(t => (t.type === 'Sales' || t.type === 'Purchase') && inRange(t.date, range));
+        if (view === 'taxed') rows = rows.filter(t => t.taxType !== 'EXEMPT');
+        else if (view === 'nil') rows = rows.filter(t => t.taxType === 'EXEMPT');
+        rows = sortByDate(rows, 'gstLiability');
 
         const body = document.getElementById('gstLiabilityBody');
         body.innerHTML = '';
-        let outputTax = 0, inputTax = 0;
+        let outputTax = 0, inputTax = 0, outputTaxable = 0, inputTaxable = 0;
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No GST-contributing transactions in this period.</td></tr>';
+            const emptyMsg = view === 'nil' ? 'No Nil GST transactions in this period.'
+                            : view === 'taxed' ? 'No taxed GST transactions in this period.'
+                            : 'No GST-contributing transactions in this period.';
+            body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">${emptyMsg}</td></tr>`;
         } else {
             rows.forEach(t => {
                 const isSale = (t.type === 'Sales');
-                if (isSale) outputTax += t.totalTax; else inputTax += t.totalTax;
+                if (isSale) { outputTax += t.totalTax; outputTaxable += t.taxable; }
+                else { inputTax += t.totalTax; inputTaxable += t.taxable; }
                 const taxColor = isSale ? 'var(--success)' : 'var(--pink)';
                 const taxLabel = isSale ? 'Output' : 'Input';
+                const taxCellText = (t.taxType === 'EXEMPT')
+                    ? `<span style="color:var(--text-muted);">Nil GST</span>`
+                    : `\u20B9${t.totalTax.toFixed(2)} (${taxLabel})`;
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open invoice">
                         <td onclick="printInvoice(${t.id})">${t.date}</td>
@@ -6488,18 +6512,40 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toFixed(2)}</td>
-                        <td onclick="printInvoice(${t.id})" style="color:${taxColor}; font-weight:bold;">\u20B9${t.totalTax.toFixed(2)} (${taxLabel})</td>
+                        <td onclick="printInvoice(${t.id})" style="color:${taxColor}; font-weight:bold;">${taxCellText}</td>
                     </tr>
                 `;
             });
         }
 
-        const net = outputTax - inputTax;
-        document.getElementById('gstOutputTax').innerText = `\u20B9${outputTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-        document.getElementById('gstInputTax').innerText = `\u20B9${inputTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        const card1 = document.getElementById('gstCard1Label');
+        const card2 = document.getElementById('gstCard2Label');
+        const card3 = document.getElementById('gstCard3Label');
+        const outEl = document.getElementById('gstOutputTax');
+        const inEl = document.getElementById('gstInputTax');
         const netEl = document.getElementById('gstNetPayable');
-        netEl.innerText = `\u20B9${Math.abs(net).toLocaleString('en-IN', {minimumFractionDigits: 2})}${net < 0 ? ' (Credit)' : ''}`;
-        netEl.style.color = net < 0 ? 'var(--success)' : 'var(--warning)';
+
+        if (view === 'nil') {
+            // Tax is always ₹0 on Nil-rated supplies — what actually matters
+            // for GSTR-1's Nil Rated section is the taxable VALUE, so show
+            // that instead of a meaningless ₹0.00 "tax" figure.
+            card1.innerText = 'Nil Rated Value (Sales)';
+            card2.innerText = 'Nil Rated Value (Purchases)';
+            card3.innerText = 'Total Nil Rated Value';
+            outEl.innerText = `\u20B9${outputTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+            inEl.innerText = `\u20B9${inputTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+            netEl.innerText = `\u20B9${(outputTaxable + inputTaxable).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+            netEl.style.color = 'var(--text-muted)';
+        } else {
+            card1.innerText = 'Output Tax (Sales)';
+            card2.innerText = 'Input Tax (Purchases)';
+            card3.innerText = 'Net Payable';
+            const net = outputTax - inputTax;
+            outEl.innerText = `\u20B9${outputTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+            inEl.innerText = `\u20B9${inputTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+            netEl.innerText = `\u20B9${Math.abs(net).toLocaleString('en-IN', {minimumFractionDigits: 2})}${net < 0 ? ' (Credit)' : ''}`;
+            netEl.style.color = net < 0 ? 'var(--success)' : 'var(--warning)';
+        }
     }
 
     // ---- Delivery Notes (dispatch records) ----
@@ -7155,7 +7201,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tr style="cursor:pointer;" onclick="openCustomVoucherList('${vt.id}')" title="View entries for this voucher type">
                     <td><strong>${escapeHtml(vt.name)}</strong> <span style="color:var(--text-muted); font-size:0.72rem;">(${count})</span></td>
                     <td>${stockEffectLabel(vt.stockEffect)}</td>
-                    <td>${vt.gst === 'no' ? 'Exempt' : 'Applicable'}</td>
+                    <td>${vt.gst === 'no' ? 'Nil GST' : 'Applicable'}</td>
                     <td>${ledgerEffectLabel(vt.ledgerEffect)}</td>
                     <td>${escapeHtml(vt.prefix)}</td>
                     <td>${vt.inMainBooks === 'no' ? 'Off-book' : 'Yes'}</td>
@@ -7309,7 +7355,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 ? (txn.customVoucherTypeName || 'CUSTOM VOUCHER').toUpperCase() + (txn.inMainBooks === false ? ' (OFF-BOOK)' : '')
                 : 'TAX INVOICE';
         const rh = document.getElementById('invRateHead');
-        if (rh) rh.innerText = (txn.rateMode === 'EXEMPT') ? 'Rate (GST Exempt)' : 'Rate (Incl GST)';
+        if (rh) rh.innerText = (txn.rateMode === 'EXEMPT') ? 'Rate (Nil GST)' : 'Rate (Incl GST)';
         document.getElementById('invNo').innerText = txn.invNo;  
         document.getElementById('invDate').innerText = txn.date;  
         document.getElementById('invParty').innerText = txn.partyName;  
@@ -7378,7 +7424,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             taxText = 'Optional voucher — off the main books. No GST recorded.';
         } else {
             if (txn.taxType === 'EXEMPT') {
-                taxText = `Taxable Value: \u20B9${txn.taxable.toFixed(2)}<br>GST Exempt \u2014 no tax charged on this voucher.`;
+                taxText = `Taxable Value: \u20B9${txn.taxable.toFixed(2)}<br>Nil GST \u2014 no tax charged on this voucher.`;
             } else {
                 taxText = `Taxable Value: \u20B9${txn.taxable.toFixed(2)}<br>`;
                 if (txn.taxType === 'INTER') {
