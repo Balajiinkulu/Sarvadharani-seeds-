@@ -1292,18 +1292,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <div class="fy-active-badge" id="fyActiveBadge" title="Current Financial Year">FY —</div>
             <div class="gst-badge" id="roleBadge" style="display:none;" title="Your access level"></div>
-            <div style="position:relative; display:inline-block;">
-                <button type="button" id="powerBtn" onclick="togglePowerMenu()" title="Log out" aria-haspopup="true" aria-expanded="false"
-                    style="width:auto; padding:8px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:50%; line-height:1; font-size:1rem;">
-                    &#9211;
-                </button>
-                <!-- Power menu: anchored directly below the power icon, wherever it actually sits -->
-                <div id="powerMenu" style="display:none; position:absolute; top:100%; right:0; margin-top:8px; background:var(--bg-card); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.18); z-index:200; min-width:160px; overflow:hidden;">
-                    <button type="button" onclick="logoutAdmin()" style="width:100%; padding:12px 16px; background:none; border:none; text-align:left; color:var(--text-main); border-radius:0; font-size:0.9rem;">
-                        &#9211;&nbsp; Logout
-                    </button>
-                </div>
-            </div>
+            <button type="button" id="logoutBtn" onclick="logoutAdmin()" title="Log out"
+                style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:999px; line-height:1; font-size:0.85rem; font-weight:600;">
+                &#9211;&nbsp; Logout
+            </button>
         </div>
     </header>
 
@@ -9155,26 +9147,6 @@ function logoutAdmin() {
     if (!confirm('Log out of the admin panel?')) return;
     cloudAuth.signOut().finally(() => location.reload());
 }
-
-// ---- Power icon menu (extreme right of header) ----
-function togglePowerMenu() {
-    const menu = document.getElementById('powerMenu');
-    const btn = document.getElementById('powerBtn');
-    const showing = menu.style.display === 'block';
-    menu.style.display = showing ? 'none' : 'block';
-    btn.setAttribute('aria-expanded', showing ? 'false' : 'true');
-}
-
-// Close the power menu when tapping/clicking anywhere else on the page.
-document.addEventListener('click', (e) => {
-    const menu = document.getElementById('powerMenu');
-    const btn = document.getElementById('powerBtn');
-    if (!menu || !btn) return;
-    if (menu.style.display === 'block' && !menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
-        menu.style.display = 'none';
-        btn.setAttribute('aria-expanded', 'false');
-    }
-});
 
 // ---- Change Password (updates the client-side login gate only) ----
 function openChangePasswordModal() {
