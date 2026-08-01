@@ -2473,6 +2473,50 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="summary-card"><div>Output Tax (Sales)</div><div id="gstOutputTax" style="color:var(--success);">&#8377;0.00</div></div>
             <div class="summary-card"><div>Input Tax (Purchases)</div><div id="gstInputTax" style="color:var(--pink);">&#8377;0.00</div></div>
             <div class="summary-card"><div>Net Payable</div><div id="gstNetPayable" style="color:var(--warning);">&#8377;0.00</div></div>
+            <div class="summary-card"><div>Nil-Rated / Exempt Sales</div><div id="gstNilExempt" style="color:var(--text-muted); font-size:0.95rem;">&#8377;0.00 / &#8377;0.00</div></div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+            <h4 style="margin:0 0 4px 0;">GSTR-1 / GSTR-3B Ready Summary</h4>
+            <div style="font-size:0.78rem; color:var(--text-muted);">
+                Rate-wise breakup of outward taxable supplies (Sales) for this period &mdash; matches GSTR-1 Table 12 / GSTR-3B Table 3.1 layout, ready to copy into the return.
+            </div>
+        </div>
+        <div class="table-responsive" style="margin-bottom:18px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>GST Rate</th>
+                        <th>Taxable Value</th>
+                        <th>CGST</th>
+                        <th>SGST</th>
+                        <th>IGST</th>
+                        <th>Total Tax</th>
+                    </tr>
+                </thead>
+                <tbody id="gstReturnSummaryBody"></tbody>
+                <tfoot>
+                    <tr style="font-weight:bold;">
+                        <td>Nil-Rated Supplies</td>
+                        <td id="gstrNilTotal">&#8377;0.00</td>
+                        <td colspan="4"></td>
+                    </tr>
+                    <tr style="font-weight:bold;">
+                        <td>Exempt Supplies</td>
+                        <td id="gstrExemptTotal">&#8377;0.00</td>
+                        <td colspan="4"></td>
+                    </tr>
+                    <tr style="font-weight:bold; border-top:2px solid var(--border-strong);">
+                        <td>Total Outward Supplies</td>
+                        <td id="gstrGrandTaxable">&#8377;0.00</td>
+                        <td colspan="4"></td>
+                    </tr>
+                    <tr style="font-weight:bold;">
+                        <td>Total ITC Available (Purchases, all rates)</td>
+                        <td colspan="5" id="gstrItcTotal">&#8377;0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
         <div class="table-responsive">
             <table>
@@ -2981,6 +3025,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <select id="vTaxType" onchange="onRateModeChange()">
                     <option value="INTRA">Intra-state (CGST + SGST)</option>
                     <option value="INTER">Inter-state (IGST)</option>
+                    <option value="NIL">Nil-Rated (0% GST slab item)</option>
                     <option value="EXEMPT">GST Exempt (no tax charged)</option>
                 </select>
             </div>
@@ -3078,6 +3123,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </div>
                 <div style="font-size:1.2rem; font-weight:bold; margin-top:6px; color:var(--accent);">
                     Voucher Total: <span id="lblTotal">&#8377;0.00</span>
+                </div>
+                <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:0.85rem; font-weight:normal; cursor:pointer;">
+                    <input type="checkbox" id="vRoundOff" onchange="renderTempItems()" style="width:auto; margin:0;">
+                    Round off total to nearest &#8377;1
+                </label>
+                <div id="roundOffPreviewWrap" style="display:none; font-size:0.85rem; color:var(--text-muted); margin-top:4px;">
+                    Round off: <span id="lblRoundOff">&#8377;0.00</span> &rarr;
+                    Rounded Total: <span id="lblRoundedTotal" style="font-weight:bold; color:var(--accent);">&#8377;0.00</span>
                 </div>
             </div>
 
@@ -3360,7 +3413,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
             <div id="invTaxBreakdown"></div>
-            <div style="text-align:right; font-size:1.15rem; font-weight:bold;">Grand Total: <span id="invGrandTotal"></span></div>
+            <div style="text-align:right;">
+                <div id="invRoundOffWrap" style="display:none; font-size:0.85rem; color:#475569; margin-bottom:2px;">
+                    Subtotal: <span id="invSubtotal"></span><br>
+                    Round Off: <span id="invRoundOffAmt"></span>
+                </div>
+                <div style="font-size:1.15rem; font-weight:bold;">Grand Total: <span id="invGrandTotal"></span></div>
+            </div>
         </div>
 
         <div id="invNarrationWrap" style="display:none; margin-top:12px; font-size:0.82rem; color:#475569; border-top:1px dashed #cbd5e1; padding-top:10px;">
@@ -5038,23 +5097,29 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         return calculateInclusiveTax(rate, qty, gstRate);
     }
 
-    // The Tax Type dropdown carries three options: INTRA (CGST+SGST), INTER
-    // (IGST), and EXEMPT (no GST charged on this voucher at all, overriding
-    // the item's normal GST rate).
+    // The Tax Type dropdown carries four options: INTRA (CGST+SGST), INTER
+    // (IGST), NIL (Nil-Rated — a genuine 0% GST slab item), and EXEMPT
+    // (GST-exempt goods/services). NIL and EXEMPT both charge zero tax on
+    // the voucher, but are kept as separate values on the transaction
+    // (taxType) so GST reports can show them as separate totals — GSTR-1
+    // requires Nil-Rated and Exempt turnover reported separately.
     function currentRateMode() {
         const el = document.getElementById('vTaxType');
-        return (el && el.value === 'EXEMPT') ? 'EXEMPT' : 'INCL';
+        const v = el && el.value;
+        return (v === 'EXEMPT' || v === 'NIL') ? 'EXEMPT' : 'INCL';
     }
 
     // Keep the wording honest about which mode is active.
     function onRateModeChange() {
-        const exempt = (currentRateMode() === 'EXEMPT');
+        const zeroTax = (currentRateMode() === 'EXEMPT');
+        const isNil = (document.getElementById('vTaxType').value === 'NIL');
         const lbl = document.getElementById('vRateLabel');
         const title = document.getElementById('itemBuilderTitle');
         const head = document.getElementById('tempRateHead');
-        if (lbl) lbl.innerHTML = exempt ? 'Rate/Unit (\u20B9, GST Exempt)' : 'Rate/Unit (\u20B9 Incl. GST)';
-        if (title) title.innerText = exempt ? 'Add Line Item (GST Exempt)' : 'Add Line Item (Inclusive Rates)';
-        if (head) head.innerText = exempt ? 'Rate (Exempt)' : 'Incl. Rate';
+        const modeWord = isNil ? 'Nil-Rated' : 'GST Exempt';
+        if (lbl) lbl.innerHTML = zeroTax ? `Rate/Unit (\u20B9, ${modeWord})` : 'Rate/Unit (\u20B9 Incl. GST)';
+        if (title) title.innerText = zeroTax ? `Add Line Item (${modeWord})` : 'Add Line Item (Inclusive Rates)';
+        if (head) head.innerText = zeroTax ? `Rate (${modeWord})` : 'Incl. Rate';
         renderTempItems();
     }
 
@@ -5102,6 +5167,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             document.getElementById('lblTaxable').innerText = '\u20B90.00';
             document.getElementById('lblTax').innerText = '\u20B90.00';
             document.getElementById('lblTotal').innerText = '\u20B90.00';
+            document.getElementById('roundOffPreviewWrap').style.display = 'none';
             return;
         }
 
@@ -5129,6 +5195,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('lblTaxable').innerText = `\u20B9${totTaxable.toFixed(2)}`;
         document.getElementById('lblTax').innerText = `\u20B9${totTax.toFixed(2)}`;
         document.getElementById('lblTotal').innerText = `\u20B9${totGrand.toFixed(2)}`;
+
+        const roWrap = document.getElementById('roundOffPreviewWrap');
+        const roCheckbox = document.getElementById('vRoundOff');
+        if (roCheckbox && roCheckbox.checked) {
+            const rounded = Math.round(totGrand);
+            const ro = Number((rounded - totGrand).toFixed(2));
+            document.getElementById('lblRoundOff').innerText = `${ro >= 0 ? '+' : '-'}\u20B9${Math.abs(ro).toFixed(2)}`;
+            document.getElementById('lblRoundedTotal').innerText = `\u20B9${rounded.toFixed(2)}`;
+            roWrap.style.display = 'block';
+        } else {
+            roWrap.style.display = 'none';
+        }
     }
 
     function toggleVoucherMode() {
@@ -5464,6 +5542,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 return { ...it, taxable: res.taxable, taxAmount: res.taxAmount, lineTotal: res.lineTotal };
             });
 
+            const ctRoundOffEnabled = document.getElementById('vRoundOff').checked;
+            let ctRoundOff = 0;
+            if (ctRoundOffEnabled) {
+                const rounded = Math.round(grandTotal);
+                ctRoundOff = Number((rounded - grandTotal).toFixed(2));
+                grandTotal = rounded;
+            }
+
             // Apply stock effect
             if (customType.stockEffect === 'out' || customType.stockEffect === 'in') {
                 currentVoucherItems.forEach(line => {
@@ -5495,6 +5581,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 items: ctItems,
                 taxable: totalTaxable,
                 totalTax: totalTax,
+                roundOffEnabled: ctRoundOffEnabled,
+                roundOff: ctRoundOff,
                 grandTotal: grandTotal
             };
 
@@ -5507,6 +5595,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             document.getElementById('vSubLedger').value = '';
             document.getElementById('vNarrationMain').value = '';
             document.getElementById('vDate').valueAsDate = new Date();
+            document.getElementById('vRoundOff').checked = false;
             render();
             alert(`${customType.name} ${ctTxn.invNo} created.`);
             return;
@@ -5607,6 +5696,19 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             };
         });
 
+        // Round-off only applies — and only ever shows on the printed
+        // invoice — if the checkbox was actually ticked for this voucher.
+        // A voucher saved with it unchecked stores roundOff: 0 /
+        // roundOffEnabled: false, so printInvoice() knows to leave the
+        // Round Off row out entirely rather than showing an empty ₹0.00.
+        const roundOffEnabled = document.getElementById('vRoundOff').checked;
+        let roundOff = 0;
+        if (roundOffEnabled) {
+            const rounded = Math.round(grandTotal);
+            roundOff = Number((rounded - grandTotal).toFixed(2));
+            grandTotal = rounded;
+        }
+
         const invPrefix = type === 'Sales' ? 'INV' : isRawPurchase ? 'RPUR' : 'PUR';
         const counterKey = type === 'Sales' ? 'Sales' : isRawPurchase ? 'RawPurchase' : 'Purchase';
         const txn = {
@@ -5624,6 +5726,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             items: processedItems,
             taxable: totalTaxable,
             totalTax: totalTax,
+            roundOffEnabled: roundOffEnabled,
+            roundOff: roundOff,
             grandTotal: grandTotal
         };
 
@@ -5636,6 +5740,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('vSubLedger').value = '';
         document.getElementById('vNarrationMain').value = '';
         document.getElementById('vDate').valueAsDate = new Date();
+        document.getElementById('vRoundOff').checked = false;
         render();
         
         // Refresh Ledger if open
@@ -6469,13 +6574,43 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const body = document.getElementById('gstLiabilityBody');
         body.innerHTML = '';
         let outputTax = 0, inputTax = 0;
+        let nilTotal = 0, exemptTotal = 0;
+        // rateBuckets: keyed by GST% string, e.g. "5", "12" — each holds the
+        // taxable value and CGST/SGST/IGST split across every Sales line
+        // item at that rate this period, for the GSTR-1/3B rate-wise table.
+        const rateBuckets = {};
 
         if (rows.length === 0) {
             body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No GST-contributing transactions in this period.</td></tr>';
         } else {
             rows.forEach(t => {
                 const isSale = (t.type === 'Sales');
-                if (isSale) outputTax += t.totalTax; else inputTax += t.totalTax;
+                if (isSale) {
+                    outputTax += t.totalTax;
+                    if (t.taxType === 'NIL') {
+                        nilTotal += t.taxable;
+                    } else if (t.taxType === 'EXEMPT') {
+                        exemptTotal += t.taxable;
+                    } else {
+                        // Taxable sale — break its items down by GST rate for
+                        // the GSTR-1/3B rate-wise summary.
+                        const isInter = (t.taxType === 'INTER');
+                        (t.items || []).forEach(it => {
+                            const rateKey = String(it.gstRate || 0);
+                            if (!rateBuckets[rateKey]) rateBuckets[rateKey] = { taxable: 0, cgst: 0, sgst: 0, igst: 0 };
+                            const b = rateBuckets[rateKey];
+                            b.taxable += it.taxable || 0;
+                            if (isInter) {
+                                b.igst += it.taxAmount || 0;
+                            } else {
+                                b.cgst += (it.taxAmount || 0) / 2;
+                                b.sgst += (it.taxAmount || 0) / 2;
+                            }
+                        });
+                    }
+                } else {
+                    inputTax += t.totalTax;
+                }
                 const taxColor = isSale ? 'var(--success)' : 'var(--pink)';
                 const taxLabel = isSale ? 'Output' : 'Input';
                 body.innerHTML += `
@@ -6497,6 +6632,37 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const netEl = document.getElementById('gstNetPayable');
         netEl.innerText = `\u20B9${Math.abs(net).toLocaleString('en-IN', {minimumFractionDigits: 2})}${net < 0 ? ' (Credit)' : ''}`;
         netEl.style.color = net < 0 ? 'var(--success)' : 'var(--warning)';
+
+        document.getElementById('gstNilExempt').innerText =
+            `\u20B9${nilTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})} / \u20B9${exemptTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+
+        // ---- GSTR-1 / GSTR-3B ready rate-wise summary ----
+        const summaryBody = document.getElementById('gstReturnSummaryBody');
+        const rateKeys = Object.keys(rateBuckets).sort((a, b) => Number(a) - Number(b));
+        let grandTaxable = nilTotal + exemptTotal;
+        if (rateKeys.length === 0) {
+            summaryBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No taxable sales in this period.</td></tr>';
+        } else {
+            summaryBody.innerHTML = rateKeys.map(k => {
+                const b = rateBuckets[k];
+                grandTaxable += b.taxable;
+                const totalTaxRate = b.cgst + b.sgst + b.igst;
+                return `
+                    <tr>
+                        <td>${k}%</td>
+                        <td>\u20B9${b.taxable.toFixed(2)}</td>
+                        <td>\u20B9${b.cgst.toFixed(2)}</td>
+                        <td>\u20B9${b.sgst.toFixed(2)}</td>
+                        <td>\u20B9${b.igst.toFixed(2)}</td>
+                        <td style="font-weight:bold;">\u20B9${totalTaxRate.toFixed(2)}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        document.getElementById('gstrNilTotal').innerText = `\u20B9${nilTotal.toFixed(2)}`;
+        document.getElementById('gstrExemptTotal').innerText = `\u20B9${exemptTotal.toFixed(2)}`;
+        document.getElementById('gstrGrandTaxable').innerText = `\u20B9${grandTaxable.toFixed(2)}`;
+        document.getElementById('gstrItcTotal').innerText = `\u20B9${inputTax.toFixed(2)}`;
     }
 
     // ---- Delivery Notes (dispatch records) ----
@@ -7306,7 +7472,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 ? (txn.customVoucherTypeName || 'CUSTOM VOUCHER').toUpperCase() + (txn.inMainBooks === false ? ' (OFF-BOOK)' : '')
                 : 'TAX INVOICE';
         const rh = document.getElementById('invRateHead');
-        if (rh) rh.innerText = (txn.rateMode === 'EXEMPT') ? 'Rate (GST Exempt)' : 'Rate (Incl GST)';
+        if (rh) rh.innerText = (txn.rateMode === 'EXEMPT') ? (txn.taxType === 'NIL' ? 'Rate (Nil-Rated)' : 'Rate (GST Exempt)') : 'Rate (Incl GST)';
         document.getElementById('invNo').innerText = txn.invNo;  
         document.getElementById('invDate').innerText = txn.date;  
         document.getElementById('invParty').innerText = txn.partyName;  
@@ -7374,8 +7540,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         } else if (isOptional) {
             taxText = 'Optional voucher — off the main books. No GST recorded.';
         } else {
-            if (txn.taxType === 'EXEMPT') {
-                taxText = `Taxable Value: \u20B9${txn.taxable.toFixed(2)}<br>GST Exempt \u2014 no tax charged on this voucher.`;
+            if (txn.taxType === 'EXEMPT' || txn.taxType === 'NIL') {
+                const label = txn.taxType === 'NIL' ? 'Nil-Rated' : 'GST Exempt';
+                taxText = `Taxable Value: \u20B9${txn.taxable.toFixed(2)}<br>${label} \u2014 no tax charged on this voucher.`;
             } else {
                 taxText = `Taxable Value: \u20B9${txn.taxable.toFixed(2)}<br>`;
                 if (txn.taxType === 'INTER') {
@@ -7388,6 +7555,22 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         document.getElementById('invTaxBreakdown').innerHTML = taxText;  
         document.getElementById('invGrandTotal').innerText = `\u20B9${txn.grandTotal.toFixed(2)}`;  
+
+        // Round Off row: only ever shown if this specific voucher had the
+        // "Round off total" checkbox ticked at creation time AND the
+        // resulting adjustment is non-zero. Otherwise the row stays
+        // completely hidden — no empty/₹0.00 column cluttering the invoice.
+        const roWrap = document.getElementById('invRoundOffWrap');
+        if (roWrap) {
+            if (txn.roundOffEnabled && txn.roundOff) {
+                const subtotal = txn.grandTotal - txn.roundOff;
+                document.getElementById('invSubtotal').innerText = `\u20B9${subtotal.toFixed(2)}`;
+                document.getElementById('invRoundOffAmt').innerText = `${txn.roundOff >= 0 ? '+' : '-'}\u20B9${Math.abs(txn.roundOff).toFixed(2)}`;
+                roWrap.style.display = 'block';
+            } else {
+                roWrap.style.display = 'none';
+            }
+        }
 
         const narrWrap = document.getElementById('invNarrationWrap');
         if (!isCash && txn.narration) {
