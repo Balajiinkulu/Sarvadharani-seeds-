@@ -3408,8 +3408,25 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
             <!-- Inventory lines (Sales/Purchase/Optional) -->
             <div class="col-2" id="editItemsWrap">
-                <label>Line Items (edit qty &amp; rate)</label>
+                <label>Line Items (add, edit, or remove)</label>
                 <div id="editItemsList"></div>
+                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                    <div style="flex:2; min-width:160px;">
+                        <label style="font-size:0.7rem;">Add Item</label>
+                        <select id="editAddItemSelect" onchange="onEditAddItemChange()">
+                            <option value="">-- Select Item --</option>
+                        </select>
+                    </div>
+                    <div style="flex:1; min-width:70px;">
+                        <label style="font-size:0.7rem;">Qty</label>
+                        <input type="number" id="editAddItemQty" min="0" step="any" value="1">
+                    </div>
+                    <div style="flex:1; min-width:90px;">
+                        <label style="font-size:0.7rem;">Rate (Incl)</label>
+                        <input type="number" id="editAddItemRate" min="0" step="any">
+                    </div>
+                    <button type="button" onclick="addEditItemRow()" class="btn-success" style="width:auto; padding:10px 16px; white-space:nowrap;">+ Add Item</button>
+                </div>
             </div>
 
             <!-- Narration (inventory vouchers only; cash vouchers use editNarration below) -->
@@ -5723,6 +5740,84 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         }
     }
 
+    // Working copy of an edited voucher's line items — lets the Edit modal
+    // add/remove items freely without being tied to fixed array indices.
+    let editWorkingItems = [];
+    let editRowIdSeq = 0;
+
+    function renderEditItemsList() {
+        const list = document.getElementById('editItemsList');
+        if (editWorkingItems.length === 0) {
+            list.innerHTML = '<div style="padding:10px 0; color:var(--text-muted); font-size:0.85rem;">No items \u2014 add at least one below before saving.</div>';
+            return;
+        }
+        list.innerHTML = editWorkingItems.map(it => `
+            <div class="edit-line-row">
+                <div class="ln-name">${escapeHtml(it.name)} <span style="color:var(--text-muted);">(${escapeHtml(it.uom)})</span></div>
+                <div>
+                    <label style="font-size:0.7rem;">Qty</label>
+                    <input type="number" min="0" step="any" value="${it.qty}" oninput="updateEditRow(${it.rowId}, 'qty', this.value)">
+                </div>
+                <div>
+                    <label style="font-size:0.7rem;">Rate (Incl)</label>
+                    <input type="number" min="0" step="any" value="${it.inclRate}" oninput="updateEditRow(${it.rowId}, 'inclRate', this.value)">
+                </div>
+                <button type="button" class="btn-danger" style="width:auto; padding:8px 10px; font-size:0.75rem;" onclick="removeEditRow(${it.rowId})">Remove</button>
+            </div>
+        `).join('');
+    }
+
+    function updateEditRow(rowId, field, value) {
+        const row = editWorkingItems.find(r => r.rowId === rowId);
+        if (!row) return;
+        row[field] = parseFloat(value) || 0;
+        recomputeEditTotal();
+    }
+
+    function removeEditRow(rowId) {
+        if (editWorkingItems.length <= 1) return alert("A voucher needs at least one item \u2014 add a replacement first, or delete the whole voucher instead of emptying it.");
+        if (!confirm("Remove this item from the voucher?")) return;
+        editWorkingItems = editWorkingItems.filter(r => r.rowId !== rowId);
+        renderEditItemsList();
+        recomputeEditTotal();
+    }
+
+    function onEditAddItemChange() {
+        const id = document.getElementById('editAddItemSelect').value;
+        const item = stockItems.find(s => s.id == id);
+        document.getElementById('editAddItemRate').value = item ? item.rate : '';
+    }
+
+    function addEditItemRow() {
+        const itemId = document.getElementById('editAddItemSelect').value;
+        if (!itemId) return alert("Select an item first.");
+        const qty = parseFloat(document.getElementById('editAddItemQty').value);
+        const rate = parseFloat(document.getElementById('editAddItemRate').value);
+        if (isNaN(qty) || qty <= 0) return alert("Enter a valid quantity.");
+        if (isNaN(rate) || rate < 0) return alert("Enter a valid rate.");
+        const item = stockItems.find(s => s.id == itemId);
+        if (!item) return;
+
+        // If this exact item is already a row on this voucher, just add to
+        // its quantity instead of creating a confusing duplicate line.
+        const existing = editWorkingItems.find(r => r.itemId == itemId);
+        if (existing) {
+            existing.qty += qty;
+        } else {
+            editWorkingItems.push({
+                rowId: ++editRowIdSeq,
+                itemId: item.id, name: item.name, hsn: item.hsn, uom: item.uom, gstRate: item.gstRate,
+                qty: qty, inclRate: rate
+            });
+        }
+
+        document.getElementById('editAddItemSelect').value = '';
+        document.getElementById('editAddItemQty').value = '1';
+        document.getElementById('editAddItemRate').value = '';
+        renderEditItemsList();
+        recomputeEditTotal();
+    }
+
     function openEditModal(txnId) {
         if (!isAdmin() && !hasPermission('editVoucher')) { alert("Only an admin, or a user with 'Edit a voucher' turned on, can edit a voucher."); return; }
         const txn = transactions.find(t => t.id == txnId);
@@ -5760,24 +5855,24 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             subLedgers.forEach(n => slSel.innerHTML += `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`);
             slSel.value = txn.subLedger || '';
 
-            // Line items (qty + rate editable; item set fixed)
-            const list = document.getElementById('editItemsList');
-            list.innerHTML = '';
-            txn.items.forEach((it, idx) => {
-                list.innerHTML += `
-                    <div class="edit-line-row">
-                        <div class="ln-name">${escapeHtml(it.name)} <span style="color:var(--text-muted);">(${escapeHtml(it.uom)})</span></div>
-                        <div>
-                            <label style="font-size:0.7rem;">Qty</label>
-                            <input type="number" min="0" step="any" id="editQty-${idx}" value="${it.qty}" oninput="recomputeEditTotal()">
-                        </div>
-                        <div>
-                            <label style="font-size:0.7rem;">Rate (Incl)</label>
-                            <input type="number" min="0" step="any" id="editRate-${idx}" value="${it.inclRate}" oninput="recomputeEditTotal()">
-                        </div>
-                    </div>
-                `;
-            });
+            // Working copy of the line items — lets add/remove work without
+            // being tied to fixed array indices (which would break as soon
+            // as a row is removed or a new one added).
+            editWorkingItems = txn.items.map(it => ({
+                rowId: ++editRowIdSeq,
+                itemId: it.itemId, name: it.name, hsn: it.hsn, uom: it.uom, gstRate: it.gstRate,
+                qty: it.qty, inclRate: it.inclRate,
+                enteredQty: it.enteredQty, enteredUnit: it.enteredUnit, enteredRate: it.enteredRate
+            }));
+            renderEditItemsList();
+
+            // "Add Item" picker — every stock item, current master rate
+            // auto-filled as a starting point once one is chosen.
+            const addSel = document.getElementById('editAddItemSelect');
+            addSel.innerHTML = '<option value="">-- Select Item --</option>';
+            stockItems.forEach(s => addSel.innerHTML += `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.uom)})</option>`);
+            document.getElementById('editAddItemQty').value = '1';
+            document.getElementById('editAddItemRate').value = '';
         }
 
         if (isCash) {
@@ -5819,11 +5914,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (txn.type === 'Payment' || txn.type === 'Receipt') {
             total = parseFloat(document.getElementById('editAmount').value) || 0;
         } else {
-            txn.items.forEach((it, idx) => {
-                const q = parseFloat(document.getElementById('editQty-' + idx).value) || 0;
-                const r = parseFloat(document.getElementById('editRate-' + idx).value) || 0;
-                total += q * r;
-            });
+            editWorkingItems.forEach(it => { total += (it.qty || 0) * (it.inclRate || 0); });
         }
         document.getElementById('editTotal').innerText = `\u20B9${total.toFixed(2)}`;
     }
@@ -5876,29 +5967,23 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         }
 
         // ---- Inventory voucher (Sales/Purchase/Optional) ----
-        // Gather new qty/rate
-        const newLines = txn.items.map((it, idx) => {
-            const q = parseFloat(document.getElementById('editQty-' + idx).value);
-            const r = parseFloat(document.getElementById('editRate-' + idx).value);
-            return { idx, qty: isNaN(q) ? 0 : q, rate: isNaN(r) ? 0 : r };
-        });
-        if (newLines.some(l => l.qty <= 0)) return alert("Quantities must be greater than zero.");
+        if (editWorkingItems.length === 0) return alert("Add at least one item before saving.");
+        if (editWorkingItems.some(l => !(l.qty > 0))) return alert("Quantities must be greater than zero.");
+        if (editWorkingItems.some(l => !(l.inclRate >= 0))) return alert("Rates must be zero or more.");
 
         // If this is a real Sales/Purchase/RawPurchase that has payments linked, changing the
         // total could break settlements — guard it.
         if ((txn.type === 'Sales' || txn.type === 'Purchase' || txn.type === 'RawPurchase')) {
             const linked = transactions.some(t => t.refInvoiceId == txn.id);
-            const newTotal = newLines.reduce((a, l) => a + l.qty * l.rate, 0)
-                * (txn.type ? 1 : 1); // grand total is inclusive sum
-            // compute inclusive grand total
-            let gt = 0; newLines.forEach(l => gt += l.qty * l.rate);
+            let gt = 0; editWorkingItems.forEach(l => gt += l.qty * l.inclRate);
             const alreadySettled = transactions.filter(t => t.refInvoiceId == txn.id).reduce((a,c)=>a+c.grandTotal,0);
             if (linked && gt < alreadySettled - 0.001) {
                 return alert(`New total \u20B9${gt.toFixed(2)} is less than \u20B9${alreadySettled.toFixed(2)} already settled by linked payments. Adjust or delete those first.`);
             }
         }
 
-        // Reverse old stock effect (Sales/Purchase/custom types with a stock effect)
+        // Reverse OLD stock effect, based on the voucher's original items
+        // (before this edit) — unaffected by any add/remove done just now.
         const dir = stockDirection(txn.type);
         if (affectsMainStock(txn.type)) {
             txn.items.forEach(line => {
@@ -5907,28 +5992,36 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             });
         }
 
-        // Apply new qty/rate onto the items, recompute totals.
+        // Build the NEW items array fresh from the working copy — this is
+        // what makes added/removed rows actually take effect, unlike the
+        // old fixed-index qty/rate-only update.
         // calculateLine already zeroes tax out for EXEMPT-mode vouchers
         // (optional/delivery-note/GST-exempt custom types), so every voucher
         // can go through the same taxable/tax/lineTotal computation here.
         let totalTaxable = 0, totalTax = 0, grandTotal = 0;
-        txn.items = txn.items.map((it, idx) => {
-            const nl = newLines[idx];
-            it.qty = nl.qty;
-            it.inclRate = nl.rate;
-            const tax = calculateLine(nl.rate, nl.qty, it.gstRate, txn.rateMode || 'INCL');
-            it.taxable = tax.taxable;
-            it.taxAmount = tax.taxAmount;
-            it.lineTotal = tax.lineTotal;
+        const newItemsArr = editWorkingItems.map(row => {
+            const tax = calculateLine(row.inclRate, row.qty, row.gstRate, txn.rateMode || 'INCL');
             totalTaxable += tax.taxable;
             totalTax += tax.taxAmount;
             grandTotal += tax.lineTotal;
-            return it;
+            const line = {
+                itemId: row.itemId, name: row.name, hsn: row.hsn, uom: row.uom, gstRate: row.gstRate,
+                qty: row.qty, inclRate: row.inclRate,
+                taxable: tax.taxable, taxAmount: tax.taxAmount, lineTotal: tax.lineTotal
+            };
+            // Carry through the Raw Purchase "entered as X Bags" display
+            // metadata if this row still has it (see Raw Purchase entry) —
+            // purely cosmetic, only used by that report.
+            if (row.enteredQty != null) {
+                line.enteredQty = row.enteredQty; line.enteredUnit = row.enteredUnit; line.enteredRate = row.enteredRate;
+            }
+            return line;
         });
 
-        // Validate new stock availability if this voucher reduces stock
+        // Validate new stock availability if this voucher reduces stock —
+        // covers newly-added items too, not just ones that already existed.
         if (dir === 1) {
-            for (const line of txn.items) {
+            for (const line of newItemsArr) {
                 const item = stockItems.find(s => s.id == line.itemId);
                 if (item && item.qty < line.qty) {
                     // rollback the reversal we did above before aborting
@@ -5940,7 +6033,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         // Apply new stock effect
         if (affectsMainStock(txn.type)) {
-            txn.items.forEach(line => {
+            newItemsArr.forEach(line => {
                 const item = stockItems.find(s => s.id == line.itemId);
                 if (item) item.qty -= dir * line.qty; // opposite of the undo above
             });
@@ -5948,6 +6041,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             syncCloud();
         }
 
+        txn.items = newItemsArr;
         txn.date = newDate;
         txn.partyId = newParty.id;
         txn.partyName = newParty.name;
