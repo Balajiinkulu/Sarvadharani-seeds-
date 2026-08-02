@@ -3427,6 +3427,23 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     </div>
                     <button type="button" onclick="addEditItemRow()" class="btn-success" style="width:auto; padding:10px 16px; white-space:nowrap;">+ Add Item</button>
                 </div>
+
+                <!-- Discount / direct Total override — either one scales every
+                     line's rate proportionally so tax stays calculated
+                     correctly; using one clears the other since they'd
+                     otherwise fight over the same result. -->
+                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                    <div style="flex:1; min-width:140px;">
+                        <label style="font-size:0.7rem;">Discount (&#8377;, optional)</label>
+                        <input type="number" id="editDiscount" min="0" step="any" placeholder="0.00" oninput="onEditDiscountInput()">
+                    </div>
+                    <div style="flex:1; min-width:140px;">
+                        <label style="font-size:0.7rem;">Or set New Total directly (&#8377;)</label>
+                        <input type="number" id="editTotalOverride" min="0" step="any" placeholder="e.g. 950.00" oninput="onEditTotalOverrideInput()">
+                    </div>
+                    <button type="button" onclick="clearEditTotalAdjust()" style="width:auto; padding:10px 14px; font-size:0.8rem; white-space:nowrap;">Reset to item rates</button>
+                </div>
+                <div id="editDiscountNote" style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;"></div>
             </div>
 
             <!-- Narration (inventory vouchers only; cash vouchers use editNarration below) -->
@@ -5744,6 +5761,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // add/remove items freely without being tied to fixed array indices.
     let editWorkingItems = [];
     let editRowIdSeq = 0;
+    let editWorkingItemsOriginal = []; // snapshot of rates as the voucher was BEFORE this edit session, for "Reset to item rates"
 
     function renderEditItemsList() {
         const list = document.getElementById('editItemsList');
@@ -5767,10 +5785,89 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         `).join('');
     }
 
+    // Base (undiscounted) total from the line items as currently entered —
+    // used as the reference point for both the Discount field and the
+    // direct Total-override field, so switching between them is consistent.
+    function editBaseTotal() {
+        let total = 0;
+        editWorkingItems.forEach(it => { total += (it.qty || 0) * (it.inclRate || 0); });
+        return total;
+    }
+
+    // Scales every line's inclRate by the same factor so the invoice adds
+    // up to the target total. Rates stay GST-inclusive, so tax recalculates
+    // correctly from the scaled rate — this is why a discount or a typed
+    // total isn't just subtracted at the end, it has to flow back into the
+    // rates themselves.
+    function scaleEditRatesToTotal(targetTotal) {
+        const base = editBaseTotal();
+        if (base <= 0) return; // nothing to scale from
+        const factor = targetTotal / base;
+        editWorkingItems.forEach(it => { it.inclRate = it.inclRate * factor; });
+        renderEditItemsList();
+    }
+
+    function onEditDiscountInput() {
+        const discount = parseFloat(document.getElementById('editDiscount').value) || 0;
+        document.getElementById('editTotalOverride').value = '';
+        if (discount <= 0) {
+            document.getElementById('editDiscountNote').innerText = '';
+            recomputeEditTotal();
+            return;
+        }
+        const base = editOriginalBaseTotal();
+        const target = Math.max(0, base - discount);
+        document.getElementById('editDiscountNote').innerText =
+            `Rates scaled down so the invoice totals \u20B9${target.toFixed(2)} (was \u20B9${base.toFixed(2)}).`;
+        scaleEditRatesToTotal(target);
+        recomputeEditTotal();
+    }
+
+    function onEditTotalOverrideInput() {
+        const target = parseFloat(document.getElementById('editTotalOverride').value);
+        document.getElementById('editDiscount').value = '';
+        if (isNaN(target) || target < 0) {
+            document.getElementById('editDiscountNote').innerText = '';
+            recomputeEditTotal();
+            return;
+        }
+        const base = editOriginalBaseTotal();
+        document.getElementById('editDiscountNote').innerText =
+            `Rates scaled so the invoice totals \u20B9${target.toFixed(2)} (was \u20B9${base.toFixed(2)}).`;
+        scaleEditRatesToTotal(target);
+        recomputeEditTotal();
+    }
+
+    // The total BEFORE any discount/override this editing session has
+    // applied — captured once when the edit modal opens, so repeatedly
+    // adjusting the discount field scales from the same starting point
+    // instead of compounding on top of the last scale.
+    let editOriginalTotalSnapshot = 0;
+    function editOriginalBaseTotal() { return editOriginalTotalSnapshot; }
+
+    function clearEditTotalAdjust() {
+        if (!confirm('Reset every line back to its original rate, undoing any discount or total override made this session?')) return;
+        editWorkingItems.forEach(it => {
+            const orig = editWorkingItemsOriginal.find(o => o.rowId === it.rowId);
+            if (orig) it.inclRate = orig.inclRate;
+        });
+        document.getElementById('editDiscount').value = '';
+        document.getElementById('editTotalOverride').value = '';
+        document.getElementById('editDiscountNote').innerText = '';
+        renderEditItemsList();
+        recomputeEditTotal();
+    }
+
     function updateEditRow(rowId, field, value) {
         const row = editWorkingItems.find(r => r.rowId === rowId);
         if (!row) return;
         row[field] = parseFloat(value) || 0;
+        // A manual line edit supersedes any discount/total-override figure
+        // shown — clear those inputs so they don't display a stale number
+        // that no longer matches what's actually on screen.
+        document.getElementById('editDiscount').value = '';
+        document.getElementById('editTotalOverride').value = '';
+        document.getElementById('editDiscountNote').innerText = '';
         recomputeEditTotal();
     }
 
@@ -5864,6 +5961,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 qty: it.qty, inclRate: it.inclRate,
                 enteredQty: it.enteredQty, enteredUnit: it.enteredUnit, enteredRate: it.enteredRate
             }));
+            // Snapshot BEFORE any discount/total-override edits this session,
+            // so "Reset to item rates" and the discount/total scaling always
+            // measure from the voucher's actual saved state, not from
+            // whatever the rates have already been scaled to mid-session.
+            editWorkingItemsOriginal = editWorkingItems.map(it => ({ rowId: it.rowId, inclRate: it.inclRate }));
+            editOriginalTotalSnapshot = editBaseTotal();
+            document.getElementById('editDiscount').value = '';
+            document.getElementById('editTotalOverride').value = '';
+            document.getElementById('editDiscountNote').innerText = '';
             renderEditItemsList();
 
             // "Add Item" picker — every stock item, current master rate
