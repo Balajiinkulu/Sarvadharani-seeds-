@@ -1323,7 +1323,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="tile" onclick="openGroup('groupTransactions')">
                 <span class="tile-icon">&#128184;</span>
                 <div class="tile-name">Transactions</div>
-                <div class="tile-sub">Vouchers, payments, receipts, daybook</div>
+                <div class="tile-sub">Payments, receipts, daybook, delivery notes</div>
+            </div>
+            <div class="tile" onclick="openPanel('panelVoucher')">
+                <span class="tile-icon">&#128221;</span>
+                <div class="tile-name">Post Voucher</div>
+                <div class="tile-sub">Sale / Purchase / Payment / Receipt / Journal</div>
             </div>
             <div class="tile" onclick="openGroup('groupReports')">
                 <span class="tile-icon">&#128200;</span>
@@ -1475,11 +1480,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <div class="submenu" id="groupTransactions">
         <div class="panel-head"><h3>Transactions</h3><button class="back-btn" onclick="backToGroups()">&#8592; Back</button></div>
         <div class="tile-grid">
-            <div class="tile" onclick="openPanel('panelVoucher')">
-                <span class="tile-icon">&#128221;</span>
-                <div class="tile-name">Post Voucher</div>
-                <div class="tile-sub">Sale / Purchase / Payment / Receipt</div>
-            </div>
             <div class="tile" onclick="openPanel('panelPayments')">
                 <span class="tile-icon">&#128184;</span>
                 <div class="tile-name">Payments</div>
@@ -2233,6 +2233,20 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </select>
             </div>
             <div>
+                <label>Requires a Party?</label>
+                <select id="vtRequiresParty">
+                    <option value="yes">Yes &mdash; must choose a party, like Sales/Purchase</option>
+                    <option value="no">No &mdash; no party needed (e.g. Rent, Transport, Bank Charges)</option>
+                </select>
+            </div>
+            <div>
+                <label>Uses a Category / Sub-Ledger?</label>
+                <select id="vtUsesCategory">
+                    <option value="no">No</option>
+                    <option value="yes">Yes &mdash; shows the Category picker (same list as Sales/Purchase, and you can add new categories from it)</option>
+                </select>
+            </div>
+            <div>
                 <label>Voucher No. Prefix</label>
                 <input type="text" id="vtPrefix" placeholder="e.g. JW" maxlength="6" required>
             </div>
@@ -2254,6 +2268,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <th>Stock</th>
                         <th>GST</th>
                         <th>Ledger</th>
+                        <th>Party?</th>
+                        <th>Category?</th>
                         <th>Prefix</th>
                         <th>Main Books</th>
                         <th>Action</th>
@@ -2949,6 +2965,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <option value="RawPurchase">Raw Purchase (raw seed stock in)</option>
                     <option value="Receipt">Receipt (Money In)</option>
                     <option value="Payment">Payment (Money Out)</option>
+                    <option value="Journal">Journal (Adjust between two ledgers)</option>
                     <option value="DeliveryNote">Delivery Note (dispatch only)</option>
                     <option value="OptionalSales">Optional Sale (not in main books)</option>
                     <option value="OptionalPurchase">Optional Purchase (not in main books)</option>
@@ -2980,7 +2997,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     </div>
                 </div>
             </div>
-            <div style="position:relative;">
+            <div style="position:relative;" id="vPartyWrap">
                 <label>Select Party</label>
                 <input type="text" id="vPartySearch" placeholder="Type to search party..." autocomplete="off"
                        oninput="filterPartyDropdown()" onfocus="filterPartyDropdown()" onkeydown="handlePartyKeydown(event)">
@@ -3012,10 +3029,46 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             </div>
 
             <!-- Payment / Receipt Panel -->
+            <!-- Journal Panel — a manual adjustment between any two ledgers.
+                 Either side can be a party, a cash/bank account, or a plain
+                 ledger group entry; a cash/bank account is allowed but never
+                 required, unlike Payment/Receipt which always need one. -->
+            <div class="col-2 item-builder" id="journalPanel" style="display:none;">
+                <div style="font-weight:600; font-size:0.85rem; color: var(--accent); margin-bottom:8px;">Journal Entry</div>
+                <div style="background: rgba(139,124,255,0.1); border:1px solid rgba(139,124,255,0.3); color:var(--violet); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:12px;">
+                    &#9432; No cash actually moves for this specific ledger pairing unless you pick a cash/bank account as one side. Used for things like writing off a bad debt, correcting an entry, or moving a balance between two ledgers directly.
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                    <div>
+                        <label>Debit Ledger <span style="color:var(--text-muted);">(receives the value)</span></label>
+                        <select id="vJournalDebitLedger">
+                            <option value="">-- Select Ledger --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Credit Ledger <span style="color:var(--text-muted);">(gives the value)</span></label>
+                        <select id="vJournalCreditLedger">
+                            <option value="">-- Select Ledger --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Amount (&#8377;)</label>
+                        <input type="number" id="vJournalAmount" step="any" min="0" placeholder="0.00">
+                    </div>
+                    <div class="col-2" id="journalSameLedgerWarn" style="display:none; color:var(--danger); font-size:0.8rem;">
+                        &#9888; Debit and Credit ledgers must be different.
+                    </div>
+                    <div class="col-2" style="grid-column: span 2;">
+                        <label>Narration <span style="color:var(--text-muted);">(recommended \u2014 explains why this adjustment was made)</span></label>
+                        <input type="text" id="vJournalNarration" placeholder="e.g. Write off bad debt, correct duplicate entry">
+                    </div>
+                </div>
+            </div>
+
             <div class="col-2 item-builder" id="paymentPanel" style="display:none;">
                 <div style="font-weight:600; font-size:0.85rem; color: var(--accent); margin-bottom:8px;">Cash / Bank Entry</div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-                    <div class="col-2" style="grid-column: span 2;">
+                    <div class="col-2" id="vRefInvoiceWrap" style="grid-column: span 2;">
                         <label>Against Invoice / Reference <span style="color:var(--text-muted);">(optional)</span></label>
                         <select id="vRefInvoice" onchange="autoFillFromInvoice()">
                             <option value="">-- On Account (no specific invoice) --</option>
@@ -3395,7 +3448,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <label>Date</label>
                 <input type="date" id="editDate">
             </div>
-            <div>
+            <div id="editPartyWrap">
                 <label>Party</label>
                 <select id="editParty"><option value="">-- Choose Party --</option></select>
             </div>
@@ -3477,6 +3530,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <!-- Cash fields (Payment/Receipt) -->
             <div class="col-2" id="editCashWrap" style="display:none;">
                 <div class="form-grid">
+                    <div class="col-2" id="editCashCategoryWrap" style="display:none;">
+                        <label>Category</label>
+                        <select id="editCashCategory"><option value="">-- Select Category --</option></select>
+                    </div>
                     <div>
                         <label>Amount (&#8377;)</label>
                         <input type="number" id="editAmount" step="any" min="0">
@@ -4072,7 +4129,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         panelOptional: 'groupMasters', panelVoucherTypes: 'groupMasters',
         panelAlter: 'groupMasters', panelAlterParty: 'groupMasters', panelAlterUnit: 'groupMasters',
         panelAlterVoucher: 'groupMasters', panelDataTransfer: 'groupMasters',
-        panelVoucher: 'groupTransactions', panelPayments: 'groupTransactions',
+        panelPayments: 'groupTransactions',
         panelReceipts: 'groupTransactions', panelDaybook: 'groupTransactions',
         panelCustomVoucherList: 'groupTransactions',
         panelStock: 'groupReports',
@@ -4589,15 +4646,34 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // cutoff itself) — i.e. the manual opening balance plus every
     // transaction from openingAsOf up to but not including `cutoff`.
     // Pass cutoff=null for "everything, no upper bound" (= accountBalance).
+    // True if the given transaction type is a custom voucher type marked
+    // "No" for Requires a Party — these behave like a Payment (cash-out)
+    // for account balance purposes, since a no-party custom voucher in
+    // this app always represents money leaving an account (e.g. Rent,
+    // Transport, Bank Charges), never money coming in.
+    function isCustomNoPartyType(type) {
+        const vt = customVoucherTypes.find(v => v.id === type);
+        return !!(vt && vt.requiresParty === 'no');
+    }
+
     function accountBalanceAsOf(accId, cutoff) {
         const acc = accounts.find(a => a.id == accId);
         if (!acc) return 0;
         const asOf = acc.openingAsOf || '2000-01-01';
         let bal = acc.opening || 0;
         transactions.forEach(t => {
-            if (t.accountId == accId && t.date >= asOf && (!cutoff || t.date < cutoff)) {
+            if (t.date < asOf || (cutoff && t.date >= cutoff)) return;
+            if (t.type === 'Journal') {
+                // Debit increases the ledger's balance, Credit decreases it —
+                // same convention as an account (Receipt=Debit=in, Payment=Credit=out).
+                if (t.journalDebit && t.journalDebit.kind === 'account' && t.journalDebit.id == accId) bal += t.grandTotal;
+                if (t.journalCredit && t.journalCredit.kind === 'account' && t.journalCredit.id == accId) bal -= t.grandTotal;
+                return;
+            }
+            if (t.accountId == accId) {
                 if (t.type === 'Receipt') bal += t.grandTotal;   // money in
                 else if (t.type === 'Payment') bal -= t.grandTotal; // money out
+                else if (isCustomNoPartyType(t.type)) bal -= t.grandTotal; // custom no-party types (e.g. Expense) are always cash-out
             }
         });
         return bal;
@@ -4618,7 +4694,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const asOf = p.openingAsOf || '2000-01-01';
         let bal = p.opening || 0;
         transactions.forEach(t => {
-            if (t.partyId == partyId && t.date >= asOf && (!cutoff || t.date < cutoff)) {
+            if (t.date < asOf || (cutoff && t.date >= cutoff)) return;
+            if (t.type === 'Journal') {
+                if (t.journalDebit && t.journalDebit.kind === 'party' && t.journalDebit.id == partyId) bal += t.grandTotal;
+                if (t.journalCredit && t.journalCredit.kind === 'party' && t.journalCredit.id == partyId) bal -= t.grandTotal;
+                return;
+            }
+            if (t.partyId == partyId) {
                 if (t.type === 'Sales') bal += t.grandTotal;
                 else if (t.type === 'Receipt') bal -= t.grandTotal;
                 else if (t.type === 'Purchase' || t.type === 'RawPurchase') bal -= t.grandTotal;
@@ -5178,19 +5260,36 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     function toggleVoucherMode() {
         const type = document.getElementById('vType').value;
+        const customType = customVoucherTypes.find(v => v.id === type);
         const isCash = (type === 'Payment' || type === 'Receipt');
+        const isJournal = (type === 'Journal');
         const isOptional = (type === 'OptionalSales' || type === 'OptionalPurchase');
         const isDN = (type === 'DeliveryNote');
         const isRawPurchase = (type === 'RawPurchase');
-        const customType = customVoucherTypes.find(v => v.id === type);
         const isCustomNoGst = !!(customType && customType.gst === 'no');
+        // A custom type marked "No" for Requires a Party behaves like a
+        // Payment/Receipt structurally — no items, just an amount and an
+        // account — so it can express things like Rent or Transport that
+        // have no natural party. requiresParty defaults to true for older
+        // custom types created before this option existed.
+        const customNoParty = !!(customType && customType.requiresParty === 'no');
+        const isCashLike = isCash || customNoParty;
+        const customUsesCategory = !!(customType && customType.usesCategory === 'yes');
 
-        document.getElementById('paymentPanel').style.display = isCash ? 'block' : 'none';
-        document.getElementById('itemBuilder').style.display = isCash ? 'none' : 'block';
-        document.getElementById('tempItemsWrap').style.display = isCash ? 'none' : 'block';
-        document.getElementById('totalsBox').style.display = isCash ? 'none' : 'block';
+        // Journal has no party field at all — it picks its own two ledgers
+        // directly, one of which may itself be a party or an account.
+        document.getElementById('vPartyWrap').style.display = (customNoParty || isJournal) ? 'none' : 'block';
+        document.getElementById('journalPanel').style.display = isJournal ? 'block' : 'none';
+        if (isJournal) populateJournalLedgerDropdowns();
+        document.getElementById('paymentPanel').style.display = isCashLike ? 'block' : 'none';
+        // A custom no-party type has no ref-invoice to settle against —
+        // hide that field, it only applies to real Payment/Receipt.
+        document.getElementById('vRefInvoiceWrap').style.display = isCash ? 'block' : 'none';
+        document.getElementById('itemBuilder').style.display = (isCashLike || isJournal) ? 'none' : 'block';
+        document.getElementById('tempItemsWrap').style.display = (isCashLike || isJournal) ? 'none' : 'block';
+        document.getElementById('totalsBox').style.display = (isCashLike || isJournal) ? 'none' : 'block';
         // Optional vouchers and no-GST custom types carry inventory but no GST split.
-        document.getElementById('taxTypeWrap').style.display = (isCash || isOptional || isDN || isCustomNoGst) ? 'none' : 'block';
+        document.getElementById('taxTypeWrap').style.display = (isCashLike || isJournal || isOptional || isDN || isCustomNoGst) ? 'none' : 'block';
         document.getElementById('optionalNoteWrap').style.display = (isOptional || isDN || isRawPurchase || !!customType) ? 'block' : 'none';
         document.getElementById('dnTransportWrap').style.display = isDN ? 'block' : 'none';
         if (isDN) {
@@ -5208,7 +5307,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         } else if (customType) {
             const stockTxt = customType.stockEffect === 'out' ? 'reduces stock'
                 : customType.stockEffect === 'in' ? 'increases stock' : 'has no stock effect';
-            const ledgerTxt = customType.ledgerEffect === 'debit' ? 'debits the party (they owe you)'
+            const ledgerTxt = customNoParty ? 'has no party'
+                : customType.ledgerEffect === 'debit' ? 'debits the party (they owe you)'
                 : customType.ledgerEffect === 'credit' ? 'credits the party (you owe them)' : 'does not affect party balance';
             const booksTxt = customType.inMainBooks === 'no' ? 'It is kept off the main books.' : 'It counts in the main books and reports.';
             document.getElementById('optionalNoteWrap').innerHTML =
@@ -5216,18 +5316,43 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 + `&#9432; <strong>${escapeHtml(customType.name)}</strong>: ${stockTxt}, ${ledgerTxt}. ${booksTxt}</div>`;
         }
 
-        // Sub-Ledger category applies to any inventory voucher (sale/purchase, incl. optional).
-        document.getElementById('subLedgerWrap').style.display = isCash ? 'none' : 'block';
-        // The Payment/Receipt panel already has its own narration field, so
-        // this universal one only shows for inventory-style vouchers.
-        document.getElementById('vNarrationWrap').style.display = isCash ? 'none' : 'block';
-        if (!isCash) onRateModeChange();
-        if (!isCash) populateSubLedgerDropdown();
+        // Sub-Ledger/Category applies to any inventory voucher (sale/purchase,
+        // incl. optional) AND to a custom type that explicitly asked for it —
+        // including the cash-like no-party ones (e.g. an Expense voucher
+        // categorised as Rent / Transport / Labor). Journal has neither.
+        document.getElementById('subLedgerWrap').style.display = (isCash || isJournal || (isCashLike && !customUsesCategory)) ? 'none' : 'block';
+        // The Payment/Receipt panel already has its own narration field, and
+        // Journal has its own too — this universal one only shows for
+        // inventory-style vouchers.
+        document.getElementById('vNarrationWrap').style.display = (isCash || isCashLike || isJournal) ? 'none' : 'block';
+        if (!isCashLike && !isJournal) onRateModeChange();
+        if ((!isCashLike && !isJournal) || customUsesCategory) populateSubLedgerDropdown();
 
-        if (isCash) {
+        if (isCashLike) {
             populateAccountDropdown();
-            populateRefInvoices();
+            if (isCash) populateRefInvoices();
         }
+    }
+
+    // Journal's two ledger pickers list every party and every cash/bank
+    // account together, prefixed so it's clear which is which — a Journal
+    // is the one place a party AND an account are both valid on either
+    // side, unlike everywhere else in the app where they're kept separate.
+    function populateJournalLedgerDropdowns() {
+        const options = ['<option value="">-- Select Ledger --</option>'];
+        if (parties.length) {
+            options.push('<optgroup label="Parties">');
+            parties.forEach(p => options.push(`<option value="party_${p.id}">${escapeHtml(p.name)} (${p.type})</option>`));
+            options.push('</optgroup>');
+        }
+        if (accounts.length) {
+            options.push('<optgroup label="Cash / Bank Accounts">');
+            accounts.forEach(a => options.push(`<option value="account_${a.id}">${escapeHtml(a.name)} (${a.type})</option>`));
+            options.push('</optgroup>');
+        }
+        const html = options.join('');
+        document.getElementById('vJournalDebitLedger').innerHTML = html;
+        document.getElementById('vJournalCreditLedger').innerHTML = html;
     }
 
     function populateAccountDropdown() {
@@ -5368,19 +5493,85 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     function submitVoucher() {
         if (!isAdmin() && !hasPermission('postVouchers')) return alert("Only an admin, or a user with 'Post new vouchers' turned on, can post a voucher.");
         const type = document.getElementById('vType').value;
+        const customTypeDef = customVoucherTypes.find(v => v.id === type);
+        const customNoPartyDef = !!(customTypeDef && customTypeDef.requiresParty === 'no');
+        const isJournalType = (type === 'Journal');
         const partyId = document.getElementById('vParty').value;
-        if (!partyId) return alert("Please select a party.");
+        if (!customNoPartyDef && !isJournalType && !partyId) return alert("Please select a party.");
         const partyObj = parties.find(p => p.id == partyId);
 
-        // ---- Payment / Receipt (no stock, no GST) ----
-        if (type === 'Payment' || type === 'Receipt') {
+        // ---- Journal: a manual adjustment directly between two ledgers,
+        // each of which can be a party or a cash/bank account. No stock, no
+        // GST, no invoice numbering series shared with anything else. ----
+        if (isJournalType) {
+            const debitVal = document.getElementById('vJournalDebitLedger').value;
+            const creditVal = document.getElementById('vJournalCreditLedger').value;
+            if (!debitVal) return alert("Please select the Debit ledger.");
+            if (!creditVal) return alert("Please select the Credit ledger.");
+            if (debitVal === creditVal) return alert("Debit and Credit ledgers must be different.");
+
+            const amount = parseFloat(document.getElementById('vJournalAmount').value);
+            if (isNaN(amount) || amount <= 0) return alert("Please enter a valid amount.");
+
+            const parseLedgerRef = (val) => {
+                const isParty = val.startsWith('party_');
+                const rawId = val.replace(/^(party|account)_/, '');
+                if (isParty) {
+                    const p = parties.find(x => x.id == rawId);
+                    return { kind: 'party', id: p ? p.id : null, name: p ? p.name : 'Unknown' };
+                }
+                const a = accounts.find(x => x.id == rawId);
+                return { kind: 'account', id: a ? a.id : null, name: a ? a.name : 'Unknown' };
+            };
+            const debitRef = parseLedgerRef(debitVal);
+            const creditRef = parseLedgerRef(creditVal);
+
+            const journalTxn = {
+                id: Date.now(),
+                invNo: nextVoucherNo('Journal', 'JRNL', null, document.getElementById('vDate').value),
+                date: document.getElementById('vDate').value,
+                type: 'Journal',
+                journalDebit: debitRef,
+                journalCredit: creditRef,
+                narration: document.getElementById('vJournalNarration').value.trim(),
+                items: [],
+                taxable: 0,
+                totalTax: 0,
+                grandTotal: amount
+            };
+
+            transactions.push(journalTxn);
+            localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
+            syncCloud();
+
+            document.getElementById('vJournalDebitLedger').value = '';
+            document.getElementById('vJournalCreditLedger').value = '';
+            document.getElementById('vJournalAmount').value = '';
+            document.getElementById('vJournalNarration').value = '';
+            document.getElementById('vDate').valueAsDate = new Date();
+            render();
+            alert(`Journal ${journalTxn.invNo} posted.`);
+            return;
+        }
+
+        // ---- Payment / Receipt, and any custom voucher type marked "No"
+        // for Requires a Party (e.g. Rent, Transport, Bank Charges) — all
+        // share the same cash-in/cash-out shape: an amount against an
+        // account, no stock, no GST. ----
+        if (type === 'Payment' || type === 'Receipt' || customNoPartyDef) {
             const amount = parseFloat(document.getElementById('vAmount').value);
             if (isNaN(amount) || amount <= 0) return alert("Please enter a valid amount.");
 
             const accountId = document.getElementById('vAccount').value;
             if (!accountId) return alert("Please select the cash/bank account.");
 
-            const refInvId = document.getElementById('vRefInvoice').value;
+            const category = (customNoPartyDef && customTypeDef.usesCategory === 'yes')
+                ? document.getElementById('vSubLedger').value : '';
+            if (customNoPartyDef && customTypeDef.usesCategory === 'yes' && !category) {
+                return alert("Please select a category.");
+            }
+
+            const refInvId = customNoPartyDef ? '' : document.getElementById('vRefInvoice').value;
             let refInvNo = '';
             if (refInvId) {
                 const inv = transactions.find(t => t.id == refInvId);
@@ -5395,7 +5586,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
             const cashTxn = {
                 id: Date.now(),
-                invNo: nextRefNo(type, document.getElementById('vDate').value),
+                invNo: customNoPartyDef
+                    ? nextVoucherNo('custom_' + type, customTypeDef.prefix || 'CV', null, document.getElementById('vDate').value)
+                    : nextRefNo(type, document.getElementById('vDate').value),
                 date: document.getElementById('vDate').value,
                 type: type,
                 accountId: accountId,
@@ -5404,12 +5597,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 refInvoiceNo: refInvNo,
                 narration: document.getElementById('vNarration').value.trim(),
                 partyId: partyObj ? partyObj.id : null,
-                partyName: partyObj ? partyObj.name : 'Cash Party',
+                partyName: partyObj ? partyObj.name : (customNoPartyDef ? (customTypeDef.name || 'Expense') : 'Cash Party'),
                 items: [],
                 taxable: 0,
                 totalTax: 0,
                 grandTotal: amount
             };
+            if (customNoPartyDef) {
+                cashTxn.customVoucherTypeId = type;
+                cashTxn.customVoucherTypeName = customTypeDef.name;
+                cashTxn.inMainBooks = (customTypeDef.inMainBooks !== 'no');
+                cashTxn.subLedger = category || '';
+            }
 
             transactions.push(cashTxn);
             localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
@@ -5421,7 +5620,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             document.getElementById('refOutstandingWrap').style.display = 'none';
             document.getElementById('vDate').valueAsDate = new Date();
             render();
-            populateRefInvoices();
+            if (!customNoPartyDef) populateRefInvoices();
 
             if (lastLedger && lastLedger.kind === 'party' && lastLedger.id == partyId
                 && document.getElementById('ledgerPrintArea').style.display === 'block') {
@@ -5697,6 +5896,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     function isInventoryType(type) {
         if (type === 'Sales' || type === 'Purchase' || type === 'RawPurchase' || type === 'OptionalSales'
             || type === 'OptionalPurchase' || type === 'DeliveryNote') return true;
+        if (isCustomNoPartyType(type)) return false; // cash-out custom types (e.g. Expense) are not inventory vouchers
         return customVoucherTypes.some(v => v.id === type);
     }
     function affectsMainStock(type) {
@@ -5919,6 +6119,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (!isAdmin() && !hasPermission('editVoucher')) { alert("Only an admin, or a user with 'Edit a voucher' turned on, can edit a voucher."); return; }
         const txn = transactions.find(t => t.id == txnId);
         if (!txn) return;
+        if (txn.type === 'Journal') {
+            alert("Journal entries can't be edited directly yet — delete this one and post a new one instead.");
+            return;
+        }
         document.getElementById('editTxnId').value = txn.id;
         document.getElementById('editTitle').innerText = `Edit ${txn.invNo}`;
         document.getElementById('editDate').value = txn.date;
@@ -5929,8 +6133,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         parties.forEach(p => pSel.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)} (${p.type})</option>`);
         pSel.value = txn.partyId || '';
 
-        const isCash = (txn.type === 'Payment' || txn.type === 'Receipt');
+        const isCash = (txn.type === 'Payment' || txn.type === 'Receipt' || isCustomNoPartyType(txn.type));
         const isInv = isInventoryType(txn.type);
+        document.getElementById('editPartyWrap').style.display = isCustomNoPartyType(txn.type) ? 'none' : 'block';
 
         document.getElementById('editCashWrap').style.display = isCash ? 'block' : 'none';
         document.getElementById('editItemsWrap').style.display = isInv ? 'block' : 'none';
@@ -5989,8 +6194,20 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             document.getElementById('editAmount').value = txn.grandTotal;
             document.getElementById('editNarration').value = txn.narration || '';
 
+            const customEditType = customVoucherTypes.find(v => v.id === txn.type);
+            const showCategory = !!(customEditType && customEditType.usesCategory === 'yes');
+            document.getElementById('editCashCategoryWrap').style.display = showCategory ? 'block' : 'none';
+            if (showCategory) {
+                const cSel = document.getElementById('editCashCategory');
+                cSel.innerHTML = '<option value="">-- Select Category --</option>';
+                subLedgers.forEach(n => cSel.innerHTML += `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`);
+                cSel.value = txn.subLedger || '';
+            }
+
             const note = document.getElementById('editRefNote');
-            if (txn.refInvoiceId) {
+            if (isCustomNoPartyType(txn.type)) {
+                note.innerHTML = ''; // no-party custom types have no ref-invoice concept
+            } else if (txn.refInvoiceId) {
                 const inv = transactions.find(t => t.id == txn.refInvoiceId);
                 if (inv) {
                     // outstanding excluding THIS voucher
@@ -6017,7 +6234,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const txn = transactions.find(t => t.id == document.getElementById('editTxnId').value);
         if (!txn) return;
         let total = 0;
-        if (txn.type === 'Payment' || txn.type === 'Receipt') {
+        if (txn.type === 'Payment' || txn.type === 'Receipt' || isCustomNoPartyType(txn.type)) {
             total = parseFloat(document.getElementById('editAmount').value) || 0;
         } else {
             editWorkingItems.forEach(it => { total += (it.qty || 0) * (it.inclRate || 0); });
@@ -6031,11 +6248,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         const newDate = document.getElementById('editDate').value;
         if (!newDate) return alert("Please choose a date.");
+        const noPartyType = isCustomNoPartyType(txn.type);
         const newPartyId = document.getElementById('editParty').value;
-        if (!newPartyId) return alert("Please choose a party.");
+        if (!noPartyType && !newPartyId) return alert("Please choose a party.");
         const newParty = parties.find(p => p.id == newPartyId);
 
-        const isCash = (txn.type === 'Payment' || txn.type === 'Receipt');
+        const isCash = (txn.type === 'Payment' || txn.type === 'Receipt' || noPartyType);
 
         if (isCash) {
             const amount = parseFloat(document.getElementById('editAmount').value);
@@ -6043,8 +6261,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             const accountId = document.getElementById('editAccount').value;
             if (!accountId) return alert("Select an account.");
 
+            const customEditType = customVoucherTypes.find(v => v.id === txn.type);
+            const requiresCategory = !!(customEditType && customEditType.usesCategory === 'yes');
+            const category = requiresCategory ? document.getElementById('editCashCategory').value : '';
+            if (requiresCategory && !category) return alert("Please select a category.");
+
             // Validate against linked invoice outstanding (excluding this voucher)
-            if (txn.refInvoiceId) {
+            // — only meaningful for real Payment/Receipt, never for a
+            // no-party custom type, which has no ref-invoice concept.
+            if (!noPartyType && txn.refInvoiceId) {
                 const inv = transactions.find(t => t.id == txn.refInvoiceId);
                 if (inv) {
                     const settledOthers = transactions
@@ -6059,12 +6284,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
             const accObj = accounts.find(a => a.id == accountId);
             txn.date = newDate;
-            txn.partyId = newParty.id;
-            txn.partyName = newParty.name;
+            if (!noPartyType) {
+                txn.partyId = newParty.id;
+                txn.partyName = newParty.name;
+            }
             txn.accountId = accountId;
             txn.accountName = accObj ? accObj.name : '';
             txn.narration = document.getElementById('editNarration').value.trim();
             txn.grandTotal = amount;
+            if (requiresCategory) txn.subLedger = category;
 
             localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
             syncCloud();
@@ -7309,6 +7537,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             stockEffect: document.getElementById('vtStockEffect').value,
             gst: document.getElementById('vtGst').value,
             ledgerEffect: document.getElementById('vtLedgerEffect').value,
+            requiresParty: document.getElementById('vtRequiresParty').value,
+            usesCategory: document.getElementById('vtUsesCategory').value,
             prefix: prefix,
             inMainBooks: document.getElementById('vtInMainBooks').value
         };
@@ -7339,6 +7569,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('vtStockEffect').value = vt.stockEffect;
         document.getElementById('vtGst').value = vt.gst;
         document.getElementById('vtLedgerEffect').value = vt.ledgerEffect;
+        document.getElementById('vtRequiresParty').value = vt.requiresParty || 'yes'; // older types created before this option existed still require a party, unchanged
+        document.getElementById('vtUsesCategory').value = vt.usesCategory || 'no';
         document.getElementById('vtPrefix').value = vt.prefix;
         document.getElementById('vtInMainBooks').value = vt.inMainBooks;
         document.getElementById('vtPanelTitle').innerText = 'Edit Voucher Type';
@@ -7384,17 +7616,20 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const body = document.getElementById('voucherTypesBody');
         body.innerHTML = '';
         if (customVoucherTypes.length === 0) {
-            body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No custom voucher types yet. Create one above.</td></tr>';
+            body.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No custom voucher types yet. Create one above.</td></tr>';
             return;
         }
         customVoucherTypes.forEach(vt => {
             const count = transactions.filter(t => t.customVoucherTypeId === vt.id).length;
+            const requiresParty = vt.requiresParty !== 'no'; // defaults to required, matching older types
             body.innerHTML += `
                 <tr style="cursor:pointer;" onclick="openCustomVoucherList('${vt.id}')" title="View entries for this voucher type">
                     <td><strong>${escapeHtml(vt.name)}</strong> <span style="color:var(--text-muted); font-size:0.72rem;">(${count})</span></td>
                     <td>${stockEffectLabel(vt.stockEffect)}</td>
                     <td>${vt.gst === 'no' ? 'Nil GST' : 'Applicable'}</td>
                     <td>${ledgerEffectLabel(vt.ledgerEffect)}</td>
+                    <td>${requiresParty ? 'Yes' : 'No'}</td>
+                    <td>${vt.usesCategory === 'yes' ? 'Yes' : 'No'}</td>
                     <td>${escapeHtml(vt.prefix)}</td>
                     <td>${vt.inMainBooks === 'no' ? 'Off-book' : 'Yes'}</td>
                     <td style="display:flex; gap:6px;">
@@ -7532,13 +7767,16 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     function printInvoice(txnId) {  
         const txn = transactions.find(t => t.id == txnId);  
         if (!txn) return;  
-        const partyObj = parties.find(p => p.id == txn.partyId);
-        const isCash = (txn.type === 'Payment' || txn.type === 'Receipt');
+        const isJournalTxn = (txn.type === 'Journal');
+        const partyObj = isJournalTxn ? null : parties.find(p => p.id == txn.partyId);
+        const isCash = (txn.type === 'Payment' || txn.type === 'Receipt' || isCustomNoPartyType(txn.type));
         const isOptional = !!txn.optional;
         const isDN = !!txn.deliveryNote;
 
-        document.getElementById('invDocTitle').innerText = isCash
-            ? (txn.type === 'Receipt' ? 'RECEIPT VOUCHER' : 'PAYMENT VOUCHER')
+        document.getElementById('invDocTitle').innerText = isJournalTxn
+            ? 'JOURNAL VOUCHER'
+            : isCash
+            ? (txn.type === 'Receipt' ? 'RECEIPT VOUCHER' : (isCustomNoPartyType(txn.type) ? (txn.customVoucherTypeName || 'EXPENSE VOUCHER').toUpperCase() : 'PAYMENT VOUCHER'))
             : isDN
                 ? 'DELIVERY NOTE'
             : isOptional
@@ -7550,7 +7788,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (rh) rh.innerText = (txn.rateMode === 'EXEMPT') ? 'Rate (Nil GST)' : 'Rate (Incl GST)';
         document.getElementById('invNo').innerText = txn.invNo;  
         document.getElementById('invDate').innerText = txn.date;  
-        document.getElementById('invParty').innerText = txn.partyName;  
+        document.getElementById('invParty').innerText = isJournalTxn
+            ? `Dr ${txn.journalDebit ? txn.journalDebit.name : 'Unknown'}  /  Cr ${txn.journalCredit ? txn.journalCredit.name : 'Unknown'}`
+            : txn.partyName;  
         document.getElementById('invAddress').innerText = partyObj && partyObj.address ? `Address: ${partyObj.address}` : '';
         document.getElementById('invGstin').innerText = partyObj && partyObj.gstin ? `GSTIN: ${partyObj.gstin}` : '';
 
@@ -7566,7 +7806,16 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         }
 
         let itemsHtml = '';
-        if (isCash) {
+        if (isJournalTxn) {
+            const desc = `Debit: ${txn.journalDebit ? txn.journalDebit.name : 'Unknown'}  |  Credit: ${txn.journalCredit ? txn.journalCredit.name : 'Unknown'}`
+                + (txn.narration ? ` — ${txn.narration}` : '');
+            itemsHtml = `
+                <tr>
+                    <td style="border:1px solid #cbd5e1; padding:6px;" colspan="5">${escapeHtml(desc)}</td>
+                    <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${txn.grandTotal.toFixed(2)}</td>
+                </tr>
+            `;
+        } else if (isCash) {
             const desc = `${txn.type} ${txn.type === 'Receipt' ? 'from' : 'to'} ${txn.partyName} via ${txn.accountName || 'Cash'}`
                 + (txn.refInvoiceNo ? ` (Ref: ${txn.refInvoiceNo})` : '')
                 + (txn.narration ? ` — ${txn.narration}` : '');
@@ -7816,15 +8065,23 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             if (!acc) return;
             headerText = `${acc.name} (${acc.type})`;
             const asOf = acc.openingAsOf || '2000-01-01';
-            ledgerTxns = transactions.filter(t => t.accountId == id && inRange(t.date, range) && t.date >= asOf);
+            ledgerTxns = transactions.filter(t => inRange(t.date, range) && t.date >= asOf && (
+                t.accountId == id ||
+                (t.type === 'Journal' && ((t.journalDebit && t.journalDebit.kind === 'account' && t.journalDebit.id == id)
+                    || (t.journalCredit && t.journalCredit.kind === 'account' && t.journalCredit.id == id)))
+            ));
         } else {
             const party = parties.find(p => p.id == id);
             if (!party) return;
             headerText = `${party.name} (${party.type})`;
             const asOf = party.openingAsOf || '2000-01-01';
-            ledgerTxns = transactions.filter(t =>
-                t.partyId == id && inRange(t.date, range) && t.date >= asOf
+            ledgerTxns = transactions.filter(t => inRange(t.date, range) && t.date >= asOf
                 && !(t.customVoucherTypeId && t.inMainBooks === false)
+                && (
+                    t.partyId == id ||
+                    (t.type === 'Journal' && ((t.journalDebit && t.journalDebit.kind === 'party' && t.journalDebit.id == id)
+                        || (t.journalCredit && t.journalCredit.kind === 'party' && t.journalCredit.id == id)))
+                )
             );
         }
         document.getElementById('ledgerHeaderDetails').innerText = headerText;
@@ -7946,11 +8203,20 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     }
                 } else if (isAccount) {
                     // Asset ledger view: Receipt = money in = Debit,
-                    // Payment = money out = Credit.
-                    if (txn.type === 'Receipt') {
+                    // Payment = money out = Credit. A custom no-party type
+                    // (e.g. Expense) is always cash-out too, same as Payment.
+                    if (txn.type === 'Journal') {
+                        if (txn.journalDebit && txn.journalDebit.kind === 'account' && txn.journalDebit.id == id) {
+                            debit = txn.grandTotal;
+                            totalDebit += debit;
+                        } else if (txn.journalCredit && txn.journalCredit.kind === 'account' && txn.journalCredit.id == id) {
+                            credit = txn.grandTotal;
+                            totalCredit += credit;
+                        }
+                    } else if (txn.type === 'Receipt') {
                         debit = txn.grandTotal;
                         totalDebit += debit;
-                    } else if (txn.type === 'Payment') {
+                    } else if (txn.type === 'Payment' || isCustomNoPartyType(txn.type)) {
                         credit = txn.grandTotal;
                         totalCredit += credit;
                     }
@@ -7959,7 +8225,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     // Purchases from party = Credit (We owe them)
                     // Receipt (money in from customer) = Credit (reduces what they owe)
                     // Payment (money out to vendor) = Debit (reduces what we owe)
-                    if (txn.type === 'Sales') {
+                    if (txn.type === 'Journal') {
+                        if (txn.journalDebit && txn.journalDebit.kind === 'party' && txn.journalDebit.id == id) {
+                            debit = txn.grandTotal;
+                            totalDebit += debit;
+                        } else if (txn.journalCredit && txn.journalCredit.kind === 'party' && txn.journalCredit.id == id) {
+                            credit = txn.grandTotal;
+                            totalCredit += credit;
+                        }
+                    } else if (txn.type === 'Sales') {
                         debit = txn.grandTotal;
                         totalDebit += debit;
                     } else if (txn.type === 'Purchase' || txn.type === 'RawPurchase') {
@@ -7986,10 +8260,26 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
                 // Details Sub-text
                 let invDetails;
-                if (txn.type === 'Payment' || txn.type === 'Receipt') {
+                if (txn.type === 'Journal') {
+                    // Show whichever side of this Journal ISN'T the ledger
+                    // currently being viewed — that's the useful counterpart.
+                    const viewingIsDebit = txn.journalDebit && ((isAccount && txn.journalDebit.kind === 'account') || (!isAccount && txn.journalDebit.kind === 'party')) && txn.journalDebit.id == id;
+                    const other = viewingIsDebit ? txn.journalCredit : txn.journalDebit;
+                    const otherLabel = other ? escapeHtml(other.name) : 'Unknown';
+                    invDetails = `<div class="text-muted-print" style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                        \u21B3 ${viewingIsDebit ? 'From' : 'To'} ${otherLabel}${txn.narration ? ' - ' + escapeHtml(txn.narration) : ''}
+                    </div>`;
+                } else if (txn.type === 'Payment' || txn.type === 'Receipt') {
                     const counterpart = isAccount ? (txn.partyName || 'Cash Party') : (txn.accountName || 'Cash');
                     invDetails = `<div class="text-muted-print" style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
                         \u21B3 ${escapeHtml(counterpart)}${txn.refInvoiceNo ? ' | Ref: ' + escapeHtml(txn.refInvoiceNo) : ''}${txn.narration ? ' - ' + escapeHtml(txn.narration) : ''}
+                    </div>`;
+                } else if (isCustomNoPartyType(txn.type)) {
+                    const bits = [];
+                    if (txn.subLedger) bits.push(escapeHtml(txn.subLedger));
+                    bits.push(escapeHtml(txn.accountName || 'Cash'));
+                    invDetails = `<div class="text-muted-print" style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                        \u21B3 ${bits.join(' | ')}${txn.narration ? ' - ' + escapeHtml(txn.narration) : ''}
                     </div>`;
                 } else {
                     invDetails = (txn.items || []).map(it => 
@@ -8005,7 +8295,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 }
 
                 let particularsTitle = 'Sales Account';
-                if (txn.type === 'Purchase') particularsTitle = 'Purchase Account';
+                if (txn.type === 'Journal') particularsTitle = 'Journal Entry';
+                else if (txn.type === 'Purchase') particularsTitle = 'Purchase Account';
                 else if (txn.type === 'RawPurchase') particularsTitle = 'Raw Purchase Account';
                 else if (txn.type === 'Payment') particularsTitle = isAccount ? escapeHtml(txn.partyName || 'Cash Party') : 'Payment (Cash/Bank)';
                 else if (txn.type === 'Receipt') particularsTitle = isAccount ? escapeHtml(txn.partyName || 'Cash Party') : 'Receipt (Cash/Bank)';
@@ -8018,6 +8309,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     particularsTitle = escapeHtml(who);
                 }
 
+                // The "Type" column: a custom voucher type's raw id is an
+                // internal slug (e.g. CT_Expense), not something to show —
+                // display its actual name instead, same as everywhere else.
+                const typeColLabel = txn.customVoucherTypeId ? escapeHtml(txn.customVoucherTypeName || 'Custom') : escapeHtml(txn.type);
+
                 tbody.innerHTML += `
                     <tr style="cursor:pointer;" title="Click to view this voucher">
                         <td style="vertical-align:top;" onclick="openTransactionDetail(${txn.id})">${txn.date}</td>
@@ -8025,7 +8321,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                             <strong>${particularsTitle}</strong>
                             ${invDetails}
                         </td>
-                        <td style="vertical-align:top;" onclick="openTransactionDetail(${txn.id})">${txn.type}</td>
+                        <td style="vertical-align:top;" onclick="openTransactionDetail(${txn.id})">${typeColLabel}</td>
                         <td style="vertical-align:top;" onclick="openTransactionDetail(${txn.id})">${txn.invNo}</td>
                         <td style="vertical-align:top;" onclick="openTransactionDetail(${txn.id})">${debit > 0 ? debit.toFixed(2) : ''}</td>
                         <td style="vertical-align:top;" onclick="openTransactionDetail(${txn.id})">${credit > 0 ? credit.toFixed(2) : ''}</td>
@@ -8639,14 +8935,24 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         sortByDate(transactions, 'daybook').forEach(t => {  
             if (t.optional || t.deliveryNote || t.conversion) return; // shown in their own tiles instead
             const isCash = (t.type === 'Payment' || t.type === 'Receipt');
-            const detailCol = isCash ? (escapeHtml(t.accountName || 'Cash') + (t.refInvoiceNo ? ' &rarr; ' + escapeHtml(t.refInvoiceNo) : '')) : `${t.items ? t.items.length : 1} item(s)`;
+            const isJournalTxn = (t.type === 'Journal');
+            const noPartyCustom = isCustomNoPartyType(t.type);
+            const typeLabel = noPartyCustom ? escapeHtml(t.customVoucherTypeName || 'Custom') : escapeHtml(t.type);
+            const detailCol = isJournalTxn
+                ? `Dr ${escapeHtml(t.journalDebit ? t.journalDebit.name : 'Unknown')} &rarr; Cr ${escapeHtml(t.journalCredit ? t.journalCredit.name : 'Unknown')}`
+                : noPartyCustom
+                ? (t.subLedger ? escapeHtml(t.subLedger) + ' | ' : '') + escapeHtml(t.accountName || 'Cash')
+                : isCash ? (escapeHtml(t.accountName || 'Cash') + (t.refInvoiceNo ? ' &rarr; ' + escapeHtml(t.refInvoiceNo) : '')) : `${t.items ? t.items.length : 1} item(s)`;
             const narrationHint = t.narration ? `<div style="font-size:0.7rem; color:var(--text-muted); font-style:italic; margin-top:2px;">${escapeHtml(t.narration)}</div>` : '';
-            const actionBtn = isCash ? '' : `<button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.75rem;">Invoice</button>`;
+            const actionBtn = (isCash || noPartyCustom || isJournalTxn) ? '' : `<button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.75rem;">Invoice</button>`;
+            const partyCol = (noPartyCustom || isJournalTxn)
+                ? '<span style="color:var(--text-muted);">&mdash;</span>'
+                : `<span style="color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</span>`;
             lBody.innerHTML += `  
                 <tr>  
                     <td>${t.date}</td>  
-                    <td><strong>${t.type}</strong></td>  
-                    <td style="color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>  
+                    <td><strong>${typeLabel}</strong></td>  
+                    <td>${partyCol}</td>  
                     <td>${detailCol}${narrationHint}</td>  
                     <td>\u20B9${t.grandTotal.toFixed(2)}</td>  
                     <td style="display:flex; gap:6px;">
