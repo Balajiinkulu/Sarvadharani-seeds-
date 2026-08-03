@@ -2301,7 +2301,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <input type="date" id="cvTo" onchange="renderCustomVoucherList()">
                 </div>
             </div>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <button type="button" data-select-togglebtn="customVoucherList" onclick="toggleSelectMode('customVoucherList')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <span data-select-count="customVoucherList" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+                <button type="button" data-select-printbtn="customVoucherList" onclick="printSelected('customVoucherList', customVoucherListRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelCustomVoucherList','Voucher Entries')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('customVoucherListBody','voucher-entries')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
                 <button type="button" data-sort-toggle="customVoucherList" onclick="toggleSortDir('customVoucherList', renderCustomVoucherList)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
@@ -2311,6 +2314,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <table>
                 <thead>
                     <tr>
+                        <th class="no-print" data-select-col="customVoucherList" style="width:30px; display:none;"><input type="checkbox" data-select-all="customVoucherList" onchange="toggleSelectAll('customVoucherList', this.checked)"></th>
                         <th>Date</th>
                         <th>Voucher No.</th>
                         <th>Party</th>
@@ -2327,7 +2331,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Sub-Ledger Category Detail (drill-down from Sub-Ledger Report) -->
     <div class="panel" id="panelCategoryDetail">
         <div class="panel-head"><h3 id="catDetailTitle">Category Detail</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+        <div style="display:flex; justify-content:flex-end; margin-bottom:12px; gap:6px; align-items:center; flex-wrap:wrap;">
+            <button type="button" data-select-togglebtn="categoryDetail" onclick="toggleSelectMode('categoryDetail')" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+            <span data-select-count="categoryDetail" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+            <button type="button" data-select-printbtn="categoryDetail" onclick="printSelected('categoryDetail', categoryDetailRowOrder)" disabled style="display:none; width:auto; padding:8px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
             <button type="button" data-sort-toggle="categoryDetail" onclick="toggleSortDir('categoryDetail', () => openCategoryDetail(currentCategoryDetail))" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
@@ -2338,6 +2345,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <table>
                 <thead>
                     <tr>
+                        <th class="no-print" data-select-col="categoryDetail" style="width:30px; display:none;"><input type="checkbox" data-select-all="categoryDetail" onchange="toggleSelectAll('categoryDetail', this.checked)"></th>
                         <th>Date</th>
                         <th>Type</th>
                         <th>Voucher No.</th>
@@ -2432,7 +2440,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <label>Total Sales in Period</label>
                 <div id="salesPeriodTotal" style="font-size:1.2rem; font-weight:bold; color:var(--success);">&#8377;0.00</div>
             </div>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <button type="button" data-select-togglebtn="salesStatement" onclick="toggleSelectMode('salesStatement')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <span data-select-count="salesStatement" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+                <button type="button" data-select-printbtn="salesStatement" onclick="printSelected('salesStatement', salesStatementRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelSalesStatement','Sales Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('salesStatementBody','sales-statement')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
                 <button type="button" data-sort-toggle="salesStatement" onclick="toggleSortDir('salesStatement', renderSalesStatement)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
@@ -2442,6 +2453,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <table>
                 <thead>
                     <tr>
+                        <th class="no-print" data-select-col="salesStatement" style="width:30px; display:none;"><input type="checkbox" data-select-all="salesStatement" onchange="toggleSelectAll('salesStatement', this.checked)"></th>
                         <th>Date</th>
                         <th>Invoice No.</th>
                         <th>Party</th>
@@ -2544,7 +2556,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <label>Total Purchases in Period</label>
                 <div id="purchPeriodTotal" style="font-size:1.2rem; font-weight:bold; color:var(--text-main);">&#8377;0.00</div>
             </div>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <button type="button" data-select-togglebtn="purchaseReport" onclick="toggleSelectMode('purchaseReport')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <span data-select-count="purchaseReport" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+                <button type="button" data-select-printbtn="purchaseReport" onclick="printSelected('purchaseReport', purchaseReportRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelPurchaseReport','Purchase Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('purchaseReportBody','purchase-report')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
                 <button type="button" data-sort-toggle="purchaseReport" onclick="toggleSortDir('purchaseReport', renderPurchaseReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
@@ -2554,6 +2569,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <table>
                 <thead>
                     <tr>
+                        <th class="no-print" data-select-col="purchaseReport" style="width:30px; display:none;"><input type="checkbox" data-select-all="purchaseReport" onchange="toggleSelectAll('purchaseReport', this.checked)"></th>
                         <th>Date</th>
                         <th>Voucher No.</th>
                         <th>Vendor</th>
@@ -2599,7 +2615,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <label>Notes in Period</label>
                 <div id="dnCount" style="font-size:1.2rem; font-weight:bold; color:var(--cyan);">0</div>
             </div>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <button type="button" data-select-togglebtn="deliveryNotes" onclick="toggleSelectMode('deliveryNotes')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <span data-select-count="deliveryNotes" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+                <button type="button" data-select-printbtn="deliveryNotes" onclick="printSelected('deliveryNotes', deliveryNotesRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelDeliveryNotes','Delivery Notes')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('deliveryNotesBody','delivery-notes')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
                 <button type="button" data-sort-toggle="deliveryNotes" onclick="toggleSortDir('deliveryNotes', renderDeliveryNotes)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
@@ -2609,6 +2628,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <table>
                 <thead>
                     <tr>
+                        <th class="no-print" data-select-col="deliveryNotes" style="width:30px; display:none;"><input type="checkbox" data-select-all="deliveryNotes" onchange="toggleSelectAll('deliveryNotes', this.checked)"></th>
                         <th>Date</th>
                         <th>Note No.</th>
                         <th>Party</th>
@@ -2831,7 +2851,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <input type="date" id="rprTo" onchange="renderRawPurchaseReport()">
                 </div>
             </div>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <button type="button" data-select-togglebtn="rawPurchaseReport" onclick="toggleSelectMode('rawPurchaseReport')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <span data-select-count="rawPurchaseReport" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+                <button type="button" data-select-printbtn="rawPurchaseReport" onclick="printSelected('rawPurchaseReport', rawPurchaseReportRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelRawPurchaseReport','Raw Purchase Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('rawPurchaseReportBody','raw-purchase-report')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
                 <button type="button" data-sort-toggle="rawPurchaseReport" onclick="toggleSortDir('rawPurchaseReport', renderRawPurchaseReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
@@ -2846,6 +2869,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <table>
                 <thead>
                     <tr>
+                        <th class="no-print" data-select-col="rawPurchaseReport" style="width:30px; display:none;"><input type="checkbox" data-select-all="rawPurchaseReport" onchange="toggleSelectAll('rawPurchaseReport', this.checked)"></th>
                         <th>Date</th>
                         <th>Voucher No.</th>
                         <th>Vendor</th>
@@ -2928,13 +2952,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="summary-card"><div>Optional Purchases Total</div><div id="optPurchTotal" style="color:var(--pink);">&#8377;0.00</div></div>
             <div class="summary-card"><div>Optional Vouchers</div><div id="optCount" style="color:var(--accent);">0</div></div>
         </div>
-        <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+        <div style="display:flex; justify-content:flex-end; margin-bottom:12px; gap:6px; align-items:center; flex-wrap:wrap;">
+            <button type="button" data-select-togglebtn="optionalVouchers" onclick="toggleSelectMode('optionalVouchers')" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+            <span data-select-count="optionalVouchers" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+            <button type="button" data-select-printbtn="optionalVouchers" onclick="printSelected('optionalVouchers', optionalVouchersRowOrder)" disabled style="display:none; width:auto; padding:8px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
             <button type="button" data-sort-toggle="optionalVouchers" onclick="toggleSortDir('optionalVouchers', renderOptional)" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
         </div>
         <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
+                        <th class="no-print" data-select-col="optionalVouchers" style="width:30px; display:none;"><input type="checkbox" data-select-all="optionalVouchers" onchange="toggleSelectAll('optionalVouchers', this.checked)"></th>
                         <th>Date</th>
                         <th>Type</th>
                         <th>Voucher No.</th>
@@ -3183,13 +3211,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Daybook -->
     <div class="panel" id="panelDaybook">
         <div class="panel-head"><h3>Daybook Transactions</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
+        <div style="display:flex; justify-content:flex-end; margin-bottom:12px; gap:6px; align-items:center; flex-wrap:wrap;">
+            <button type="button" data-select-togglebtn="daybook" onclick="toggleSelectMode('daybook')" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+            <span data-select-count="daybook" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+            <button type="button" data-select-printbtn="daybook" onclick="printSelected('daybook', daybookRowOrder)" disabled style="display:none; width:auto; padding:8px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
             <button type="button" data-sort-toggle="daybook" onclick="toggleSortDir('daybook', render)" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
         </div>
+        <p style="font-size:0.78rem; color:var(--text-muted); margin-top:-6px;">Only Sales, Purchase, and similar invoice-style vouchers can be selected for printing &mdash; Payments, Receipts, Journals, and Expense-style entries don't have a printable invoice.</p>
         <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
+                        <th class="no-print" data-select-col="daybook" style="width:30px; display:none;"><input type="checkbox" data-select-all="daybook" onchange="toggleSelectAll('daybook', this.checked)"></th>
                         <th>Date</th>
                         <th>Type</th>
                         <th>Party</th>
@@ -3228,7 +3261,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <label>Total in Period</label>
                 <div id="payPeriodTotal" style="font-size:1.2rem; font-weight:bold; color:var(--danger);">&#8377;0.00</div>
             </div>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <button type="button" data-select-togglebtn="payments" onclick="toggleSelectMode('payments')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <span data-select-count="payments" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+                <button type="button" data-select-printbtn="payments" onclick="printSelected('payments', paymentsRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelPayments','Payments Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('paymentsBody','payments-statement')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
                 <button type="button" data-sort-toggle="payments" onclick="toggleSortDir('payments', () => renderCashList('Payment'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
@@ -3238,6 +3274,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <table>
                 <thead>
                     <tr>
+                        <th class="no-print" data-select-col="payments" style="width:30px; display:none;"><input type="checkbox" data-select-all="payments" onchange="toggleSelectAll('payments', this.checked)"></th>
                         <th>Date</th>
                         <th>Ref No.</th>
                         <th>Party</th>
@@ -3277,7 +3314,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <label>Total in Period</label>
                 <div id="rcptPeriodTotal" style="font-size:1.2rem; font-weight:bold; color:var(--success);">&#8377;0.00</div>
             </div>
-            <div style="display:flex; gap:6px;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <button type="button" data-select-togglebtn="receipts" onclick="toggleSelectMode('receipts')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <span data-select-count="receipts" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+                <button type="button" data-select-printbtn="receipts" onclick="printSelected('receipts', receiptsRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelReceipts','Receipts Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button onclick="exportTableCSV('receiptsBody','receipts-statement')" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save CSV</button>
                 <button type="button" data-sort-toggle="receipts" onclick="toggleSortDir('receipts', () => renderCashList('Receipt'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
@@ -3287,6 +3327,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <table>
                 <thead>
                     <tr>
+                        <th class="no-print" data-select-col="receipts" style="width:30px; display:none;"><input type="checkbox" data-select-all="receipts" onchange="toggleSelectAll('receipts', this.checked)"></th>
                         <th>Date</th>
                         <th>Ref No.</th>
                         <th>Party</th>
@@ -3350,7 +3391,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <div style="font-weight:bold; color:var(--text-muted); font-size:0.85rem;">Sarvadharani seeds</div>
                         <div id="ledgerCompanyAddress" style="display:none; color:var(--text-muted); font-size:0.75rem; margin-top:2px;"></div>
                         <div id="ledgerCompanyMobile" style="display:none; color:var(--text-muted); font-size:0.75rem;"></div>
-                        <div class="no-print" style="display:flex; gap:6px; margin-top:8px;">
+                        <div class="no-print" style="display:flex; gap:6px; margin-top:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap;">
+                            <button type="button" data-select-togglebtn="ledgerStatement" onclick="toggleSelectMode('ledgerStatement')" style="width:auto; padding:6px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                            <span data-select-count="ledgerStatement" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
+                            <button type="button" data-select-printbtn="ledgerStatement" onclick="printSelected('ledgerStatement', ledgerCurrentRowOrder)" disabled style="display:none; width:auto; padding:6px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                             <button onclick="printLedger()" class="btn-success" style="width:auto; padding:6px 14px; font-size:0.8rem;">Save as PDF</button>
                             <button onclick="exportLedgerCSV()" style="width:auto; padding:6px 14px; font-size:0.8rem;">Save CSV</button>
                         </div>
@@ -3359,6 +3403,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <table>
                     <thead id="ledgerTableHead">
                         <tr>
+                            <th class="no-print" data-select-col="ledgerStatement" style="width:30px; display:none;"><input type="checkbox" data-select-all="ledgerStatement" onchange="toggleSelectAll('ledgerStatement', this.checked)"></th>
                             <th>Date</th>
                             <th>Particulars / Inventory Details</th>
                             <th>Vch Type</th>
@@ -3973,6 +4018,156 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     // ================================================================
+    // MULTI-SELECT + BATCH PRINT (shared by every list screen)
+    //
+    // Each list keeps its own Set of selected transaction ids, keyed by a
+    // listKey string (e.g. 'salesStatement', 'ledgerStatement'). A screen
+    // just needs a checkbox per row with data-select-key/data-select-id,
+    // a "select all" checkbox, a counter span, and a Print Selected button
+    // — all driven by the functions below.
+    // ================================================================
+    const listSelections = {};
+    const listSelectModeActive = {};
+
+    // Whether a list's checkboxes are currently visible at all. Off by
+    // default for every list — checkboxes only appear once "Select" is
+    // tapped, and tapping it again (or "Cancel") hides them and clears
+    // whatever was ticked, so a hidden selection can never linger unseen.
+    function isSelectModeActive(listKey) {
+        return !!listSelectModeActive[listKey];
+    }
+
+    function toggleSelectMode(listKey) {
+        const turningOn = !isSelectModeActive(listKey);
+        listSelectModeActive[listKey] = turningOn;
+        if (!turningOn) {
+            // Leaving select mode always drops any selection — both the
+            // internal tracking AND the actual checkbox elements, so
+            // re-entering select mode later starts from a clean slate
+            // instead of showing stale ticks from before.
+            selectionSetFor(listKey).clear();
+            document.querySelectorAll(`input[data-select-key="${listKey}"]`).forEach(cb => { cb.checked = false; });
+            const selectAllBox = document.querySelector(`input[data-select-all="${listKey}"]`);
+            if (selectAllBox) selectAllBox.checked = false;
+        }
+        applySelectModeUI(listKey);
+        updateSelectionUI(listKey);
+    }
+
+    // Shows/hides every checkbox column cell for this list (both the
+    // header's select-all and each row's own checkbox), and updates the
+    // "Select" button's own label so it reads "Cancel" while active.
+    function applySelectModeUI(listKey) {
+        const active = isSelectModeActive(listKey);
+        document.querySelectorAll(`[data-select-col="${listKey}"]`).forEach(el => {
+            el.style.display = active ? '' : 'none';
+        });
+        document.querySelectorAll(`[data-select-togglebtn="${listKey}"]`).forEach(btn => {
+            btn.textContent = active ? 'Cancel' : 'Select';
+            btn.classList.toggle('select-mode-on', active);
+        });
+        // Hide the Print Selected button and counter too while not selecting
+        // — nothing to print if you can't even tick a box right now.
+        document.querySelectorAll(`[data-select-printbtn="${listKey}"]`).forEach(btn => {
+            btn.style.display = active ? '' : 'none';
+        });
+        document.querySelectorAll(`[data-select-count="${listKey}"]`).forEach(el => {
+            el.style.display = active ? '' : 'none';
+        });
+    }
+
+    function selectionSetFor(listKey) {
+        if (!listSelections[listKey]) listSelections[listKey] = new Set();
+        return listSelections[listKey];
+    }
+
+    function toggleRowSelection(listKey, txnId, checked) {
+        const set = selectionSetFor(listKey);
+        if (checked) set.add(txnId); else set.delete(txnId);
+        updateSelectionUI(listKey);
+    }
+
+    // Selects/deselects every currently-rendered checkbox for a list at
+    // once. Only affects rows actually in the DOM right now (i.e. whatever
+    // the current filter/period shows) — not any selection from a
+    // different filter state, which avoids silently printing something
+    // that's no longer even visible.
+    function toggleSelectAll(listKey, checked) {
+        const set = selectionSetFor(listKey);
+        document.querySelectorAll(`input[data-select-key="${listKey}"]`).forEach(cb => {
+            cb.checked = checked;
+            const id = Number(cb.dataset.selectId);
+            if (checked) set.add(id); else set.delete(id);
+        });
+        updateSelectionUI(listKey);
+    }
+
+    // Clears a list's selection entirely — called whenever the list itself
+    // re-renders with a different filter/period, so stale ticks from a
+    // previous view never silently carry over into a new one. Also
+    // re-applies the current select-mode visibility, since freshly
+    // rendered rows' checkbox cells start visible by default and need to
+    // be hidden again if the list isn't actively in select mode.
+    function clearSelection(listKey) {
+        selectionSetFor(listKey).clear();
+        applySelectModeUI(listKey);
+        updateSelectionUI(listKey);
+    }
+
+    function updateSelectionUI(listKey) {
+        const set = selectionSetFor(listKey);
+        document.querySelectorAll(`[data-select-count="${listKey}"]`).forEach(el => {
+            el.textContent = set.size > 0 ? `${set.size} selected` : '';
+        });
+        document.querySelectorAll(`[data-select-printbtn="${listKey}"]`).forEach(btn => {
+            btn.disabled = set.size === 0;
+            btn.style.opacity = set.size === 0 ? '0.5' : '1';
+        });
+        // Keep "select all" reflecting reality: fully checked only if every
+        // rendered row is selected, unchecked otherwise (including partial).
+        const allBoxes = [...document.querySelectorAll(`input[data-select-key="${listKey}"]`)];
+        const selectAllBox = document.querySelector(`input[data-select-all="${listKey}"]`);
+        if (selectAllBox) {
+            selectAllBox.checked = allBoxes.length > 0 && allBoxes.every(cb => set.has(Number(cb.dataset.selectId)));
+        }
+    }
+
+    // Prints every selected transaction as a full invoice page, one after
+    // another — same layout each would get individually via printInvoice,
+    // just composed back-to-back into one print job instead of one at a
+    // time. Order follows whatever order the ids were given in (normally
+    // the list's current sort order).
+    function printSelected(listKey, orderedIdsInCurrentView) {
+        const set = selectionSetFor(listKey);
+        if (set.size === 0) return;
+        const ids = (orderedIdsInCurrentView || []).filter(id => set.has(id));
+        // Fall back to Set order if no explicit ordering was given (still
+        // correct, just not guaranteed to match the visible row order).
+        const finalIds = ids.length ? ids : [...set];
+
+        const pages = finalIds.map(id => buildInvoiceHtml(id)).filter(Boolean);
+        if (pages.length === 0) { alert("Nothing to print — the selected entries may have been deleted."); return; }
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) { alert("Please allow pop-ups to print multiple invoices."); return; }
+        printWindow.document.write(`
+            <html><head><title>Selected Vouchers</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 0; }
+                .invoice-page { padding: 24px; page-break-after: always; }
+                .invoice-page:last-child { page-break-after: auto; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                @media print { .invoice-page { page-break-after: always; } }
+            </style>
+            </head><body>
+                ${pages.map(html => `<div class="invoice-page">${html}</div>`).join('')}
+                <script>window.onload = () => { window.print(); };<\/script>
+            </body></html>
+        `);
+        printWindow.document.close();
+    }
+
+    // ================================================================
     // PER-USER GRANULAR PERMISSIONS
     //
     // "Admin" is unchanged — userRoles[email] === 'admin' still means full
@@ -4181,6 +4376,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (id === 'panelVoucher') toggleVoucherMode();
         if (id === 'panelPayments') renderCashList('Payment');
         if (id === 'panelReceipts') renderCashList('Receipt');
+        if (id === 'panelDaybook') clearSelection('daybook');
         if (id === 'panelOptional') renderOptional();
         if (id === 'panelSubLedgerReport') renderSubLedgerReport();
         if (id === 'panelPendingReceivable') renderPendingReceivable();
@@ -6522,8 +6718,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         return true;
     }
 
+    let paymentsRowOrder = [];
+    let receiptsRowOrder = [];
     function renderCashList(kind) {
         const isPay = kind === 'Payment';
+        const listKey = isPay ? 'payments' : 'receipts';
+        clearSelection(listKey);
         const preset = document.getElementById(isPay ? 'payPeriod' : 'rcptPeriod').value;
         const fromStr = document.getElementById(isPay ? 'payFrom' : 'rcptFrom').value;
         const toStr = document.getElementById(isPay ? 'payTo' : 'rcptTo').value;
@@ -6531,7 +6731,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         const rows = sortByDate(
             transactions.filter(t => t.type === kind && inRange(t.date, range)),
-            isPay ? 'payments' : 'receipts'
+            listKey
         );
 
         const body = document.getElementById(isPay ? 'paymentsBody' : 'receiptsBody');
@@ -6539,8 +6739,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         let total = 0;
 
         if (rows.length === 0) {
-            body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No ${kind.toLowerCase()}s in this period.</td></tr>`;
+            body.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No ${kind.toLowerCase()}s in this period.</td></tr>`;
         } else {
+            if (isPay) paymentsRowOrder = rows.map(t => t.id); else receiptsRowOrder = rows.map(t => t.id);
             rows.forEach(t => {
                 total += t.grandTotal;
                 const ref = t.refInvoiceNo
@@ -6550,6 +6751,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 const openId = t.refInvoiceId || t.id;
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open invoice">
+                        <td class="no-print" data-select-col="${listKey}" style="display:none;" onclick="event.stopPropagation();">
+                            <input type="checkbox" data-select-key="${listKey}" data-select-id="${t.id}" onchange="toggleRowSelection('${listKey}', ${t.id}, this.checked)">
+                        </td>
                         <td onclick="printInvoice(${openId})">${t.date}</td>
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
@@ -6739,7 +6943,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // tagged with it, each with its inventory line items shown inline.
     let currentCategoryDetail = null;
 
+    let categoryDetailRowOrder = [];
     function openCategoryDetail(name) {
+        clearSelection('categoryDetail');
         currentCategoryDetail = name;
         document.getElementById('catDetailTitle').innerText = `Category: ${name}`;
         const body = document.getElementById('categoryDetailBody');
@@ -6756,8 +6962,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         let salesTotal = 0, purchTotal = 0;
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No transactions in this category yet.</td></tr>';
+            body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No transactions in this category yet.</td></tr>';
         } else {
+            categoryDetailRowOrder = rows.map(t => t.id);
             rows.forEach(t => {
                 const isSaleType = (t.type === 'Sales' || t.type === 'OptionalSales');
                 if (isSaleType) salesTotal += t.grandTotal; else purchTotal += t.grandTotal;
@@ -6765,6 +6972,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 const typeColor = isSaleType ? 'var(--success)' : 'var(--pink)';
                 body.innerHTML += `
                     <tr onclick="printInvoice(${t.id})" style="cursor:pointer;" title="Open invoice">
+                        <td class="no-print" data-select-col="categoryDetail" style="display:none;" onclick="event.stopPropagation();">
+                            <input type="checkbox" data-select-key="categoryDetail" data-select-id="${t.id}" onchange="toggleRowSelection('categoryDetail', ${t.id}, this.checked)">
+                        </td>
                         <td>${t.date}</td>
                         <td style="color:${typeColor}; font-weight:bold;">${t.type}</td>
                         <td>${escapeHtml(t.invNo)}</td>
@@ -6788,7 +6998,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         renderSalesStatement();
     }
 
+    let salesStatementRowOrder = [];
     function renderSalesStatement() {
+        clearSelection('salesStatement');
         const range = periodRange(document.getElementById('salesPeriod').value,
                                   document.getElementById('salesFrom').value,
                                   document.getElementById('salesTo').value);
@@ -6802,8 +7014,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         let total = 0;
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No sales in this period.</td></tr>';
+            body.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted);">No sales in this period.</td></tr>';
         } else {
+            salesStatementRowOrder = rows.map(t => t.id);
             rows.forEach(t => {
                 total += t.grandTotal;
                 const cat = t.subLedger
@@ -6811,6 +7024,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
                 body.innerHTML += `
                     <tr style="cursor:pointer;">
+                        <td class="no-print" data-select-col="salesStatement" style="display:none;" onclick="event.stopPropagation();">
+                            <input type="checkbox" data-select-key="salesStatement" data-select-id="${t.id}" onchange="toggleRowSelection('salesStatement', ${t.id}, this.checked)">
+                        </td>
                         <td onclick="printInvoice(${t.id})">${t.date}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
@@ -6838,7 +7054,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         renderPurchaseReport();
     }
 
+    let purchaseReportRowOrder = [];
     function renderPurchaseReport() {
+        clearSelection('purchaseReport');
         const range = periodRange(document.getElementById('purchPeriod').value,
                                   document.getElementById('purchFrom').value,
                                   document.getElementById('purchTo').value);
@@ -6852,8 +7070,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         let total = 0;
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted);">No purchases in this period.</td></tr>';
+            body.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">No purchases in this period.</td></tr>';
         } else {
+            purchaseReportRowOrder = rows.map(t => t.id);
             rows.forEach(t => {
                 total += t.grandTotal;
                 const cat = t.subLedger
@@ -6864,6 +7083,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     : '<span style="color:var(--text-main);">Purchase</span>';
                 body.innerHTML += `
                     <tr style="cursor:pointer;">
+                        <td class="no-print" data-select-col="purchaseReport" style="display:none;" onclick="event.stopPropagation();">
+                            <input type="checkbox" data-select-key="purchaseReport" data-select-id="${t.id}" onchange="toggleRowSelection('purchaseReport', ${t.id}, this.checked)">
+                        </td>
                         <td onclick="printInvoice(${t.id})">${t.date}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open vendor ledger">${escapeHtml(t.partyName)}</td>
@@ -6975,7 +7197,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         renderDeliveryNotes();
     }
 
+    let deliveryNotesRowOrder = [];
     function renderDeliveryNotes() {
+        clearSelection('deliveryNotes');
         const range = periodRange(document.getElementById('dnPeriod').value,
                                   document.getElementById('dnFrom').value,
                                   document.getElementById('dnTo').value);
@@ -6988,8 +7212,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         body.innerHTML = '';
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No delivery notes in this period.</td></tr>';
+            body.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No delivery notes in this period.</td></tr>';
         } else {
+            deliveryNotesRowOrder = rows.map(t => t.id);
             rows.forEach(t => {
                 const itemList = (t.items || []).map(i => `${escapeHtml(i.name)} (${i.qty} ${escapeHtml(i.uom)})`).join(', ');
                 const narrationHint = t.narration ? `<div style="font-size:0.72rem; color:var(--text-muted); font-style:italic; margin-top:3px;">${escapeHtml(t.narration)}</div>` : '';
@@ -7001,6 +7226,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
                 body.innerHTML += `
                     <tr>
+                        <td class="no-print" data-select-col="deliveryNotes" style="display:none;">
+                            <input type="checkbox" data-select-key="deliveryNotes" data-select-id="${t.id}" onchange="toggleRowSelection('deliveryNotes', ${t.id}, this.checked)">
+                        </td>
                         <td>${t.date}</td>
                         <td>${escapeHtml(t.invNo)}</td>
                         <td>${escapeHtml(t.partyName)}</td>
@@ -7455,7 +7683,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (prev) sel.value = prev;
     }
 
+    let rawPurchaseReportRowOrder = [];
     function renderRawPurchaseReport() {
+        clearSelection('rawPurchaseReport');
         populateRawVarietyFilter();
 
         const range = periodRange(document.getElementById('rprPeriod').value,
@@ -7472,14 +7702,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         let qtyTotal = 0, valueTotal = 0;
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No raw purchases in this period.</td></tr>';
+            body.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No raw purchases in this period.</td></tr>';
         } else {
+            rawPurchaseReportRowOrder = rows.map(t => t.id);
             rows.forEach(t => {
                 const line = t.items[0] || {};
                 qtyTotal += line.qty || 0;
                 valueTotal += t.grandTotal;
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open invoice">
+                        <td class="no-print" data-select-col="rawPurchaseReport" style="display:none;" onclick="event.stopPropagation();">
+                            <input type="checkbox" data-select-key="rawPurchaseReport" data-select-id="${t.id}" onchange="toggleRowSelection('rawPurchaseReport', ${t.id}, this.checked)">
+                        </td>
                         <td onclick="printInvoice(${t.id})">${t.date}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open vendor ledger">${escapeHtml(t.partyName)}</td>
@@ -7646,9 +7880,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     function openCustomVoucherList(typeId) {
         currentCustomTypeId = typeId;
+        clearSelection('customVoucherList');
         const vt = customVoucherTypes.find(v => v.id === typeId);
         document.getElementById('cvListTitle').innerText = vt ? `${vt.name} — Entries` : 'Voucher Entries';
         openPanel('panelCustomVoucherList');
+        renderCustomVoucherList();
     }
 
     function onCvPeriodChange() {
@@ -7657,6 +7893,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         renderCustomVoucherList();
     }
 
+    let customVoucherListRowOrder = [];
     function renderCustomVoucherList() {
         if (!currentCustomTypeId) return;
         const range = periodRange(document.getElementById('cvPeriod').value,
@@ -7670,13 +7907,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const body = document.getElementById('customVoucherListBody');
         body.innerHTML = '';
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No entries in this period.</td></tr>';
+            body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No entries in this period.</td></tr>';
+            customVoucherListRowOrder = [];
             return;
         }
+        customVoucherListRowOrder = rows.map(t => t.id);
         rows.forEach(t => {
             const itemList = (t.items || []).map(it => `${escapeHtml(it.name)} (${it.qty} ${escapeHtml(it.uom)})`).join(', ');
             body.innerHTML += `
                 <tr>
+                    <td class="no-print" data-select-col="customVoucherList" style="display:none;">
+                        <input type="checkbox" data-select-key="customVoucherList" data-select-id="${t.id}" onchange="toggleRowSelection('customVoucherList', ${t.id}, this.checked)">
+                    </td>
                     <td>${t.date}</td>
                     <td>${escapeHtml(t.invNo)}</td>
                     <td style="color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
@@ -7692,7 +7934,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         });
     }
 
+    let optionalVouchersRowOrder = [];
     function renderOptional() {
+        clearSelection('optionalVouchers');
         const optTxns = sortByDate(transactions.filter(t => t.optional), 'optionalVouchers');
         const body = document.getElementById('optionalBody');
         body.innerHTML = '';
@@ -7704,14 +7948,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         });
 
         if (optTxns.length === 0) {
-            body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No optional vouchers yet. Post one from the voucher screen using "Optional Sale" / "Optional Purchase".</td></tr>';
+            body.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No optional vouchers yet. Post one from the voucher screen using "Optional Sale" / "Optional Purchase".</td></tr>';
         } else {
+            optionalVouchersRowOrder = optTxns.map(t => t.id);
             optTxns.forEach(t => {
                 const label = t.type === 'OptionalSales' ? 'Optional Sale' : 'Optional Purchase';
                 const color = t.type === 'OptionalSales' ? 'var(--success)' : 'var(--pink)';
                 // main summary row (click to open invoice)
                 body.innerHTML += `
                     <tr>
+                        <td class="no-print" data-select-col="optionalVouchers" style="display:none;">
+                            <input type="checkbox" data-select-key="optionalVouchers" data-select-id="${t.id}" onchange="toggleRowSelection('optionalVouchers', ${t.id}, this.checked)">
+                        </td>
                         <td>${t.date}</td>
                         <td style="color:${color}; font-weight:bold;">${label}</td>
                         <td>${escapeHtml(t.invNo)}</td>
@@ -7733,7 +7981,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 }
                 body.innerHTML += `
                     <tr id="optItems-${t.id}" style="display:none; background:rgba(139,124,255,0.05);">
-                        <td colspan="7" style="font-size:0.8rem;">
+                        <td colspan="8" style="font-size:0.8rem;">
                             <div style="font-weight:600; color:var(--accent); margin-bottom:4px;">Inventory in this voucher</div>
                             ${itemRows}
                         </td>
@@ -7762,6 +8010,23 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         syncCloud();
         renderOptional();
         render();
+    }
+
+    // Builds one invoice's printable HTML as a string, for the batch-print
+    // job below. Deliberately reuses printInvoice() itself (the exact same
+    // function a single-invoice view uses) rather than re-implementing its
+    // layout logic — this guarantees a batch-printed invoice always looks
+    // identical to printing that same invoice on its own, and never drifts
+    // out of sync if printInvoice's rendering changes later.
+    function buildInvoiceHtml(txnId) {
+        const txn = transactions.find(t => t.id == txnId);
+        if (!txn) return null;
+        printInvoice(txnId); // populates the existing modal's DOM as usual
+        const box = document.querySelector('#invoiceModal .invoice-box');
+        if (!box) return null;
+        const html = box.outerHTML;
+        document.getElementById('invoiceModal').style.display = 'none';
+        return html;
     }
 
     function printInvoice(txnId) {  
@@ -8031,7 +8296,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // includes inventory detail for Sales/Purchase (Party ledgers) and is
     // clickable to open that transaction's underlying voucher/invoice.
     let lastLedger = null;
+    let ledgerCurrentRowOrder = [];
     function openLedgerStatement(kind, id) {
+        clearSelection('ledgerStatement');
         lastLedger = { kind, id };
         const isAccount = (kind === 'account');
         const isAggregate = (kind === 'saleAll' || kind === 'purchaseAll' || kind === 'paymentAll' || kind === 'receiptAll' || kind === 'customAll');
@@ -8184,8 +8451,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         }
 
         if (ledgerTxns.length === 0) {
-            tbody.innerHTML += `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No transactions found for this ledger.</td></tr>`;
+            tbody.innerHTML += `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No transactions found for this ledger.</td></tr>`;
         } else {
+            ledgerCurrentRowOrder = ledgerTxns.map(t => t.id);
             ledgerTxns.forEach(txn => {
                 let debit = 0;
                 let credit = 0;
@@ -8316,6 +8584,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
                 tbody.innerHTML += `
                     <tr style="cursor:pointer;" title="Click to view this voucher">
+                        <td class="no-print" data-select-col="ledgerStatement" style="vertical-align:top; display:none;" onclick="event.stopPropagation();">
+                            <input type="checkbox" data-select-key="ledgerStatement" data-select-id="${txn.id}" onchange="toggleRowSelection('ledgerStatement', ${txn.id}, this.checked)">
+                        </td>
                         <td style="vertical-align:top;" onclick="openTransactionDetail(${txn.id})">${txn.date}</td>
                         <td onclick="openTransactionDetail(${txn.id})">
                             <strong>${particularsTitle}</strong>
@@ -8848,6 +9119,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (currentGroupLedgerId) viewGroupLedgers(currentGroupLedgerId);
     }
 
+    let daybookRowOrder = [];
     function render() {  
         populateGroupDropdowns();
         renderGroupTables();
@@ -8932,6 +9204,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         const lBody = document.getElementById('ledgerBody');  
         lBody.innerHTML = '';  
+        daybookRowOrder = [];
         sortByDate(transactions, 'daybook').forEach(t => {  
             if (t.optional || t.deliveryNote || t.conversion) return; // shown in their own tiles instead
             const isCash = (t.type === 'Payment' || t.type === 'Receipt');
@@ -8944,12 +9217,24 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 ? (t.subLedger ? escapeHtml(t.subLedger) + ' | ' : '') + escapeHtml(t.accountName || 'Cash')
                 : isCash ? (escapeHtml(t.accountName || 'Cash') + (t.refInvoiceNo ? ' &rarr; ' + escapeHtml(t.refInvoiceNo) : '')) : `${t.items ? t.items.length : 1} item(s)`;
             const narrationHint = t.narration ? `<div style="font-size:0.7rem; color:var(--text-muted); font-style:italic; margin-top:2px;">${escapeHtml(t.narration)}</div>` : '';
+            // Only genuine invoice-style vouchers (Sales/Purchase/RawPurchase/
+            // custom party types) have a real printable invoice — Journal,
+            // Payment/Receipt, and no-party custom types (e.g. Expense) don't
+            // go through printInvoice's normal item-based layout, so they're
+            // left out of batch-print selection here (same reasoning as
+            // Processed Report being skipped entirely).
+            const isSelectable = !isCash && !isJournalTxn && !noPartyCustom;
             const actionBtn = (isCash || noPartyCustom || isJournalTxn) ? '' : `<button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.75rem;">Invoice</button>`;
             const partyCol = (noPartyCustom || isJournalTxn)
                 ? '<span style="color:var(--text-muted);">&mdash;</span>'
                 : `<span style="color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</span>`;
+            if (isSelectable) daybookRowOrder.push(t.id);
+            const checkboxCell = isSelectable
+                ? `<input type="checkbox" data-select-key="daybook" data-select-id="${t.id}" onchange="toggleRowSelection('daybook', ${t.id}, this.checked)">`
+                : '';
             lBody.innerHTML += `  
                 <tr>  
+                    <td class="no-print" data-select-col="daybook" style="display:none;">${checkboxCell}</td>
                     <td>${t.date}</td>  
                     <td><strong>${typeLabel}</strong></td>  
                     <td>${partyCol}</td>  
