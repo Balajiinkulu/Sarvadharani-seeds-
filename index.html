@@ -37,8 +37,8 @@
 
     /* Primary accent — deep forest green, hover slightly lifted */
     --accent: #2E5C3B;
-    --accent-2: #4A8B7F;      /* sage teal (secondary) */
-    --accent-hover: #23472C;
+    --accent-2: #25695E;      /* sage teal (secondary) — DESIGN.md secondary */
+    --accent-hover: #154426;  /* DESIGN.md primary */
     --accent-soft: rgba(229, 239, 227, 0.55);
 
     /* Text */
@@ -57,6 +57,9 @@
     --orange: #C6642E;
 
     /* Structure */
+    --secondary-container: #AAEDDE;
+    --tertiary: #672803;
+    --tertiary-container: #853E19;
     --border: rgba(255, 255, 255, 0.45);
     --border-strong: rgba(255, 255, 255, 0.65);
     --card-shadow: 0 8px 32px -8px rgba(20, 32, 26, 0.18), 0 1px 2px 0 rgba(20,32,26,0.05), inset 0 1px 0 0 rgba(255,255,255,0.6);
@@ -149,10 +152,10 @@ header::before {
     margin: 6px 0 0;
     font-family: 'Outfit', sans-serif;
     font-weight: 700;
-    font-size: 1.9rem;
+    font-size: 2rem;
     letter-spacing: -0.02em;
     color: var(--text-invert);
-    line-height: 1.1;
+    line-height: 1.25;
     text-transform: none;
 }
 .gst-badge {
@@ -509,8 +512,8 @@ tbody td {
     vertical-align: middle;
     color: var(--text-main);
 }
-tbody tr:nth-child(even) td { background: var(--statement-row-alt); }
-tbody tr:hover td { background: var(--accent-soft); }
+tbody tr:nth-child(even) td { background: var(--accent-soft); }
+tbody tr:hover td { background: rgba(170, 237, 222, 0.35); }
 tbody tr:last-child td { border-bottom: none; }
 tfoot td {
     font-weight: 700;
@@ -831,7 +834,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         gap: 10px;
     }
     header::before { left: 18px; top: 6px; font-size: 0.58rem; }
-    .brand-title { font-size: 1.35rem; margin-top: 8px; }
+    .brand-title { font-size: 1.5rem; margin-top: 8px; }
     .gst-badge { align-self: stretch; text-align: center; font-size: 0.7rem; padding: 6px 10px; }
 
     .dashboard-summary { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 18px; }
@@ -841,7 +844,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     #tileMenu, .submenu, .panel { padding: 16px; }
     .tile-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
     .tile { padding: 14px 12px; }
-    .tile-icon { font-size: 1.5rem; }
+    .tile-icon { font-size: 1.5rem; filter: saturate(0.85); }
     .tile-name { font-size: 0.92rem; }
     .tile-sub { font-size: 0.72rem; }
 
