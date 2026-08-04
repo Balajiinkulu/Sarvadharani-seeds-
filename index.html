@@ -1284,6 +1284,38 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     </div>
 </div>
 
+<!-- Bank & TIN Details modal — used by the Formal print style only -->
+<div id="companyBankModal" style="display:none; position:fixed; inset:0; background:rgba(20,32,26,0.55); z-index:150; padding:30px 16px; overflow-y:auto; justify-content:center; align-items:flex-start;">
+    <div class="edit-box" style="max-width:420px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h3 style="margin:0;">Bank &amp; TIN Details</h3>
+            <button type="button" onclick="closeCompanyBankModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
+            Shown on the "Formal" print style for Sales, Payments, and Receipts. Your existing GSTIN is used automatically &mdash; this is only for the extra details that style needs. Leave any field blank to hide that line.
+        </p>
+        <div class="login-error" id="companyBankSuccess" style="display:none; background:#e6f4ea; color:#1e4620; border-color:#a8d8b5;">
+            <span>Bank &amp; TIN details saved.</span>
+            <button type="button" onclick="document.getElementById('companyBankSuccess').style.display='none'" aria-label="Dismiss" style="color:#1e4620;">&times;</button>
+        </div>
+        <form id="companyBankForm" onsubmit="return handleSaveCompanyBank(event)">
+            <label for="companyTinInput">TIN Number</label>
+            <input type="text" id="companyTinInput" placeholder="e.g. 21301600382">
+
+            <label for="companyBankNameInput" style="margin-top:12px;">Bank Name</label>
+            <input type="text" id="companyBankNameInput" placeholder="e.g. Canara Bank">
+
+            <label for="companyBankAccInput" style="margin-top:12px;">Account Number</label>
+            <input type="text" id="companyBankAccInput" placeholder="e.g. 80591400000221">
+
+            <label for="companyBankIfscInput" style="margin-top:12px;">Branch &amp; IFSC Code</label>
+            <input type="text" id="companyBankIfscInput" placeholder="e.g. Rayagada &amp; CNRB0018059">
+
+            <button type="submit" class="btn-success" style="margin-top:16px;">Save Bank &amp; TIN Details</button>
+        </form>
+    </div>
+</div>
+
 <div class="container">
     <header>
         <div>
@@ -1366,6 +1398,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <span class="tile-icon">&#128241;</span>
                 <div class="tile-name">Company Mobile Number</div>
                 <div class="tile-sub">Shown on printed invoices</div>
+            </div>
+            <div class="tile" onclick="openCompanyBankModal()">
+                <span class="tile-icon">&#127974;</span>
+                <div class="tile-name">Bank &amp; TIN Details</div>
+                <div class="tile-sub">Shown on the Formal print style</div>
             </div>
             <div class="tile" id="manageStaffTile" onclick="openPanel('panelManageStaff')" style="display:none;">
                 <span class="tile-icon">&#128100;</span>
@@ -3482,6 +3519,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         <div style="margin-top:24px; display:flex; gap:12px;" class="no-print">
             <button onclick="printInvoiceDoc()" class="btn-success">Print / Download PDF</button>
+            <button id="formalPrintBtn" onclick="printFormalStyle()" style="display:none; background:var(--violet); color:#fff;">Formal Print</button>
             <button onclick="document.getElementById('invoiceModal').style.display='none'" style="background:#64748b; color:white;">Close</button>
         </div>
     </div>
@@ -8082,9 +8120,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         return html;
     }
 
+    let currentPrintTxnId = null;
     function printInvoice(txnId) {  
         const txn = transactions.find(t => t.id == txnId);  
         if (!txn) return;  
+        currentPrintTxnId = txnId;
+        const formalBtn = document.getElementById('formalPrintBtn');
+        if (formalBtn) {
+            formalBtn.style.display = (txn.type === 'Sales' || txn.type === 'Payment' || txn.type === 'Receipt') ? 'inline-block' : 'none';
+        }
         const isJournalTxn = (txn.type === 'Journal');
         const partyObj = isJournalTxn ? null : parties.find(p => p.id == txn.partyId);
         const isCash = (txn.type === 'Payment' || txn.type === 'Receipt' || isCustomNoPartyType(txn.type));
@@ -8953,6 +8997,275 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         // Fallback for browsers that don't fire afterprint reliably
         setTimeout(cleanup, 1000);
     }
+
+    // ================================================================
+    // FORMAL PRINT STYLE — an alternate look for Sales (Tax Invoice) and
+    // Payment/Receipt (Voucher), matching a traditional Tally-style
+    // printed layout. This is entirely separate from printInvoice()/
+    // printInvoiceDoc() — the existing "Classic" style is completely
+    // untouched, and this is only reachable via the new "Formal Print"
+    // button, shown only for these three voucher types.
+    // ================================================================
+    function numberToWordsIndian(num) {
+        const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+            'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        function twoDigits(n) {
+            if (n < 20) return a[n];
+            return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
+        }
+        function threeDigits(n) {
+            if (n >= 100) return a[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + twoDigits(n % 100) : '');
+            return twoDigits(n);
+        }
+        let n = Math.round(num);
+        if (n === 0) return 'Zero';
+        let str = '';
+        const crore = Math.floor(n / 10000000); n %= 10000000;
+        const lakh = Math.floor(n / 100000); n %= 100000;
+        const thousand = Math.floor(n / 1000); n %= 1000;
+        const hundred = n;
+        if (crore) str += threeDigits(crore) + ' Crore ';
+        if (lakh) str += threeDigits(lakh) + ' Lakh ';
+        if (thousand) str += threeDigits(thousand) + ' Thousand ';
+        if (hundred) str += threeDigits(hundred) + ' ';
+        return str.trim();
+    }
+
+    const FORMAL_COMPANY_GSTIN = '21AFGFS0227N1Z2';
+
+    function printFormalStyle() {
+        if (!currentPrintTxnId) return;
+        const txn = transactions.find(t => t.id == currentPrintTxnId);
+        if (!txn) return;
+        const html = (txn.type === 'Sales') ? buildFormalTaxInvoiceHtml(txn) : buildFormalVoucherHtml(txn);
+        if (!html) return;
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) { alert("Please allow pop-ups to use Formal Print."); return; }
+        printWindow.document.write(`
+            <html><head><title>${escapeHtml(txn.invNo)}</title>
+            <style>
+                * { box-sizing: border-box; }
+                body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 20px; font-size: 12px; color: #000; }
+                table { width: 100%; border-collapse: collapse; }
+                td, th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; }
+                .no-border td, .no-border th { border: none; }
+                .outer { border: 1px solid #000; }
+                .title { text-align:center; font-size:18px; font-weight:bold; margin-bottom:8px; letter-spacing:1px; }
+                .right { text-align:right; }
+                .center { text-align:center; }
+                .bold { font-weight:bold; }
+                .small { font-size:10.5px; }
+                .muted { color:#333; }
+                @media print { body { padding: 0; } }
+            </style>
+            </head><body>${html}
+                <script>window.onload = () => { window.print(); };<\/script>
+            </body></html>
+        `);
+        printWindow.document.close();
+    }
+
+    // ---- Formal Voucher (Payment / Receipt) — matches a TallyPrime-style
+    // Receipt/Payment Voucher: header, No./Dated, a Particulars/Amount
+    // table with the party + reference shown, "Through" account, amount
+    // in words, and a signature line. ----
+    function buildFormalVoucherHtml(txn) {
+        const isReceipt = (txn.type === 'Receipt');
+        const address = getCompanyAddress();
+        const mobile = getCompanyMobile();
+        const refLine = txn.refInvoiceNo ? ` <span class="small">Agst Ref&nbsp;${escapeHtml(txn.refInvoiceNo)}</span>` : '';
+        return `
+            <div class="outer" style="padding:16px;">
+                <div class="center bold" style="font-size:15px;">Sarvadharani seeds</div>
+                ${address ? `<div class="center small">${escapeHtml(address)}</div>` : ''}
+                ${mobile ? `<div class="center small">Mobile: ${escapeHtml(mobile)}</div>` : ''}
+                <div class="center small">GSTIN: ${FORMAL_COMPANY_GSTIN}</div>
+                <div class="center bold" style="margin-top:10px; font-size:14px;">${isReceipt ? 'Receipt Voucher' : 'Payment Voucher'}</div>
+
+                <table class="no-border" style="margin-top:14px;">
+                    <tr>
+                        <td class="no-border" style="width:50%;">No. : <strong>${escapeHtml(txn.invNo)}</strong></td>
+                        <td class="no-border right">Dated : <strong>${txn.date}</strong></td>
+                    </tr>
+                </table>
+
+                <table style="margin-top:10px;">
+                    <tr>
+                        <th style="width:70%; text-align:left;">Particulars</th>
+                        <th class="right">Amount</th>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div class="bold">Account :</div>
+                            <div style="padding-left:14px; margin-top:4px;">
+                                ${escapeHtml(txn.partyName || 'Cash Party')}${refLine}
+                            </div>
+                        </td>
+                        <td class="right" style="vertical-align:top;">\u20B9${txn.grandTotal.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="height:60px;"></td>
+                    </tr>
+                </table>
+
+                <table class="no-border" style="margin-top:14px;">
+                    <tr>
+                        <td class="no-border" style="width:15%;">Through :</td>
+                        <td class="no-border">${escapeHtml(txn.accountName || 'Cash')}</td>
+                    </tr>
+                </table>
+
+                <table style="margin-top:6px;">
+                    <tr>
+                        <td style="width:75%;">
+                            <span class="bold">Amount (in words) :</span><br>
+                            INR ${numberToWordsIndian(txn.grandTotal)} Only
+                        </td>
+                        <td class="right bold" style="vertical-align:bottom; font-size:14px;">&#8377; ${txn.grandTotal.toFixed(2)}</td>
+                    </tr>
+                </table>
+
+                <div style="margin-top:70px; text-align:right;">
+                    <div class="small">Authorised Signatory</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // ---- Formal Tax Invoice (Sales) — matches a traditional GST tax
+    // invoice layout: bordered header box with company + buyer/consignee
+    // details, invoice metadata, a line-item table with HSN/GST/Rate/
+    // Amount, a tax breakup table (Taxable/CGST/SGST/Total), amount in
+    // words, bank details, and a signature line. ----
+    function buildFormalTaxInvoiceHtml(txn) {
+        const party = parties.find(p => p.id == txn.partyId);
+        const address = getCompanyAddress();
+        const mobile = getCompanyMobile();
+        const tin = getCompanyTin();
+        const bankName = getCompanyBankName();
+        const bankAcc = getCompanyBankAcc();
+        const bankIfsc = getCompanyBankIfsc();
+        const isIntra = (txn.taxType !== 'INTER'); // CGST+SGST unless explicitly inter-state
+        const halfTax = txn.totalTax / 2;
+
+        const itemRows = (txn.items || []).map(it => `
+            <tr>
+                <td class="center">${escapeHtml(it.hsn || '')}</td>
+                <td>${escapeHtml(it.name || 'Item')}</td>
+                <td class="center">${it.gstRate || 0}%</td>
+                <td class="right">${it.qty || 0} ${escapeHtml(it.uom || '')}</td>
+                <td class="right">${(typeof it.inclRate === 'number' ? it.inclRate : 0).toFixed(2)}</td>
+                <td class="right">${(typeof it.lineTotal === 'number' ? it.lineTotal : 0).toFixed(2)}</td>
+            </tr>
+        `).join('');
+
+        const dueAmt = invoiceOutstanding(txn);
+        const paidAmt = txn.grandTotal - dueAmt;
+
+        return `
+            <div class="title">TAX INVOICE</div>
+            <div class="outer">
+                <table class="no-border">
+                    <tr>
+                        <td class="no-border" style="width:60%; border-right:1px solid #000;">
+                            <div class="bold" style="font-size:14px;">Sarvadharani seeds</div>
+                            ${address ? `<div class="small">${escapeHtml(address)}</div>` : ''}
+                            <div class="small">GSTIN/UIN: ${FORMAL_COMPANY_GSTIN}</div>
+                            ${tin ? `<div class="small">TIN No ${escapeHtml(tin)}</div>` : ''}
+                            ${mobile ? `<div class="small">Contact: ${escapeHtml(mobile)}</div>` : ''}
+                        </td>
+                        <td class="no-border" style="width:40%;">
+                            <table class="no-border">
+                                <tr><td class="no-border small">Invoice No.<br><strong>${escapeHtml(txn.invNo)}</strong></td>
+                                    <td class="no-border small">Dated<br><strong>${txn.date}</strong></td></tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <table class="no-border" style="border-top:1px solid #000;">
+                    <tr>
+                        <td class="no-border">
+                            <div class="small bold">Buyer (Bill to)</div>
+                            <div class="bold">${escapeHtml(txn.partyName)}</div>
+                            ${party && party.address ? `<div class="small">${escapeHtml(party.address)}</div>` : ''}
+                            ${party && party.gstin ? `<div class="small">GSTIN/UIN: ${escapeHtml(party.gstin)}</div>` : ''}
+                            ${party && party.phone ? `<div class="small">Contact: ${escapeHtml(party.phone)}</div>` : ''}
+                        </td>
+                    </tr>
+                </table>
+
+                <table style="border-top:1px solid #000;">
+                    <tr>
+                        <th class="center small">HSN/SAC</th>
+                        <th class="small">Description of Goods</th>
+                        <th class="center small">GST Rate</th>
+                        <th class="right small">Quantity</th>
+                        <th class="right small">Rate (Incl. Tax)</th>
+                        <th class="right small">Amount</th>
+                    </tr>
+                    ${itemRows}
+                    <tr>
+                        <td colspan="5" class="right bold no-border">Total</td>
+                        <td class="right bold">\u20B9${txn.grandTotal.toFixed(2)}</td>
+                    </tr>
+                </table>
+
+                <table class="no-border">
+                    <tr>
+                        <td class="no-border" colspan="2">
+                            <span class="bold small">Amount Chargeable (in words):</span><br>
+                            <span class="small">INR ${numberToWordsIndian(txn.grandTotal)} Only</span>
+                        </td>
+                    </tr>
+                </table>
+
+                <table style="border-top:1px solid #000;">
+                    <tr>
+                        <th class="small">Taxable Value</th>
+                        <th class="small" colspan="2">CGST</th>
+                        <th class="small" colspan="2">SGST/UTGST</th>
+                        <th class="small">Total Tax</th>
+                    </tr>
+                    <tr>
+                        <td class="right">${txn.taxable.toFixed(2)}</td>
+                        <td class="center small">${isIntra ? (txn.items[0] ? (txn.items[0].gstRate / 2) : 0) : 0}%</td>
+                        <td class="right">${isIntra ? halfTax.toFixed(2) : '0.00'}</td>
+                        <td class="center small">${isIntra ? (txn.items[0] ? (txn.items[0].gstRate / 2) : 0) : 0}%</td>
+                        <td class="right">${isIntra ? halfTax.toFixed(2) : '0.00'}</td>
+                        <td class="right bold">${txn.totalTax.toFixed(2)}</td>
+                    </tr>
+                </table>
+
+                ${dueAmt > 0.001 || paidAmt > 0.001 ? `
+                <table class="no-border" style="border-top:1px solid #000;">
+                    <tr>
+                        <td class="no-border right small">Paid: <strong>\u20B9${paidAmt.toFixed(2)}</strong> &nbsp;&nbsp; Balance Due: <strong>\u20B9${dueAmt.toFixed(2)}</strong></td>
+                    </tr>
+                </table>` : ''}
+
+                <table class="no-border" style="border-top:1px solid #000;">
+                    <tr>
+                        <td class="no-border small" style="width:60%;">
+                            ${(bankName || bankAcc || bankIfsc) ? `
+                                <span class="bold">Company's Bank Details</span><br>
+                                ${bankName ? `Bank Name: ${escapeHtml(bankName)}<br>` : ''}
+                                ${bankAcc ? `A/c No.: ${escapeHtml(bankAcc)}<br>` : ''}
+                                ${bankIfsc ? `Branch &amp; IFSC Code: ${escapeHtml(bankIfsc)}` : ''}
+                            ` : ''}
+                        </td>
+                        <td class="no-border right" style="vertical-align:bottom;">
+                            <div class="small">for Sarvadharani seeds</div>
+                            <div style="margin-top:50px;" class="small">Authorised Signatory</div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="center small" style="margin-top:6px;">This is a Computer Generated Invoice</div>
+        `;
+    }
+
 
     function printInvoiceDoc() {
         if (!isAdmin() && !hasPermission('exportPrint')) return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
@@ -10087,12 +10400,28 @@ function handleChangePassword(e) {
 // values without needing a page reload.
 const COMPANY_ADDRESS_KEY = 'sarva_company_address';
 const COMPANY_MOBILE_KEY = 'sarva_company_mobile';
+const COMPANY_TIN_KEY = 'sarva_company_tin';
+const COMPANY_BANK_NAME_KEY = 'sarva_company_bank_name';
+const COMPANY_BANK_ACC_KEY = 'sarva_company_bank_acc';
+const COMPANY_BANK_IFSC_KEY = 'sarva_company_bank_ifsc';
 
 function getCompanyAddress() {
     return localStorage.getItem(COMPANY_ADDRESS_KEY) || '';
 }
 function getCompanyMobile() {
     return localStorage.getItem(COMPANY_MOBILE_KEY) || '';
+}
+function getCompanyTin() {
+    return localStorage.getItem(COMPANY_TIN_KEY) || '';
+}
+function getCompanyBankName() {
+    return localStorage.getItem(COMPANY_BANK_NAME_KEY) || '';
+}
+function getCompanyBankAcc() {
+    return localStorage.getItem(COMPANY_BANK_ACC_KEY) || '';
+}
+function getCompanyBankIfsc() {
+    return localStorage.getItem(COMPANY_BANK_IFSC_KEY) || '';
 }
 
 function openCompanyAddressModal() {
@@ -10141,6 +10470,29 @@ function handleSaveCompanyMobile(e) {
     applyCompanyDetailsToUI();
     document.getElementById('companyMobileError').style.display = 'none';
     document.getElementById('companyMobileSuccess').style.display = 'flex';
+    return false;
+}
+
+function openCompanyBankModal() {
+    document.getElementById('companyBankForm').reset();
+    document.getElementById('companyTinInput').value = getCompanyTin();
+    document.getElementById('companyBankNameInput').value = getCompanyBankName();
+    document.getElementById('companyBankAccInput').value = getCompanyBankAcc();
+    document.getElementById('companyBankIfscInput').value = getCompanyBankIfsc();
+    document.getElementById('companyBankSuccess').style.display = 'none';
+    document.getElementById('companyBankModal').style.display = 'flex';
+    document.getElementById('companyTinInput').focus();
+}
+function closeCompanyBankModal() {
+    document.getElementById('companyBankModal').style.display = 'none';
+}
+function handleSaveCompanyBank(e) {
+    e.preventDefault();
+    localStorage.setItem(COMPANY_TIN_KEY, document.getElementById('companyTinInput').value.trim());
+    localStorage.setItem(COMPANY_BANK_NAME_KEY, document.getElementById('companyBankNameInput').value.trim());
+    localStorage.setItem(COMPANY_BANK_ACC_KEY, document.getElementById('companyBankAccInput').value.trim());
+    localStorage.setItem(COMPANY_BANK_IFSC_KEY, document.getElementById('companyBankIfscInput').value.trim());
+    document.getElementById('companyBankSuccess').style.display = 'flex';
     return false;
 }
 
