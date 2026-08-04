@@ -2361,20 +2361,19 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <div class="panel" id="panelPendingReceivable">
         <div class="panel-head"><h3>Pending to Receive</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
         <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
-            Sales invoices with an outstanding balance &mdash; the amount still owed to you after any receipts already settled against them.
+            Customers with an outstanding balance across all their unpaid Sales invoices combined.
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
             <div class="summary-card"><div>Total Pending</div><div id="prTotalReceivable" style="color:var(--success);">&#8377;0.00</div></div>
-            <div class="summary-card"><div>Invoices Pending</div><div id="prCountReceivable" style="color:var(--accent);">0</div></div>
+            <div class="summary-card"><div>Customers Pending</div><div id="prCountReceivable" style="color:var(--accent);">0</div></div>
         </div>
         <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        <th>Invoice No.</th>
                         <th>Party</th>
-                        <th>Invoice Total</th>
+                        <th>Invoices Pending</th>
+                        <th>Total Invoiced</th>
                         <th>Received So Far</th>
                         <th>Outstanding</th>
                     </tr>
@@ -2382,27 +2381,26 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="pendingReceivableBody"></tbody>
             </table>
         </div>
-        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a row to open that invoice. Click a party name to open their ledger statement.</div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a party to open their full ledger statement, where every individual invoice is listed.</div>
     </div>
 
     <!-- Pending to Pay (drill-down from dashboard tile) -->
     <div class="panel" id="panelPendingPayable">
         <div class="panel-head"><h3>Pending to Pay</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
         <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
-            Purchase (and Raw Purchase) vouchers with an outstanding balance &mdash; the amount you still owe, after any payments already settled against them.
+            Vendors with an outstanding balance across all their unpaid Purchase (and Raw Purchase) vouchers combined.
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
             <div class="summary-card"><div>Total Pending</div><div id="prTotalPayable" style="color:var(--danger);">&#8377;0.00</div></div>
-            <div class="summary-card"><div>Invoices Pending</div><div id="prCountPayable" style="color:var(--accent);">0</div></div>
+            <div class="summary-card"><div>Vendors Pending</div><div id="prCountPayable" style="color:var(--accent);">0</div></div>
         </div>
         <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        <th>Voucher No.</th>
                         <th>Vendor</th>
-                        <th>Voucher Total</th>
+                        <th>Vouchers Pending</th>
+                        <th>Total Invoiced</th>
                         <th>Paid So Far</th>
                         <th>Outstanding</th>
                     </tr>
@@ -2410,7 +2408,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="pendingPayableBody"></tbody>
             </table>
         </div>
-        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a row to open that invoice. Click a vendor name to open their ledger statement.</div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a vendor to open their full ledger statement, where every individual voucher is listed.</div>
     </div>
 
     <!-- Sales Statement -->
@@ -3947,31 +3945,43 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // money outstanding, using the same invoiceOutstanding() math the
     // dashboard total itself is built from, so the two always agree.
     function renderPendingReceivable() {
-        const rows = transactions
+        // Group every outstanding Sales invoice by customer, so someone
+        // with several unpaid invoices shows as ONE row with a combined
+        // balance, not one row per invoice. Individual invoices are still
+        // reachable — clicking the row opens that customer's full ledger.
+        const byParty = {};
+        transactions
             .filter(t => t.type === 'Sales')
-            .map(t => ({ txn: t, due: invoiceOutstanding(t) }))
-            .filter(r => r.due > 0.001)
-            .sort((a, b) => b.txn.id - a.txn.id);
+            .forEach(t => {
+                const due = invoiceOutstanding(t);
+                if (due <= 0.001) return;
+                if (!byParty[t.partyId]) {
+                    byParty[t.partyId] = { partyId: t.partyId, partyName: t.partyName, invoiceCount: 0, totalInvoiced: 0, totalDue: 0 };
+                }
+                byParty[t.partyId].invoiceCount += 1;
+                byParty[t.partyId].totalInvoiced += t.grandTotal;
+                byParty[t.partyId].totalDue += due;
+            });
+
+        const rows = Object.values(byParty).sort((a, b) => b.totalDue - a.totalDue);
 
         const body = document.getElementById('pendingReceivableBody');
         body.innerHTML = '';
         let total = 0;
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Nothing pending &mdash; every sale is fully received.</td></tr>';
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nothing pending &mdash; every sale is fully received.</td></tr>';
         } else {
             rows.forEach(r => {
-                const t = r.txn;
-                total += r.due;
-                const received = t.grandTotal - r.due;
+                total += r.totalDue;
+                const received = r.totalInvoiced - r.totalDue;
                 body.innerHTML += `
-                    <tr style="cursor:pointer;" title="Open invoice">
-                        <td onclick="printInvoice(${t.id})">${t.date}</td>
-                        <td onclick="printInvoice(${t.id})">${escapeHtml(t.invNo)}</td>
-                        <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.grandTotal.toFixed(2)}</td>
-                        <td onclick="printInvoice(${t.id})" style="color:var(--text-muted);">\u20B9${received.toFixed(2)}</td>
-                        <td onclick="printInvoice(${t.id})" style="color:var(--success); font-weight:bold;">\u20B9${r.due.toFixed(2)}</td>
+                    <tr style="cursor:pointer;" title="Open party ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
+                        <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
+                        <td>${r.invoiceCount}</td>
+                        <td>\u20B9${r.totalInvoiced.toFixed(2)}</td>
+                        <td style="color:var(--text-muted);">\u20B9${received.toFixed(2)}</td>
+                        <td style="color:var(--success); font-weight:bold;">\u20B9${r.totalDue.toFixed(2)}</td>
                     </tr>
                 `;
             });
@@ -3982,31 +3992,42 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function renderPendingPayable() {
-        const rows = transactions
+        // Same grouping as renderPendingReceivable, mirrored for vendors —
+        // one row per vendor with a combined outstanding balance across
+        // every unpaid Purchase/RawPurchase voucher.
+        const byParty = {};
+        transactions
             .filter(t => t.type === 'Purchase' || t.type === 'RawPurchase')
-            .map(t => ({ txn: t, due: invoiceOutstanding(t) }))
-            .filter(r => r.due > 0.001)
-            .sort((a, b) => b.txn.id - a.txn.id);
+            .forEach(t => {
+                const due = invoiceOutstanding(t);
+                if (due <= 0.001) return;
+                if (!byParty[t.partyId]) {
+                    byParty[t.partyId] = { partyId: t.partyId, partyName: t.partyName, invoiceCount: 0, totalInvoiced: 0, totalDue: 0 };
+                }
+                byParty[t.partyId].invoiceCount += 1;
+                byParty[t.partyId].totalInvoiced += t.grandTotal;
+                byParty[t.partyId].totalDue += due;
+            });
+
+        const rows = Object.values(byParty).sort((a, b) => b.totalDue - a.totalDue);
 
         const body = document.getElementById('pendingPayableBody');
         body.innerHTML = '';
         let total = 0;
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Nothing pending &mdash; every purchase is fully paid.</td></tr>';
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nothing pending &mdash; every purchase is fully paid.</td></tr>';
         } else {
             rows.forEach(r => {
-                const t = r.txn;
-                total += r.due;
-                const paid = t.grandTotal - r.due;
+                total += r.totalDue;
+                const paid = r.totalInvoiced - r.totalDue;
                 body.innerHTML += `
-                    <tr style="cursor:pointer;" title="Open invoice">
-                        <td onclick="printInvoice(${t.id})">${t.date}</td>
-                        <td onclick="printInvoice(${t.id})">${escapeHtml(t.invNo)}</td>
-                        <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open vendor ledger">${escapeHtml(t.partyName)}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.grandTotal.toFixed(2)}</td>
-                        <td onclick="printInvoice(${t.id})" style="color:var(--text-muted);">\u20B9${paid.toFixed(2)}</td>
-                        <td onclick="printInvoice(${t.id})" style="color:var(--danger); font-weight:bold;">\u20B9${r.due.toFixed(2)}</td>
+                    <tr style="cursor:pointer;" title="Open vendor ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
+                        <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
+                        <td>${r.invoiceCount}</td>
+                        <td>\u20B9${r.totalInvoiced.toFixed(2)}</td>
+                        <td style="color:var(--text-muted);">\u20B9${paid.toFixed(2)}</td>
+                        <td style="color:var(--danger); font-weight:bold;">\u20B9${r.totalDue.toFixed(2)}</td>
                     </tr>
                 `;
             });
@@ -6564,15 +6585,31 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             return line;
         });
 
-        // Validate new stock availability if this voucher reduces stock —
-        // covers newly-added items too, not just ones that already existed.
+        // Stock check on save — Sales only, matching the same rule new
+        // Sales vouchers already follow: going below available stock is
+        // allowed, but only after an explicit confirm, and only for Sales.
+        // Every other stock-reducing type edited here (Optional Sales,
+        // custom stock-out types, etc.) keeps the original hard block.
         if (dir === 1) {
+            const isSalesEdit = (txn.type === 'Sales');
+            const shortages = [];
             for (const line of newItemsArr) {
                 const item = stockItems.find(s => s.id == line.itemId);
-                if (item && item.qty < line.qty) {
+                const available = item ? item.qty : 0;
+                if (item && available < line.qty) shortages.push({ line, available });
+            }
+            if (shortages.length > 0) {
+                if (isSalesEdit) {
+                    const msg = shortages.map(s => `${s.line.name}: only ${s.available} in stock, this line needs ${s.line.qty}`).join('\n');
+                    const proceed = confirm(`This edit goes below available stock:\n\n${msg}\n\nSave anyway? Stock will show negative until you purchase more.`);
+                    if (!proceed) {
+                        stockItems = JSON.parse(localStorage.getItem('tally_mob_stock')); // rollback the reversal done above
+                        return;
+                    }
+                } else {
                     // rollback the reversal we did above before aborting
                     stockItems = JSON.parse(localStorage.getItem('tally_mob_stock'));
-                    return alert(`Not enough stock for ${line.name}. Available after other entries: ${item.qty}.`);
+                    return alert(`Not enough stock for ${shortages[0].line.name}. Available after other entries: ${shortages[0].available}.`);
                 }
             }
         }
