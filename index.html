@@ -37,8 +37,8 @@
 
     /* Primary accent — deep forest green, hover slightly lifted */
     --accent: #2E5C3B;
-    --accent-2: #25695E;      /* sage teal (secondary) — DESIGN.md secondary */
-    --accent-hover: #154426;  /* DESIGN.md primary */
+    --accent-2: #4A8B7F;      /* sage teal (secondary) */
+    --accent-hover: #23472C;
     --accent-soft: rgba(229, 239, 227, 0.55);
 
     /* Text */
@@ -57,9 +57,6 @@
     --orange: #C6642E;
 
     /* Structure */
-    --secondary-container: #AAEDDE;
-    --tertiary: #672803;
-    --tertiary-container: #853E19;
     --border: rgba(255, 255, 255, 0.45);
     --border-strong: rgba(255, 255, 255, 0.65);
     --card-shadow: 0 8px 32px -8px rgba(20, 32, 26, 0.18), 0 1px 2px 0 rgba(20,32,26,0.05), inset 0 1px 0 0 rgba(255,255,255,0.6);
@@ -152,10 +149,10 @@ header::before {
     margin: 6px 0 0;
     font-family: 'Outfit', sans-serif;
     font-weight: 700;
-    font-size: 2rem;
+    font-size: 1.9rem;
     letter-spacing: -0.02em;
     color: var(--text-invert);
-    line-height: 1.25;
+    line-height: 1.1;
     text-transform: none;
 }
 .gst-badge {
@@ -512,8 +509,8 @@ tbody td {
     vertical-align: middle;
     color: var(--text-main);
 }
-tbody tr:nth-child(even) td { background: var(--accent-soft); }
-tbody tr:hover td { background: rgba(170, 237, 222, 0.35); }
+tbody tr:nth-child(even) td { background: var(--statement-row-alt); }
+tbody tr:hover td { background: var(--accent-soft); }
 tbody tr:last-child td { border-bottom: none; }
 tfoot td {
     font-weight: 700;
@@ -834,7 +831,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         gap: 10px;
     }
     header::before { left: 18px; top: 6px; font-size: 0.58rem; }
-    .brand-title { font-size: 1.5rem; margin-top: 8px; }
+    .brand-title { font-size: 1.35rem; margin-top: 8px; }
     .gst-badge { align-self: stretch; text-align: center; font-size: 0.7rem; padding: 6px 10px; }
 
     .dashboard-summary { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 18px; }
@@ -844,7 +841,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     #tileMenu, .submenu, .panel { padding: 16px; }
     .tile-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
     .tile { padding: 14px 12px; }
-    .tile-icon { font-size: 1.5rem; filter: saturate(0.85); }
+    .tile-icon { font-size: 1.5rem; }
     .tile-name { font-size: 0.92rem; }
     .tile-sub { font-size: 0.72rem; }
 
@@ -6012,14 +6009,24 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const rateMode = currentRateMode();
         const isRawPurchase = (type === 'RawPurchase');
 
-        // Stock Validation
+        // Stock check — Sales no longer blocks an oversell outright. If any
+        // line would take an item's stock below zero, warn with exactly how
+        // short it is and let the person decide: Cancel keeps the voucher
+        // unposted (same as before), OK posts it anyway and the item's
+        // quantity goes negative, showing clearly in Stock Summary until a
+        // later Purchase brings it back up.
         if (type === 'Sales') {
+            const shortages = [];
             for (let line of currentVoucherItems) {
                 const stItem = stockItems.find(s => s.id == line.itemId);
-                if (!stItem || stItem.qty < line.qty) {
-                    alert(`Insufficient stock for ${line.name}! Available: ${stItem ? stItem.qty : 0}`);
-                    return;
-                }
+                const available = stItem ? stItem.qty : 0;
+                if (available < line.qty) shortages.push(`${line.name}: only ${available} in stock, selling ${line.qty}`);
+            }
+            if (shortages.length > 0) {
+                const proceed = confirm(
+                    `This sale goes below available stock:\n\n${shortages.join('\n')}\n\nPost it anyway? Stock will show negative until you purchase more.`
+                );
+                if (!proceed) return;
             }
         }
 
@@ -9003,6 +9010,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         });
 
         document.getElementById('ivStock').innerText = `${item.qty} ${item.uom}`;
+        document.getElementById('ivStock').style.color = item.qty < 0 ? 'var(--danger)' : 'var(--accent)';
         document.getElementById('ivPurch').innerText = `${purchased} ${item.uom}`;
         document.getElementById('ivRawPurch').innerText = `${rawPurchased} ${item.uom}`;
         document.getElementById('ivSold').innerText = `${sold} ${item.uom}`;
@@ -9211,12 +9219,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         stockBody.innerHTML = '';  
         stockItems.forEach(i => {  
             const totalVal = i.qty * i.rate;  
+            const isOversold = i.qty < 0;
+            const qtyColor = isOversold ? 'var(--danger)' : (i.qty < 5 ? 'var(--danger)' : 'var(--success)');
+            const qtyDisplay = isOversold
+                ? `${i.qty} ${escapeHtml(i.uom)} <span style="font-size:0.68rem; font-weight:normal; background:var(--danger); color:#fff; padding:1px 6px; border-radius:4px; margin-left:4px;">Oversold</span>`
+                : `${i.qty} ${escapeHtml(i.uom)}`;
             stockBody.innerHTML += `  
                 <tr>  
                     <td onclick="viewStockItem(${i.id})" style="cursor:pointer;" title="View item summary"><strong>${escapeHtml(i.name)}</strong></td>  
                     <td><span class="group-badge${i.groupId ? '' : ' muted'}">${escapeHtml(getStockGroupName(i.groupId))}</span></td>
                     <td>${escapeHtml(i.hsn)}</td>  
-                    <td onclick="viewStockItem(${i.id})" style="cursor:pointer; color:${i.qty < 5 ? 'var(--danger)' : 'var(--success)'}"><strong>${i.qty} ${escapeHtml(i.uom)}</strong></td>  
+                    <td onclick="viewStockItem(${i.id})" style="cursor:pointer; color:${qtyColor}"><strong>${qtyDisplay}</strong></td>  
                     <td>\u20B9${i.rate.toFixed(2)}</td>  
                     <td>\u20B9${totalVal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>  
                     <td style="display:flex; gap:6px;">
