@@ -1163,6 +1163,25 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     letter-spacing: 0.02em;
     cursor: pointer;
 }
+
+/* Formal Print overlay content — matches the traditional Tax Invoice /
+   Voucher layout, scoped so it never leaks into the rest of the app. */
+#formalPrintContent * { box-sizing: border-box; }
+#formalPrintContent table { width: 100%; border-collapse: collapse; }
+#formalPrintContent td, #formalPrintContent th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; }
+#formalPrintContent .no-border td, #formalPrintContent .no-border th { border: none; }
+#formalPrintContent .outer { border: 1px solid #000; }
+#formalPrintContent .title { text-align:center; font-size:18px; font-weight:bold; margin-bottom:8px; letter-spacing:1px; }
+#formalPrintContent .right { text-align:right; }
+#formalPrintContent .center { text-align:center; }
+#formalPrintContent .bold { font-weight:bold; }
+#formalPrintContent .small { font-size:10.5px; }
+#formalPrintContent .muted { color:#333; }
+@media print {
+    body.printing-formal > *:not(#formalPrintOverlay) { display:none !important; }
+    body.printing-formal #formalPrintOverlay { position: static !important; }
+    #formalPrintOverlay .no-print { display:none !important; }
+}
     </style>
 </head>
 <body>
@@ -3529,6 +3548,20 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <button onclick="document.getElementById('invoiceModal').style.display='none'" style="background:#64748b; color:white;">Close</button>
         </div>
     </div>
+</div>
+
+<!-- Formal Print overlay — renders IN this same page (no new window/tab),
+     since window.open()'d windows are unreliable on mobile: some phone
+     browsers and installed PWAs don't give a real closeable tab at all,
+     just replace the current view with nothing to navigate back with.
+     This stays inside the app itself, with a Close button that's always
+     visible and pinned to the top, so there's never a way to get stuck. -->
+<div id="formalPrintOverlay" style="display:none; position:fixed; inset:0; z-index:400; background:#fff; overflow-y:auto;">
+    <div class="no-print" style="position:sticky; top:0; z-index:5; background:#1a2e22; padding:12px 16px; display:flex; gap:10px; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+        <button onclick="closeFormalPrintOverlay()" style="width:auto; padding:10px 20px; background:#fff; color:#1a2e22; font-weight:700; border-radius:8px; font-size:0.95rem;">&#8592; Close</button>
+        <button onclick="window.print()" class="btn-success" style="width:auto; padding:10px 20px; font-size:0.95rem;">Print / Save as PDF</button>
+    </div>
+    <div id="formalPrintContent" style="padding:20px; font-family: Arial, Helvetica, sans-serif; font-size:12px; color:#000;"></div>
 </div>
 
 <!-- Edit Voucher Modal -->
@@ -9059,6 +9092,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         }
     }
 
+    // Renders the Formal print layout INSIDE this same page, in a full-
+    // screen overlay with its own sticky Close button — deliberately NOT
+    // a new window/tab. window.open() is unreliable on mobile: many phone
+    // browsers and installed PWAs don't give a real closeable tab, they
+    // just replace the current view with no way to navigate back, which
+    // is exactly the "stuck, had to force-close the app" problem this
+    // fixes. Closing this overlay always returns to the exact same app
+    // state you were in before, with nothing to get trapped inside.
     function printFormalStyle() {
         if (!currentPrintTxnId) return;
         const txn = transactions.find(t => t.id == currentPrintTxnId);
@@ -9066,30 +9107,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const html = (txn.type === 'Sales') ? buildFormalTaxInvoiceHtml(txn) : buildFormalVoucherHtml(txn);
         if (!html) return;
 
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) { alert("Please allow pop-ups to use Formal Print."); return; }
-        printWindow.document.write(`
-            <html><head><title>${escapeHtml(txn.invNo)}</title>
-            <style>
-                * { box-sizing: border-box; }
-                body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 20px; font-size: 12px; color: #000; }
-                table { width: 100%; border-collapse: collapse; }
-                td, th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; }
-                .no-border td, .no-border th { border: none; }
-                .outer { border: 1px solid #000; }
-                .title { text-align:center; font-size:18px; font-weight:bold; margin-bottom:8px; letter-spacing:1px; }
-                .right { text-align:right; }
-                .center { text-align:center; }
-                .bold { font-weight:bold; }
-                .small { font-size:10.5px; }
-                .muted { color:#333; }
-                @media print { body { padding: 0; } }
-            </style>
-            </head><body>${html}
-                <script>window.onload = () => { window.print(); };<\/script>
-            </body></html>
-        `);
-        printWindow.document.close();
+        document.getElementById('formalPrintContent').innerHTML = html;
+        document.getElementById('formalPrintOverlay').style.display = 'flex';
+        document.getElementById('formalPrintOverlay').style.flexDirection = 'column';
+        document.body.classList.add('printing-formal');
+        window.scrollTo(0, 0);
+    }
+
+    function closeFormalPrintOverlay() {
+        document.getElementById('formalPrintOverlay').style.display = 'none';
+        document.getElementById('formalPrintContent').innerHTML = '';
+        document.body.classList.remove('printing-formal');
     }
 
     // ---- Formal Voucher (Payment / Receipt) — matches a TallyPrime-style
