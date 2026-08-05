@@ -3517,9 +3517,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             </div>
         </div>
 
-        <div style="margin-top:24px; display:flex; gap:12px;" class="no-print">
-            <button onclick="printInvoiceDoc()" class="btn-success">Print / Download PDF</button>
-            <button id="formalPrintBtn" onclick="printFormalStyle()" style="display:none; background:var(--violet); color:#fff;">Formal Print</button>
+        <div style="margin-top:24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;" class="no-print">
+            <button id="invPrintBtn" onclick="printInvoiceCurrentStyle()" class="btn-success">Print / Download PDF</button>
+            <div id="invPrintStyleWrap" style="display:none; align-items:center; gap:6px;">
+                <label for="invPrintStyleSelect" style="font-size:0.78rem; color:var(--text-muted); margin:0;">Style</label>
+                <select id="invPrintStyleSelect" style="width:auto; padding:8px 10px;">
+                    <option value="classic">Classic</option>
+                    <option value="formal">Formal</option>
+                </select>
+            </div>
             <button onclick="document.getElementById('invoiceModal').style.display='none'" style="background:#64748b; color:white;">Close</button>
         </div>
     </div>
@@ -8125,9 +8131,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const txn = transactions.find(t => t.id == txnId);  
         if (!txn) return;  
         currentPrintTxnId = txnId;
-        const formalBtn = document.getElementById('formalPrintBtn');
-        if (formalBtn) {
-            formalBtn.style.display = (txn.type === 'Sales' || txn.type === 'Payment' || txn.type === 'Receipt') ? 'inline-block' : 'none';
+        const styleWrap = document.getElementById('invPrintStyleWrap');
+        const styleSelect = document.getElementById('invPrintStyleSelect');
+        const formalAvailable = (txn.type === 'Sales' || txn.type === 'Payment' || txn.type === 'Receipt');
+        if (styleWrap) {
+            styleWrap.style.display = formalAvailable ? 'flex' : 'none';
+            if (styleSelect) styleSelect.value = 'classic'; // always reset — never silently remember Formal from a previous invoice
         }
         const isJournalTxn = (txn.type === 'Journal');
         const partyObj = isJournalTxn ? null : parties.find(p => p.id == txn.partyId);
@@ -9033,6 +9042,22 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     const FORMAL_COMPANY_GSTIN = '21AFGFS0227N1Z2';
+
+    // Single entry point for the one Print button in the invoice modal.
+    // Reads the Style dropdown (only shown/relevant for Sales/Payment/
+    // Receipt) and routes to whichever print path was chosen — Classic
+    // is the existing printInvoiceDoc() flow, completely unchanged;
+    // Formal is the new alternate layout, also unchanged by this change.
+    function printInvoiceCurrentStyle() {
+        const styleSelect = document.getElementById('invPrintStyleSelect');
+        const styleWrap = document.getElementById('invPrintStyleWrap');
+        const useFormal = styleWrap && styleWrap.style.display !== 'none' && styleSelect && styleSelect.value === 'formal';
+        if (useFormal) {
+            printFormalStyle();
+        } else {
+            printInvoiceDoc();
+        }
+    }
 
     function printFormalStyle() {
         if (!currentPrintTxnId) return;
