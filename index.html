@@ -61,9 +61,9 @@
     --card-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.06);
     --grad-accent: linear-gradient(135deg, #0f4c81 0%, #0f4c81 100%);
     --grad-warm: linear-gradient(135deg, #dc2626 0%, #dc2626 100%);
-    --radius-sm: 4px;
-    --radius: 6px;
-    --radius-lg: 8px;
+    --radius-sm: 999px;
+    --radius: 999px;
+    --radius-lg: 999px;
 }
 
 * { box-sizing: border-box; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -1021,9 +1021,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid rgba(255,255,255,0.35);
-    border-radius: var(--radius-lg);
+    /* Keep the dramatic pill/arch look up top (matches the rest of the
+       app's fully-rounded --radius-lg pieces), but round the bottom
+       corners normally — a full 999px pill radius on a box this tall
+       curves inward on ALL four corners, which was clipping the Login
+       button right off the bottom edge. */
+    border-radius: 999px 999px 32px 32px;
     box-shadow: 0 20px 50px -15px rgba(10,20,12,0.45), inset 0 1px 0 0 rgba(255,255,255,0.4);
-    padding: 34px 30px 30px;
+    padding: 40px 30px 34px;
     margin: auto;
 }
 .login-brand {
@@ -1240,7 +1245,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <div class="edit-box" style="max-width:420px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <h3 style="margin:0;">Change Password</h3>
-            <button type="button" onclick="closeChangePasswordModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+            <button type="button" onclick="closeChangePasswordModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:999px;">&times;</button>
         </div>
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
             This changes the password for whichever account you're currently signed in as.
@@ -1273,7 +1278,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <div class="edit-box" style="max-width:420px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <h3 style="margin:0;">Company Address</h3>
-            <button type="button" onclick="closeCompanyAddressModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+            <button type="button" onclick="closeCompanyAddressModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:999px;">&times;</button>
         </div>
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
             Shown under your company name on printed invoices and used as the "from" address on e-Way bills. Leave blank to show nothing.
@@ -1296,7 +1301,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <div class="edit-box" style="max-width:420px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <h3 style="margin:0;">Company Mobile Number</h3>
-            <button type="button" onclick="closeCompanyMobileModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+            <button type="button" onclick="closeCompanyMobileModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:999px;">&times;</button>
         </div>
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
             Shown under your company name on printed invoices. Leave blank to show nothing.
@@ -1323,7 +1328,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <div class="edit-box" style="max-width:420px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <h3 style="margin:0;">Bank &amp; TIN Details</h3>
-            <button type="button" onclick="closeCompanyBankModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+            <button type="button" onclick="closeCompanyBankModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:999px;">&times;</button>
         </div>
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
             Shown on the "Formal" print style for Sales, Payments, and Receipts. Your existing GSTIN is used automatically &mdash; this is only for the extra details that style needs. Leave any field blank to hide that line.
@@ -1449,7 +1454,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Users (renamed from "Manage Staff Access"; internal ids unchanged) -->
     <div class="panel" id="panelManageStaff">
         <div class="panel-head"><h3>Users</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="background: rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:var(--cyan); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+        <div style="background: rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:var(--cyan); padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:16px;">
             &#9432; <strong>Admin</strong> always has full authority over everything. Everyone else is a <strong>User</strong> &mdash; open a user below to turn their individual permissions on or off exactly as needed, instead of one fixed bundle. Each account must already exist in the Firebase Console (Authentication &gt; Users) before you can assign it here.
         </div>
         <div style="display:flex; gap:8px; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap;">
@@ -1485,7 +1490,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <div class="edit-box" style="max-width:520px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                 <h3 style="margin:0;">Permissions for <span id="permUserEmail" style="color:var(--accent);"></span></h3>
-                <button type="button" onclick="closeUserPermissionsModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+                <button type="button" onclick="closeUserPermissionsModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:999px;">&times;</button>
             </div>
             <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
                 Turn on exactly what this person should be able to do. Everything starts off &mdash; nothing here is assumed.
@@ -2007,6 +2012,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="subLedgerReportBody"></tbody>
             </table>
         </div>
+        <div id="subLedgerReportPager"></div>
         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Includes optional vouchers' inventory value as well, tagged by their category.</div>
     </div>
 
@@ -2074,6 +2080,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="cashReportBody"></tbody>
             </table>
         </div>
+        <div id="cashReportPager"></div>
         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a row to open its invoice. Click a party name to open their ledger statement.</div>
     </div>
 
@@ -2196,7 +2203,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Alter Unit (rename a unit everywhere it's used) -->
     <div class="panel" id="panelAlterUnit">
         <div class="panel-head"><h3>Alter Unit</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="background: rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:var(--cyan); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+        <div style="background: rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:var(--cyan); padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:16px;">
             &#9432; Renaming a unit updates it on every stock item and every past voucher line that uses it &mdash; the same way altering a unit works in Tally.
         </div>
         <div class="table-responsive" style="margin-bottom:18px;">
@@ -2243,6 +2250,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="alterVoucherBody"></tbody>
             </table>
         </div>
+        <div id="alterVoucherSearchPager"></div>
     </div>
 
     <!-- Import / Export Data -->
@@ -2270,7 +2278,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Custom Voucher Types -->
     <div class="panel" id="panelVoucherTypes">
         <div class="panel-head"><h3 id="vtPanelTitle">Voucher Types</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="background: rgba(139,124,255,0.1); border:1px solid rgba(139,124,255,0.3); color:var(--violet); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+        <div style="background: rgba(139,124,255,0.1); border:1px solid rgba(139,124,255,0.3); color:var(--violet); padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:16px;">
             &#9432; Create your own voucher type (e.g. "Job Work Out", "Stock Transfer") and choose exactly how it behaves. It will then appear in the Voucher Type dropdown on the Post Voucher screen.
         </div>
         <form id="voucherTypeForm">
@@ -2452,6 +2460,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="pendingReceivableBody"></tbody>
             </table>
         </div>
+        <div id="pendingReceivablePager"></div>
         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a party to open their full ledger statement, where every individual invoice is listed.</div>
     </div>
 
@@ -2479,6 +2488,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="pendingPayableBody"></tbody>
             </table>
         </div>
+        <div id="pendingPayablePager"></div>
         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a vendor to open their full ledger statement, where every individual voucher is listed.</div>
     </div>
 
@@ -2534,6 +2544,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="salesStatementBody"></tbody>
             </table>
         </div>
+        <div id="salesStatementPager"></div>
     </div>
 
     <!-- GST Liability (drill-down from dashboard tile) -->
@@ -2593,6 +2604,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="gstLiabilityBody"></tbody>
             </table>
         </div>
+        <div id="gstLiabilityPager"></div>
         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a row to open its invoice. Click a party name to open their ledger statement.</div>
     </div>
 
@@ -2649,12 +2661,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="purchaseReportBody"></tbody>
             </table>
         </div>
+        <div id="purchaseReportPager"></div>
     </div>
 
     <!-- Delivery Notes -->
     <div class="panel" id="panelDeliveryNotes">
         <div class="panel-head"><h3>Delivery Notes</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="background: rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:var(--cyan); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+        <div style="background: rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:var(--cyan); padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:16px;">
             &#9432; Delivery notes are dispatch records only &mdash; they do not change stock, party balances, or GST. Post them from the voucher screen using "Delivery Note".
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;">
@@ -2704,12 +2717,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="deliveryNotesBody"></tbody>
             </table>
         </div>
+        <div id="deliveryNotesPager"></div>
     </div>
 
     <!-- Raw Purchase Entry (buying raw seed, e.g. in Quintals) -->
     <div class="panel" id="panelRawPurchase">
         <div class="panel-head"><h3>Raw Purchase Entry</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="background: rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.3); color:var(--success); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+        <div style="background: rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.3); color:var(--success); padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:16px;">
             &#9432; A focused purchase entry for raw seed. It posts as a normal Purchase voucher (increases stock, updates the vendor's ledger, applies GST as usual) &mdash; just streamlined for buying raw material. Choose whichever unit this purchase was actually measured in (Quintal or Bags) &mdash; the quantity is recorded as entered, with no automatic conversion between the two, so keep it consistent per item where it matters to you.
         </div>
         <form id="rawPurchaseForm" class="form-grid">
@@ -2760,7 +2774,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <option value="EXEMPT">Nil GST (no tax charged)</option>
                 </select>
             </div>
-            <div class="col-2" id="rpTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 12px; border:1px solid var(--border);">
+            <div class="col-2" id="rpTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 999px; border:1px solid var(--border);">
                 <span style="color:var(--text-muted); font-size:0.85rem;">Total:</span>
                 <span id="rpTotalDisplay" style="font-weight:bold; font-size:1.1rem; color:var(--accent); margin-left:6px;">&#8377;0.00</span>
             </div>
@@ -2775,7 +2789,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Stock Conversion (raw seed -> processed bags) -->
     <div class="panel" id="panelConversion">
         <div class="panel-head"><h3>Stock Conversion</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="background: rgba(139,124,255,0.1); border:1px solid rgba(139,124,255,0.3); color:var(--violet); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+        <div style="background: rgba(139,124,255,0.1); border:1px solid rgba(139,124,255,0.3); color:var(--violet); padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:16px;">
             &#9432; Converts raw stock into processed stock: the raw item's quantity goes down, the processed item's quantity goes up. This is not a sale or purchase &mdash; no party or GST is involved. It shows up in the Processed Report.
         </div>
         <form id="conversionForm" class="form-grid">
@@ -2886,7 +2900,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Raw Purchase Report -->
     <div class="panel" id="panelRawPurchaseReport">
         <div class="panel-head"><h3>Raw Purchase Report</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="background: rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.3); color:var(--success); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+        <div style="background: rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.3); color:var(--success); padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:16px;">
             &#9432; Raw seed purchases are kept separate from the normal Purchase/GST totals so you can track raw material buying on its own, by variety.
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;">
@@ -2944,6 +2958,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="rawPurchaseReportBody"></tbody>
             </table>
         </div>
+        <div id="rawPurchaseReportPager"></div>
         <div class="section-label" style="margin-top:22px;">Current Raw Stock on Hand</div>
         <div class="table-responsive">
             <table>
@@ -2963,7 +2978,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Trial Balance -->
     <div class="panel" id="panelTrialBalance">
         <div class="panel-head"><h3>Trial Balance</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="background: rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:var(--cyan); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+        <div style="background: rgba(34,211,238,0.1); border:1px solid rgba(34,211,238,0.3); color:var(--cyan); padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:16px;">
             &#9432; Every party and Cash/Bank/Capital account's closing balance, as of today, plus Sales, Purchase, and net GST (Duties &amp; Taxes) accumulated all-time. Total Dr should equal Total Cr &mdash; if not, it's usually a sign an Opening Balance was entered inconsistently somewhere. This does not include the value of stock on hand as a ledger figure, since stock is tracked separately in the Stock reports.
         </div>
         <div style="display:flex; gap:8px; margin-bottom:16px;">
@@ -2989,7 +3004,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         </div>
 
         <div class="section-label" style="margin-top:26px;">Start New Financial Year</div>
-        <div style="background: rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); color:#fbbf24; padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:14px;">
+        <div style="background: rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); color:#fbbf24; padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:14px;">
             &#9432; This takes every party's and account's CURRENT closing balance (shown above) and sets it as their new Opening Balance, dated from the day you choose below. It does <strong>not</strong> delete, hide, or lock any past voucher &mdash; every past entry stays fully visible, editable, and deletable exactly as before. It only changes where each ledger's running balance "starts counting from" going forward. You can always undo this manually afterwards by editing a party/account's Opening Balance and Opening Balance As Of date back in Alter Party / Accounts.
         </div>
         <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
@@ -3004,7 +3019,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Optional Vouchers (off-book) -->
     <div class="panel" id="panelOptional">
         <div class="panel-head"><h3>Optional Vouchers</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="background: rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); color:#fbbf24; padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:16px;">
+        <div style="background: rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); color:#fbbf24; padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:16px;">
             &#9432; These vouchers are kept off the main books &mdash; excluded from party balances, main stock, and GST. Post them from the voucher screen using "Optional Sale" / "Optional Purchase".
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
@@ -3035,6 +3050,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="optionalBody"></tbody>
             </table>
         </div>
+        <div id="optionalVouchersPager"></div>
     </div>
 
     <!-- Voucher -->
@@ -3061,7 +3077,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </select>
             </div>
             <div class="col-2" id="optionalNoteWrap" style="display:none;">
-                <div style="background: rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.35); color:#fbbf24; padding:10px 14px; border-radius:12px; font-size:0.8rem;">
+                <div style="background: rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.35); color:#fbbf24; padding:10px 14px; border-radius:999px; font-size:0.8rem;">
                     &#9432; Optional vouchers are recorded separately. They do <strong>not</strong> affect party balances, main stock, sales/purchase totals, or GST.
                 </div>
             </div>
@@ -3123,7 +3139,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                  required, unlike Payment/Receipt which always need one. -->
             <div class="col-2 item-builder" id="journalPanel" style="display:none;">
                 <div style="font-weight:600; font-size:0.85rem; color: var(--accent); margin-bottom:8px;">Journal Entry</div>
-                <div style="background: rgba(139,124,255,0.1); border:1px solid rgba(139,124,255,0.3); color:var(--violet); padding:10px 14px; border-radius:12px; font-size:0.8rem; margin-bottom:12px;">
+                <div style="background: rgba(139,124,255,0.1); border:1px solid rgba(139,124,255,0.3); color:var(--violet); padding:10px 14px; border-radius:999px; font-size:0.8rem; margin-bottom:12px;">
                     &#9432; No cash actually moves for this specific ledger pairing unless you pick a cash/bank account as one side. Used for things like writing off a bad debt, correcting an entry, or moving a balance between two ledgers directly.
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
@@ -3223,7 +3239,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </table>
             </div>
 
-            <div class="col-2" id="totalsBox" style="background: var(--bg-input); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+            <div class="col-2" id="totalsBox" style="background: var(--bg-input); padding: 14px; border-radius: 999px; border: 1px solid var(--border);">
                 <div style="font-size:0.85rem; color:var(--text-muted);">
                     Taxable: <span id="lblTaxable" style="color:var(--accent); font-weight:600;">&#8377;0.00</span> |
                     Total Tax: <span id="lblTax" style="color:var(--accent); font-weight:600;">&#8377;0.00</span>
@@ -3436,7 +3452,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </div>
                 <button onclick="closeActiveLedger()" style="width:auto; padding:10px 18px; background:#64748b; color:#fff;">&#8592; Choose a different ledger</button>
             </div>
-            <div id="ledgerPrintArea" class="table-responsive" style="background: var(--bg-card); padding: 20px; border-radius: 8px;">
+            <div id="ledgerPrintArea" class="table-responsive" style="background: var(--bg-card); padding: 20px; border-radius: 999px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
                     <div>
                         <h3 style="margin:0; color:var(--accent); border:none; padding:0;" id="ledgerAccountLabel">Ledger Account</h3>
@@ -3473,6 +3489,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <tfoot id="partyLedgerFoot" style="font-weight:bold; background:#0f172a;"></tfoot>
                 </table>
             </div>
+            <div id="ledgerStatementPager"></div>
         </div>
     </div>
 
@@ -3504,7 +3521,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div id="invGstin" style="color:#475569;"></div>
         </div>
 
-        <div id="invTransportWrap" style="display:none; margin: 0 0 16px 0; font-size:0.85rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px;">
+        <div id="invTransportWrap" style="display:none; margin: 0 0 16px 0; font-size:0.85rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:999px; padding:10px 12px;">
             <strong>Transport Details:</strong>
             <div id="invTransportDetails" style="color:#334155; margin-top:2px;"></div>
         </div>
@@ -3573,7 +3590,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
      visible and pinned to the top, so there's never a way to get stuck. -->
 <div id="formalPrintOverlay" style="display:none; position:fixed; inset:0; z-index:400; background:#fff; overflow-y:auto;">
     <div class="no-print" style="position:sticky; top:0; z-index:5; background:#0f4c81; padding:12px 16px; display:flex; gap:10px; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-        <button onclick="closeFormalPrintOverlay()" style="width:auto; padding:10px 20px; background:#fff; color:#0f4c81; font-weight:700; border-radius:8px; font-size:0.95rem;">&#8592; Close</button>
+        <button onclick="closeFormalPrintOverlay()" style="width:auto; padding:10px 20px; background:#fff; color:#0f4c81; font-weight:700; border-radius:999px; font-size:0.95rem;">&#8592; Close</button>
         <button onclick="window.print()" class="btn-success" style="width:auto; padding:10px 20px; font-size:0.95rem;">Print / Save as PDF</button>
     </div>
     <div id="formalPrintContent" style="padding:20px; font-family: Arial, Helvetica, sans-serif; font-size:12px; color:#000;"></div>
@@ -3604,7 +3621,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="col-2" id="editItemsWrap">
                 <label>Line Items (add, edit, or remove)</label>
                 <div id="editItemsList"></div>
-                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:999px; border:1px solid var(--border);">
                     <div style="flex:2; min-width:160px;">
                         <label style="font-size:0.7rem;">Add Item</label>
                         <select id="editAddItemSelect" onchange="onEditAddItemChange()">
@@ -3626,7 +3643,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                      line's rate proportionally so tax stays calculated
                      correctly; using one clears the other since they'd
                      otherwise fight over the same result. -->
-                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:999px; border:1px solid var(--border);">
                     <div style="flex:1; min-width:140px;">
                         <label style="font-size:0.7rem;">Discount (&#8377;, optional)</label>
                         <input type="number" id="editDiscount" min="0" step="any" placeholder="0.00" oninput="onEditDiscountInput()">
@@ -3691,7 +3708,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </div>
             </div>
 
-            <div class="col-2" id="editTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 12px; border:1px solid var(--border);">
+            <div class="col-2" id="editTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 999px; border:1px solid var(--border);">
                 <span style="color:var(--text-muted); font-size:0.85rem;">New Total:</span>
                 <span id="editTotal" style="font-weight:bold; font-size:1.1rem; color:var(--accent); margin-left:6px;">&#8377;0.00</span>
             </div>
@@ -4060,12 +4077,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const body = document.getElementById('pendingReceivableBody');
         body.innerHTML = '';
         let total = 0;
+        rows.forEach(r => { total += r.totalDue; });
 
         if (rows.length === 0) {
             body.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nothing pending &mdash; every sale is fully received.</td></tr>';
         } else {
-            rows.forEach(r => {
-                total += r.totalDue;
+            paginate('pendingReceivable', rows).forEach(r => {
                 const received = r.totalInvoiced - r.totalDue;
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open party ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
@@ -4078,6 +4095,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPager('pendingReceivable', rows.length, renderPendingReceivable);
 
         document.getElementById('prTotalReceivable').innerText = `\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         document.getElementById('prCountReceivable').innerText = rows.length;
@@ -4106,12 +4124,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const body = document.getElementById('pendingPayableBody');
         body.innerHTML = '';
         let total = 0;
+        rows.forEach(r => { total += r.totalDue; });
 
         if (rows.length === 0) {
             body.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nothing pending &mdash; every purchase is fully paid.</td></tr>';
         } else {
-            rows.forEach(r => {
-                total += r.totalDue;
+            paginate('pendingPayable', rows).forEach(r => {
                 const paid = r.totalInvoiced - r.totalDue;
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open vendor ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
@@ -4124,6 +4142,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPager('pendingPayable', rows.length, renderPendingPayable);
 
         document.getElementById('prTotalPayable').innerText = `\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         document.getElementById('prCountPayable').innerText = rows.length;
@@ -4135,6 +4154,66 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     function escapeHtml(str) {
         return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
+
+    // ================================================================
+    // PAGINATION (shared by every transaction list / statement / report)
+    //
+    // Any screen with a long table of rows uses this instead of dumping
+    // everything at once: 20 rows per page, with Previous/Next controls
+    // rendered into a <div id="<listKey>Pager"></div> placed right after
+    // the table. Each list keeps its own current page number keyed by
+    // the same listKey string used for multi-select/sort elsewhere, so
+    // switching between reports (or re-filtering one) doesn't disturb
+    // any other list's position.
+    //
+    // Usage inside a render*() function, right where it used to do
+    // `body.innerHTML = rows.map(...).join('')`:
+    //
+    //     const pageRows = paginate('salesStatement', rows);
+    //     body.innerHTML = pageRows.map(...).join('');
+    //     renderPager('salesStatement', rows.length, renderSalesStatement);
+    //
+    // Tapping Previous/Next just bumps the stored page number and calls
+    // the same render function again — since every render*() already
+    // recomputes `rows` from `transactions` from scratch on each call,
+    // this needs no extra state beyond the page number itself.
+    // ================================================================
+    const PAGE_SIZE = 20;
+    const paginationPage = {};
+
+    function paginate(listKey, rows) {
+        const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+        let page = paginationPage[listKey] || 1;
+        if (page > totalPages) page = totalPages;
+        if (page < 1) page = 1;
+        paginationPage[listKey] = page;
+        const start = (page - 1) * PAGE_SIZE;
+        return rows.slice(start, start + PAGE_SIZE);
+    }
+
+    function goToPage(listKey, page, rerenderFn) {
+        paginationPage[listKey] = page;
+        rerenderFn();
+    }
+
+    function renderPager(listKey, totalRows, rerenderFn) {
+        const el = document.getElementById(listKey + 'Pager');
+        if (!el) return;
+        if (totalRows <= PAGE_SIZE) { el.innerHTML = ''; return; }
+        const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+        const page = paginationPage[listKey] || 1;
+        window['__pagerRerender_' + listKey] = rerenderFn;
+        el.innerHTML = `
+            <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
+                <button type="button" class="btn-secondary" style="padding:6px 16px; opacity:${page <= 1 ? '0.5' : '1'};" ${page <= 1 ? 'disabled' : ''}
+                    onclick="goToPage('${listKey}', ${page - 1}, window.__pagerRerender_${listKey})">&larr; Previous</button>
+                <span style="font-size:0.78rem; color:var(--text-muted); font-family:'JetBrains Mono', monospace;">Page ${page} of ${totalPages} &middot; ${totalRows} rows</span>
+                <button type="button" class="btn-secondary" style="padding:6px 16px; opacity:${page >= totalPages ? '0.5' : '1'};" ${page >= totalPages ? 'disabled' : ''}
+                    onclick="goToPage('${listKey}', ${page + 1}, window.__pagerRerender_${listKey})">Next &rarr;</button>
+            </div>
+        `;
+    }
+
 
     // ================================================================
     // MULTI-SELECT + BATCH PRINT (shared by every list screen)
@@ -5609,15 +5688,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('dnTransportWrap').style.display = isDN ? 'block' : 'none';
         if (isDN) {
             document.getElementById('optionalNoteWrap').innerHTML =
-                '<div style="background: rgba(34,211,238,0.12); border:1px solid rgba(34,211,238,0.35); color:var(--cyan); padding:10px 14px; border-radius:12px; font-size:0.8rem;">'
+                '<div style="background: rgba(34,211,238,0.12); border:1px solid rgba(34,211,238,0.35); color:var(--cyan); padding:10px 14px; border-radius:999px; font-size:0.8rem;">'
                 + '&#9432; A Delivery Note is a <strong>dispatch record only</strong>. It does not change stock, party balances, or GST.</div>';
         } else if (isRawPurchase) {
             document.getElementById('optionalNoteWrap').innerHTML =
-                '<div style="background: rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.35); color:var(--success); padding:10px 14px; border-radius:12px; font-size:0.8rem;">'
+                '<div style="background: rgba(52,211,153,0.12); border:1px solid rgba(52,211,153,0.35); color:var(--success); padding:10px 14px; border-radius:999px; font-size:0.8rem;">'
                 + '&#9432; Increases the raw seed item\'s stock and updates the vendor\'s ledger, same as a Purchase. Tracked separately in the <strong>Raw Purchase Report</strong> rather than the normal Purchase/GST totals.</div>';
         } else if (isOptional) {
             document.getElementById('optionalNoteWrap').innerHTML =
-                '<div style="background: rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.35); color:#fbbf24; padding:10px 14px; border-radius:12px; font-size:0.8rem;">'
+                '<div style="background: rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.35); color:#fbbf24; padding:10px 14px; border-radius:999px; font-size:0.8rem;">'
                 + '&#9432; Optional vouchers are recorded separately. They do <strong>not</strong> affect party balances, main stock, sales/purchase totals, or GST.</div>';
         } else if (customType) {
             const stockTxt = customType.stockEffect === 'out' ? 'reduces stock'
@@ -5627,7 +5706,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 : customType.ledgerEffect === 'credit' ? 'credits the party (you owe them)' : 'does not affect party balance';
             const booksTxt = customType.inMainBooks === 'no' ? 'It is kept off the main books.' : 'It counts in the main books and reports.';
             document.getElementById('optionalNoteWrap').innerHTML =
-                '<div style="background: rgba(139,124,255,0.1); border:1px solid rgba(139,124,255,0.3); color:var(--violet); padding:10px 14px; border-radius:12px; font-size:0.8rem;">'
+                '<div style="background: rgba(139,124,255,0.1); border:1px solid rgba(139,124,255,0.3); color:var(--violet); padding:10px 14px; border-radius:999px; font-size:0.8rem;">'
                 + `&#9432; <strong>${escapeHtml(customType.name)}</strong>: ${stockTxt}, ${ledgerTxt}. ${booksTxt}</div>`;
         }
 
@@ -6256,15 +6335,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 (t.customVoucherTypeName || '').toLowerCase().includes(q)
             );
         }
-        // Without a search term, keep the list to a sane size (most recent
-        // first) rather than dumping the entire history at once.
-        if (!q) rows = rows.slice(0, 50);
 
         if (rows.length === 0) {
             body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No matching vouchers.</td></tr>';
+            renderPager('alterVoucherSearch', 0, renderAlterVoucherSearch);
             return;
         }
-        rows.forEach(t => {
+        paginate('alterVoucherSearch', rows).forEach(t => {
             const typeLabel = t.customVoucherTypeName || t.type;
             body.innerHTML += `
                 <tr>
@@ -6277,9 +6354,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </tr>
             `;
         });
-        if (!q && transactions.length > 50) {
-            body.innerHTML += `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-size:0.75rem;">Showing the 50 most recent. Type above to search the full history.</td></tr>`;
-        }
+        renderPager('alterVoucherSearch', rows.length, renderAlterVoucherSearch);
     }
 
     // Working copy of an edited voucher's line items — lets the Edit modal
@@ -6967,14 +7042,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const body = document.getElementById('cashReportBody');
         body.innerHTML = '';
         let receiptsTotal = 0, paymentsTotal = 0;
+        rows.forEach(t => {
+            if (t.type === 'Receipt') receiptsTotal += t.grandTotal;
+            else paymentsTotal += t.grandTotal;
+        });
 
         if (rows.length === 0) {
             body.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No payments or receipts in this period.</td></tr>';
         } else {
-            rows.forEach(t => {
-                if (t.type === 'Receipt') receiptsTotal += t.grandTotal;
-                else paymentsTotal += t.grandTotal;
-
+            paginate('cashReport', rows).forEach(t => {
                 const ref = t.refInvoiceNo
                     ? `<span style="color:var(--accent);">${escapeHtml(t.refInvoiceNo)}</span>`
                     : '<span style="color:var(--text-muted);">On Account</span>';
@@ -7005,6 +7081,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPager('cashReport', rows.length, renderCashReport);
 
         document.getElementById('crReceiptsTotal').innerText =
             `\u20B9${receiptsTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
@@ -7055,30 +7132,35 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             if (a === 'Uncategorized') return 1;
             if (b === 'Uncategorized') return -1;
             return a.localeCompare(b);
-        });
-
-        let anyRows = false;
-        names.forEach(name => {
+        }).filter(name => {
             const { sales, purch } = tally[name];
             // Skip zero rows that are Uncategorized (keep seeded categories visible)
-            if (name === 'Uncategorized' && sales === 0 && purch === 0) return;
-            anyRows = true;
-            totSales += sales; totPurch += purch;
-            const net = sales - purch;
-            const netColor = net > 0 ? 'var(--success)' : net < 0 ? 'var(--danger)' : 'var(--text-muted)';
-            body.innerHTML += `
-                <tr style="cursor:pointer;" onclick="openCategoryDetail('${escapeHtml(name)}')" title="Open category detail">
-                    <td><strong>${escapeHtml(name)}</strong></td>
-                    <td style="color:var(--success);">\u20B9${sales.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                    <td style="color:var(--pink);">\u20B9${purch.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                    <td style="color:${netColor}; font-weight:bold;">\u20B9${net.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                </tr>
-            `;
+            return !(name === 'Uncategorized' && sales === 0 && purch === 0);
         });
 
-        if (!anyRows) {
+        names.forEach(name => {
+            const { sales, purch } = tally[name];
+            totSales += sales; totPurch += purch;
+        });
+
+        if (names.length === 0) {
             body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No sales or purchases in this period.</td></tr>';
+        } else {
+            paginate('subLedgerReport', names).forEach(name => {
+                const { sales, purch } = tally[name];
+                const net = sales - purch;
+                const netColor = net > 0 ? 'var(--success)' : net < 0 ? 'var(--danger)' : 'var(--text-muted)';
+                body.innerHTML += `
+                    <tr style="cursor:pointer;" onclick="openCategoryDetail('${escapeHtml(name)}')" title="Open category detail">
+                        <td><strong>${escapeHtml(name)}</strong></td>
+                        <td style="color:var(--success);">\u20B9${sales.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="color:var(--pink);">\u20B9${purch.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="color:${netColor}; font-weight:bold;">\u20B9${net.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `;
+            });
         }
+        renderPager('subLedgerReport', names.length, renderSubLedgerReport);
 
         document.getElementById('slTotalSales').innerText = `\u20B9${totSales.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         document.getElementById('slTotalPurch').innerText = `\u20B9${totPurch.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
@@ -7157,13 +7239,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const body = document.getElementById('salesStatementBody');
         body.innerHTML = '';
         let total = 0;
+        rows.forEach(t => { total += t.grandTotal; });
 
         if (rows.length === 0) {
             body.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted);">No sales in this period.</td></tr>';
         } else {
             salesStatementRowOrder = rows.map(t => t.id);
-            rows.forEach(t => {
-                total += t.grandTotal;
+            paginate('salesStatement', rows).forEach(t => {
                 const cat = t.subLedger
                     ? `<span style="color:var(--violet); text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openCategoryDetail('${escapeHtml(t.subLedger)}')" title="Open category detail">${escapeHtml(t.subLedger)}</span>`
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
@@ -7188,6 +7270,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPager('salesStatement', rows.length, renderSalesStatement);
         document.getElementById('salesPeriodTotal').innerText =
             `\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
     }
@@ -7213,13 +7296,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const body = document.getElementById('purchaseReportBody');
         body.innerHTML = '';
         let total = 0;
+        rows.forEach(t => { total += t.grandTotal; });
 
         if (rows.length === 0) {
             body.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">No purchases in this period.</td></tr>';
         } else {
             purchaseReportRowOrder = rows.map(t => t.id);
-            rows.forEach(t => {
-                total += t.grandTotal;
+            paginate('purchaseReport', rows).forEach(t => {
                 const cat = t.subLedger
                     ? `<span style="color:var(--violet); text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openCategoryDetail('${escapeHtml(t.subLedger)}')" title="Open category detail">${escapeHtml(t.subLedger)}</span>`
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
@@ -7248,6 +7331,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPager('purchaseReport', rows.length, renderPurchaseReport);
         document.getElementById('purchPeriodTotal').innerText =
             `\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
     }
@@ -7276,6 +7360,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const body = document.getElementById('gstLiabilityBody');
         body.innerHTML = '';
         let outputTax = 0, inputTax = 0, outputTaxable = 0, inputTaxable = 0;
+        rows.forEach(t => {
+            if (t.type === 'Sales') { outputTax += t.totalTax; outputTaxable += t.taxable; }
+            else { inputTax += t.totalTax; inputTaxable += t.taxable; }
+        });
 
         if (rows.length === 0) {
             const emptyMsg = view === 'nil' ? 'No Nil GST transactions in this period.'
@@ -7283,10 +7371,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                             : 'No GST-contributing transactions in this period.';
             body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">${emptyMsg}</td></tr>`;
         } else {
-            rows.forEach(t => {
+            paginate('gstLiability', rows).forEach(t => {
                 const isSale = (t.type === 'Sales');
-                if (isSale) { outputTax += t.totalTax; outputTaxable += t.taxable; }
-                else { inputTax += t.totalTax; inputTaxable += t.taxable; }
                 const taxColor = isSale ? 'var(--success)' : 'var(--pink)';
                 const taxLabel = isSale ? 'Output' : 'Input';
                 const taxCellText = (t.taxType === 'EXEMPT')
@@ -7304,6 +7390,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPager('gstLiability', rows.length, renderGstLiability);
 
         const card1 = document.getElementById('gstCard1Label');
         const card2 = document.getElementById('gstCard2Label');
@@ -7360,7 +7447,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             body.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No delivery notes in this period.</td></tr>';
         } else {
             deliveryNotesRowOrder = rows.map(t => t.id);
-            rows.forEach(t => {
+            paginate('deliveryNotes', rows).forEach(t => {
                 const itemList = (t.items || []).map(i => `${escapeHtml(i.name)} (${i.qty} ${escapeHtml(i.uom)})`).join(', ');
                 const narrationHint = t.narration ? `<div style="font-size:0.72rem; color:var(--text-muted); font-style:italic; margin-top:3px;">${escapeHtml(t.narration)}</div>` : '';
                 const transportBits = [];
@@ -7389,6 +7476,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPager('deliveryNotes', rows.length, renderDeliveryNotes);
         document.getElementById('dnCount').innerText = rows.length;
     }
 
@@ -7845,15 +7933,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const body = document.getElementById('rawPurchaseReportBody');
         body.innerHTML = '';
         let qtyTotal = 0, valueTotal = 0;
+        rows.forEach(t => {
+            const line = t.items[0] || {};
+            qtyTotal += line.qty || 0;
+            valueTotal += t.grandTotal;
+        });
 
         if (rows.length === 0) {
             body.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No raw purchases in this period.</td></tr>';
         } else {
             rawPurchaseReportRowOrder = rows.map(t => t.id);
-            rows.forEach(t => {
+            paginate('rawPurchaseReport', rows).forEach(t => {
                 const line = t.items[0] || {};
-                qtyTotal += line.qty || 0;
-                valueTotal += t.grandTotal;
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open invoice">
                         <td class="no-print" data-select-col="rawPurchaseReport" style="display:none;" onclick="event.stopPropagation();">
@@ -7871,6 +7962,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPager('rawPurchaseReport', rows.length, renderRawPurchaseReport);
 
         document.getElementById('rprQtyTotal').innerText = qtyTotal.toLocaleString('en-IN');
         document.getElementById('rprValueTotal').innerText = `\u20B9${valueTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
@@ -8096,7 +8188,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             body.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No optional vouchers yet. Post one from the voucher screen using "Optional Sale" / "Optional Purchase".</td></tr>';
         } else {
             optionalVouchersRowOrder = optTxns.map(t => t.id);
-            optTxns.forEach(t => {
+            paginate('optionalVouchers', optTxns).forEach(t => {
                 const label = t.type === 'OptionalSales' ? 'Optional Sale' : 'Optional Purchase';
                 const color = t.type === 'OptionalSales' ? 'var(--success)' : 'var(--pink)';
                 // main summary row (click to open invoice)
@@ -8134,6 +8226,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPager('optionalVouchers', optTxns.length, renderOptional);
 
         document.getElementById('optSalesTotal').innerText = `\u20B9${salesTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         document.getElementById('optPurchTotal').innerText = `\u20B9${purchTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
@@ -8624,6 +8717,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             tbody.innerHTML += `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No transactions found for this ledger.</td></tr>`;
         } else {
             ledgerCurrentRowOrder = ledgerTxns.map(t => t.id);
+            const computedRows = [];
             ledgerTxns.forEach(txn => {
                 let debit = 0;
                 let credit = 0;
@@ -8752,6 +8846,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 // display its actual name instead, same as everywhere else.
                 const typeColLabel = txn.customVoucherTypeId ? escapeHtml(txn.customVoucherTypeName || 'Custom') : escapeHtml(txn.type);
 
+                computedRows.push({ txn, debit, credit, invDetails, particularsTitle, typeColLabel });
+            });
+
+            paginate('ledgerStatement', computedRows).forEach(({ txn, debit, credit, invDetails, particularsTitle, typeColLabel }) => {
                 tbody.innerHTML += `
                     <tr style="cursor:pointer;" title="Click to view this voucher">
                         <td class="no-print" data-select-col="ledgerStatement" style="vertical-align:top; display:none;" onclick="event.stopPropagation();">
@@ -8774,6 +8872,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPager('ledgerStatement', ledgerTxns.length, () => openLedgerStatement(kind, id));
 
         // Closing Balance Logic
         let netBalance = totalDebit - totalCredit;
@@ -8987,7 +9086,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         const totalAdded = r1.added + r2.added + r3.added + r4.added + r5.added + r6.added + r7.added + r8.added;
         document.getElementById('importSummary').innerHTML = `
-            <div style="background: rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.3); color:var(--success); padding:10px 14px; border-radius:12px;">
+            <div style="background: rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.3); color:var(--success); padding:10px 14px; border-radius:999px;">
                 Import complete &mdash; ${totalAdded} new record(s) merged in.<br>
                 <span style="font-size:0.78rem; color:var(--text-muted);">
                     Parties +${r1.added} &middot; Items +${r2.added} &middot; Vouchers +${r3.added} &middot; Accounts +${r4.added} &middot;
@@ -9548,7 +9647,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             body.innerHTML += `
                 <tr style="cursor:pointer;">
                     <td onclick="openLedgerStatement('party', ${p.id})"><strong>${escapeHtml(p.name)}</strong></td>
-                    <td onclick="openLedgerStatement('party', ${p.id})"><span style="font-size:0.75rem; background:#1e293b; padding:2px 6px; border-radius:4px;">Party (${escapeHtml(p.type)})</span></td>
+                    <td onclick="openLedgerStatement('party', ${p.id})"><span style="font-size:0.75rem; background:#1e293b; padding:2px 6px; border-radius:999px;">Party (${escapeHtml(p.type)})</span></td>
                     <td onclick="openLedgerStatement('party', ${p.id})" style="color:${balColor}; font-weight:bold;">${balTxt}</td>
                     <td><button onclick="event.stopPropagation(); deletePartyFromGroup(${p.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button></td>
                 </tr>
@@ -9560,7 +9659,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             body.innerHTML += `
                 <tr style="cursor:pointer;">
                     <td onclick="openLedgerStatement('account', ${a.id})"><strong>${escapeHtml(a.name)}</strong></td>
-                    <td onclick="openLedgerStatement('account', ${a.id})"><span style="font-size:0.75rem; background:#1e293b; padding:2px 6px; border-radius:4px;">Account (${escapeHtml(a.type)})</span></td>
+                    <td onclick="openLedgerStatement('account', ${a.id})"><span style="font-size:0.75rem; background:#1e293b; padding:2px 6px; border-radius:999px;">Account (${escapeHtml(a.type)})</span></td>
                     <td onclick="openLedgerStatement('account', ${a.id})" style="color:${bal < 0 ? 'var(--danger)' : 'var(--success)'}; font-weight:bold;">\u20B9${bal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td><button onclick="event.stopPropagation(); deleteAccount(${a.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button></td>
                 </tr>
@@ -9656,7 +9755,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             const isOversold = i.qty < 0;
             const qtyColor = isOversold ? 'var(--danger)' : (i.qty < 5 ? 'var(--danger)' : 'var(--success)');
             const qtyDisplay = isOversold
-                ? `${i.qty} ${escapeHtml(i.uom)} <span style="font-size:0.68rem; font-weight:normal; background:var(--danger); color:#fff; padding:1px 6px; border-radius:4px; margin-left:4px;">Oversold</span>`
+                ? `${i.qty} ${escapeHtml(i.uom)} <span style="font-size:0.68rem; font-weight:normal; background:var(--danger); color:#fff; padding:1px 6px; border-radius:999px; margin-left:4px;">Oversold</span>`
                 : `${i.qty} ${escapeHtml(i.uom)}`;
             stockBody.innerHTML += `  
                 <tr>  
