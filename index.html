@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sarvadharani seeds - Management System</title>
-    <meta name="theme-color" content="#2E5C3B">
+    <meta name="theme-color" content="#1E3A5F">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,42 +25,42 @@
 :root {
     /* Surfaces — translucent "glass" panels, blurred over a colorful
        backdrop instead of flat opaque cards */
-    --bg-main: #EAF1EC;
+    --bg-main: #EAEFF6;
     --bg-card: rgba(255, 255, 255, 0.52);
     --bg-input: rgba(255, 255, 255, 0.65);
     --bg-tint: rgba(255, 255, 255, 0.35);
-    --bg-header: rgba(20, 33, 24, 0.55);
+    --bg-header: rgba(15, 26, 46, 0.55);
     --statement-bg: rgba(255, 255, 255, 0.55);
     --statement-row-alt: rgba(255, 255, 255, 0.28);
     --glass-blur: blur(22px) saturate(180%);
     --glass-highlight: inset 0 1px 0 0 rgba(255,255,255,0.65), inset 0 0 0 1px rgba(255,255,255,0.18);
 
-    /* Primary accent — deep forest green, hover slightly lifted */
-    --accent: #2E5C3B;
-    --accent-2: #4A8B7F;      /* sage teal (secondary) */
-    --accent-hover: #23472C;
-    --accent-soft: rgba(229, 239, 227, 0.55);
+    /* Primary accent — deep navy blue, hover slightly lifted */
+    --accent: #1E3A5F;
+    --accent-2: #3D6FA5;      /* steel blue (secondary) */
+    --accent-hover: #16293F;
+    --accent-soft: rgba(224, 233, 245, 0.55);
 
     /* Text */
-    --text-main: #14201A;
-    --text-muted: #52654F;
-    --text-invert: #F6F7F3;
+    --text-main: #14202E;
+    --text-muted: #4F6070;
+    --text-invert: #F3F6FA;
 
     /* Semantic (used inline in markup) */
-    --success: #158F53;
+    --success: #1B5FA8;
     --danger: #C0392B;
     --warning: #C87F2B;
     --pink: #B4623A;    /* re-mapped to warm terracotta so inline uses look earthy */
-    --violet: #6B7F4A;  /* re-mapped to muted olive */
-    --cyan: #4A8B7F;
-    --lime: #7A8F35;
+    --violet: #4A5F8F;  /* re-mapped to slate blue-violet */
+    --cyan: #3D8FA5;
+    --lime: #35707A;
     --orange: #C6642E;
 
     /* Structure */
     --border: rgba(255, 255, 255, 0.45);
     --border-strong: rgba(255, 255, 255, 0.65);
-    --card-shadow: 0 8px 32px -8px rgba(20, 32, 26, 0.18), 0 1px 2px 0 rgba(20,32,26,0.05), inset 0 1px 0 0 rgba(255,255,255,0.6);
-    --grad-accent: linear-gradient(135deg, #3E7350 0%, #59A08F 100%);
+    --card-shadow: 0 8px 32px -8px rgba(15, 26, 46, 0.18), 0 1px 2px 0 rgba(15,26,46,0.05), inset 0 1px 0 0 rgba(255,255,255,0.6);
+    --grad-accent: linear-gradient(135deg, #23466F 0%, #4A82B8 100%);
     --grad-warm: linear-gradient(135deg, #C6642E 0%, #C87F2B 100%);
     --radius-sm: 12px;
     --radius: 18px;
@@ -80,11 +80,11 @@ body {
     padding: 0;
     min-height: 100vh;
     background:
-        radial-gradient(circle at 12% 8%, rgba(89, 160, 143, 0.45), transparent 42%),
-        radial-gradient(circle at 88% 15%, rgba(122, 143, 53, 0.35), transparent 45%),
-        radial-gradient(circle at 20% 85%, rgba(46, 92, 59, 0.4), transparent 48%),
+        radial-gradient(circle at 12% 8%, rgba(61, 111, 165, 0.45), transparent 42%),
+        radial-gradient(circle at 88% 15%, rgba(74, 95, 143, 0.35), transparent 45%),
+        radial-gradient(circle at 20% 85%, rgba(30, 58, 95, 0.4), transparent 48%),
         radial-gradient(circle at 90% 90%, rgba(200, 127, 43, 0.28), transparent 45%),
-        linear-gradient(160deg, #DCEAE1 0%, #EAF1EC 45%, #E4EEE6 100%);
+        linear-gradient(160deg, #DCE5EE 0%, #EAEFF6 45%, #E4E9F0 100%);
     background-attachment: fixed;
     font-feature-settings: "ss01", "cv01";
     line-height: 1.45;
@@ -577,7 +577,7 @@ table button {
 }
 .invoice-box h3 { color: #0f1a12 !important; }
 .invoice-box table th, .invoice-box table td { color: #0f1a12; }
-.invoice-box table thead tr { background: #EEF2EA !important; }
+.invoice-box table thead tr { background: #E9EFF7 !important; }
 
 .edit-box {
     background: var(--bg-card);
@@ -919,14 +919,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
     body.printing-region .print-target * { color: #0f172a !important; }
     body.printing-region .print-target th {
-        background: #eef2ea !important;
+        background: #e9eff7 !important;
         color: #0f172a !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
     body.printing-region .print-target td,
     body.printing-region .print-target th {
-        border-bottom: 1px solid #cbd5c0 !important;
+        border-bottom: 1px solid #c3d0e0 !important;
     }
     body.printing-region .no-print { display: none !important; }
 
@@ -967,14 +967,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     body.printing-invoice #invoiceModal th,
     body.printing-invoice #invoiceModal td {
         color: #0f172a !important;
-        border: 1px solid #cbd5c0 !important;
+        border: 1px solid #c3d0e0 !important;
         background: #fff !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
     body.printing-invoice #invoiceModal thead tr,
     body.printing-invoice #invoiceModal thead th {
-        background: #eef2ea !important;
+        background: #e9eff7 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
@@ -1002,14 +1002,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     body.printing-ledger #ledgerPrintArea h3,
     body.printing-ledger #ledgerPrintArea div { color: #0f172a !important; }
     body.printing-ledger th {
-        background: #eef2ea !important;
+        background: #e9eff7 !important;
         color: #0f172a !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
     body.printing-ledger td,
     body.printing-ledger th {
-        border-bottom: 1px solid #cbd5c0 !important;
+        border-bottom: 1px solid #c3d0e0 !important;
         color: #0f172a !important;
     }
     body.printing-ledger .text-muted-print { color: #475569 !important; }
@@ -1029,9 +1029,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     justify-content: center;
     padding: 28px 18px;
     background:
-        radial-gradient(circle at 30% 20%, rgba(168,216,181,0.20), transparent 55%),
-        radial-gradient(circle at 80% 85%, rgba(74,139,127,0.28), transparent 55%),
-        linear-gradient(160deg, #14251A 0%, #1E3A26 45%, #2E5C3B 100%);
+        radial-gradient(circle at 30% 20%, rgba(168,196,216,0.20), transparent 55%),
+        radial-gradient(circle at 80% 85%, rgba(61,111,165,0.28), transparent 55%),
+        linear-gradient(160deg, #0F1A2E 0%, #16294A 45%, #1E3A5F 100%);
     overflow-y: auto;
 }
 .login-card {
@@ -1167,8 +1167,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 /* Formal Print overlay content — matches the traditional Tax Invoice /
    Voucher layout, scoped so it never leaks into the rest of the app. */
 #formalPrintContent * { box-sizing: border-box; }
-#formalPrintContent table { width: 100%; border-collapse: collapse; }
-#formalPrintContent td, #formalPrintContent th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; }
+#formalPrintContent table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+#formalPrintContent td, #formalPrintContent th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; }
 #formalPrintContent .no-border td, #formalPrintContent .no-border th { border: none; }
 #formalPrintContent .outer { border: 1px solid #000; }
 #formalPrintContent .title { text-align:center; font-size:18px; font-weight:bold; margin-bottom:8px; letter-spacing:1px; }
@@ -1177,6 +1177,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 #formalPrintContent .bold { font-weight:bold; }
 #formalPrintContent .small { font-size:10.5px; }
 #formalPrintContent .muted { color:#333; }
+
+/* On phone-width screens, shrink padding/font and let the item table
+   scroll horizontally within its own box rather than force the whole
+   page sideways or clip the rightmost columns off-screen. */
+@media (max-width: 480px) {
+    #formalPrintContent { padding: 8px !important; font-size: 10px !important; }
+    #formalPrintContent .title { font-size: 14px !important; }
+    #formalPrintContent td, #formalPrintContent th { padding: 3px 4px !important; font-size: 10px !important; }
+    #formalPrintContent .small { font-size: 8.5px !important; }
+    #formalPrintContent .itemTableScroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #formalPrintContent .itemTableScroll table { table-layout: auto; min-width: 480px; }
+}
 @media print {
     body.printing-formal > *:not(#formalPrintOverlay) { display:none !important; }
     body.printing-formal #formalPrintOverlay { position: static !important; }
@@ -2518,6 +2530,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="salesStatementBody"></tbody>
             </table>
+            <div class="no-print" data-page-controls="salesStatement" data-page-anchor="salesStatement"></div>
         </div>
     </div>
 
@@ -2633,6 +2646,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="purchaseReportBody"></tbody>
             </table>
+            <div class="no-print" data-page-controls="purchaseReport" data-page-anchor="purchaseReport"></div>
         </div>
     </div>
 
@@ -3231,7 +3245,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     <!-- Stock -->
     <div class="panel" id="panelStock">
         <div class="panel-head"><h3>Stock Inventory Summary</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div class="no-print" style="display:flex; gap:6px; margin-bottom:14px;">
+        <div class="no-print" style="display:flex; gap:6px; margin-bottom:14px; align-items:center; flex-wrap:wrap;">
+            <label for="stockGroupFilter" style="font-size:0.78rem; color:var(--text-muted); margin:0;">Category</label>
+            <select id="stockGroupFilter" onchange="pageStateFor('stockSummary').page = 1; renderStockSummary();" style="width:auto; padding:8px 10px; font-size:0.85rem;">
+                <option value="">All Categories</option>
+            </select>
             <button onclick="printRegion('panelStock','Stock Summary')" class="btn-success" style="width:auto; padding:8px 14px; font-size:0.8rem;">Save as PDF</button>
         </div>
         <div class="table-responsive">
@@ -3249,6 +3267,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="stockSummaryBody"></tbody>
             </table>
+            <div class="no-print" data-page-controls="stockSummary" data-page-anchor="stockSummary"></div>
         </div>
     </div>
 
@@ -3329,6 +3348,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="paymentsBody"></tbody>
             </table>
+            <div class="no-print" data-page-controls="payments" data-page-anchor="payments"></div>
         </div>
     </div>
 
@@ -3381,6 +3401,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="receiptsBody"></tbody>
             </table>
+            <div class="no-print" data-page-controls="receipts" data-page-anchor="receipts"></div>
         </div>
     </div>
 
@@ -3457,6 +3478,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <tbody id="partyLedgerBody"></tbody>
                     <tfoot id="partyLedgerFoot" style="font-weight:bold; background:#0f172a;"></tfoot>
                 </table>
+                <div class="no-print" data-page-controls="ledgerStatement" data-page-anchor="ledgerStatement"></div>
             </div>
         </div>
     </div>
@@ -3557,8 +3579,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
      This stays inside the app itself, with a Close button that's always
      visible and pinned to the top, so there's never a way to get stuck. -->
 <div id="formalPrintOverlay" style="display:none; position:fixed; inset:0; z-index:400; background:#fff; overflow-y:auto;">
-    <div class="no-print" style="position:sticky; top:0; z-index:5; background:#1a2e22; padding:12px 16px; display:flex; gap:10px; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
-        <button onclick="closeFormalPrintOverlay()" style="width:auto; padding:10px 20px; background:#fff; color:#1a2e22; font-weight:700; border-radius:8px; font-size:0.95rem;">&#8592; Close</button>
+    <div class="no-print" style="position:sticky; top:0; z-index:5; background:var(--accent-hover); padding:12px 16px; display:flex; gap:10px; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+        <button onclick="closeFormalPrintOverlay()" style="width:auto; padding:10px 20px; background:#fff; color:var(--accent-hover); font-weight:700; border-radius:8px; font-size:0.95rem;">&#8592; Close</button>
         <button onclick="window.print()" class="btn-success" style="width:auto; padding:10px 20px; font-size:0.95rem;">Print / Save as PDF</button>
     </div>
     <div id="formalPrintContent" style="padding:20px; font-family: Arial, Helvetica, sans-serif; font-size:12px; color:#000;"></div>
@@ -3973,6 +3995,67 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const g = stockGroups.find(s => s.id == id);
         return g ? g.name : 'Uncategorized';
     }
+
+    // Stock Summary — filterable by category (stock group) via the
+    // dropdown on that panel, and paginated like every other list. The
+    // dropdown itself is rebuilt from the CURRENT stockGroups every call,
+    // so a newly-added category (e.g. "Pesticides") shows up immediately
+    // without needing a page reload, and the previously-selected filter
+    // is preserved across re-renders rather than silently resetting.
+    function renderStockSummary() {
+        const filterSelect = document.getElementById('stockGroupFilter');
+        if (!filterSelect) return; // panel not in the DOM yet on first load
+        const previousSelection = filterSelect.value;
+        const groupsInUse = [...new Set(stockItems.map(i => i.groupId).filter(Boolean).map(String))];
+        filterSelect.innerHTML = '<option value="">All Categories</option>'
+            + stockGroups
+                .filter(g => groupsInUse.includes(String(g.id)))
+                .map(g => `<option value="${g.id}">${escapeHtml(g.name)}</option>`).join('')
+            + (stockItems.some(i => !i.groupId) ? '<option value="__uncategorized__">Uncategorized</option>' : '');
+        // Restore whatever was selected before this rebuild, as long as it's still a valid option.
+        if ([...filterSelect.options].some(o => o.value === previousSelection)) {
+            filterSelect.value = previousSelection;
+        }
+
+        const selectedGroup = filterSelect.value;
+        const filteredItems = !selectedGroup
+            ? stockItems
+            : selectedGroup === '__uncategorized__'
+                ? stockItems.filter(i => !i.groupId)
+                : stockItems.filter(i => i.groupId == selectedGroup);
+
+        const stockBody = document.getElementById('stockSummaryBody');
+        stockBody.innerHTML = '';
+
+        if (filteredItems.length === 0) {
+            stockBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No items in this category.</td></tr>';
+        } else {
+            const pageRows = paginateRows('stockSummary', filteredItems);
+            pageRows.forEach(i => {
+                const totalVal = i.qty * i.rate;
+                const isOversold = i.qty < 0;
+                const qtyColor = isOversold ? 'var(--danger)' : (i.qty < 5 ? 'var(--danger)' : 'var(--success)');
+                const qtyDisplay = isOversold
+                    ? `${i.qty} ${escapeHtml(i.uom)} <span style="font-size:0.68rem; font-weight:normal; background:var(--danger); color:#fff; padding:1px 6px; border-radius:4px; margin-left:4px;">Oversold</span>`
+                    : `${i.qty} ${escapeHtml(i.uom)}`;
+                stockBody.innerHTML += `
+                    <tr>
+                        <td onclick="viewStockItem(${i.id})" style="cursor:pointer;" title="View item summary"><strong>${escapeHtml(i.name)}</strong></td>
+                        <td><span class="group-badge${i.groupId ? '' : ' muted'}">${escapeHtml(getStockGroupName(i.groupId))}</span></td>
+                        <td>${escapeHtml(i.hsn)}</td>
+                        <td onclick="viewStockItem(${i.id})" style="cursor:pointer; color:${qtyColor}"><strong>${qtyDisplay}</strong></td>
+                        <td>\u20B9${i.rate.toFixed(2)}</td>
+                        <td>\u20B9${totalVal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="display:flex; gap:6px;">
+                            <button onclick="editItem(${i.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button>
+                            <button onclick="deleteItem(${i.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+        renderPaginationControls('stockSummary', filteredItems.length, renderStockSummary);
+    }
     function getLedgerGroupName(id) {
         const g = ledgerGroups.find(l => l.id == id);
         return g ? g.name : 'Uncategorized';
@@ -4130,6 +4213,89 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // a "select all" checkbox, a counter span, and a Print Selected button
     // — all driven by the functions below.
     // ================================================================
+    // ================================================================
+    // PAGINATION (shared by every list screen)
+    //
+    // Each list keeps its current page number, keyed by the same listKey
+    // string convention as the selection engine. A screen just needs to
+    // call paginateRows(listKey, allRows) right before rendering to slice
+    // out the current page, then renderPaginationControls(listKey,
+    // totalRowCount, rerenderFn) to draw the Prev/Next + page indicator.
+    // Default page size is 25 rows; changing the page size resets to page 1.
+    // ================================================================
+    const listPageState = {}; // { [listKey]: { page: 1, pageSize: 25 } }
+    const DEFAULT_PAGE_SIZE = 25;
+
+    function pageStateFor(listKey) {
+        if (!listPageState[listKey]) listPageState[listKey] = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
+        return listPageState[listKey];
+    }
+
+    // Slices the full row array down to just the current page. Also
+    // clamps the page number back into range if the underlying data
+    // shrank (e.g. a filter narrowed the results) so you're never stuck
+    // looking at an empty page 4 of 2.
+    function paginateRows(listKey, allRows) {
+        const state = pageStateFor(listKey);
+        const totalPages = Math.max(1, Math.ceil(allRows.length / state.pageSize));
+        if (state.page > totalPages) state.page = totalPages;
+        if (state.page < 1) state.page = 1;
+        const start = (state.page - 1) * state.pageSize;
+        return allRows.slice(start, start + state.pageSize);
+    }
+
+    function goToPage(listKey, page, rerenderFn) {
+        const state = pageStateFor(listKey);
+        state.page = page;
+        rerenderFn();
+        // Scroll the list back into view — jumping pages while scrolled
+        // halfway down a long list is disorienting otherwise.
+        const anchor = document.querySelector(`[data-page-anchor="${listKey}"]`);
+        if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function changePageSize(listKey, newSize, rerenderFn) {
+        const state = pageStateFor(listKey);
+        state.pageSize = Number(newSize);
+        state.page = 1; // always reset to page 1 — a stale page number would make no sense at a new page size
+        rerenderFn();
+    }
+
+    // Renders "Showing X–Y of Z" plus Prev/Next/page-jump controls into
+    // any container with [data-page-controls="listKey"]. Call this once
+    // per render, after the rows themselves are drawn.
+    function renderPaginationControls(listKey, totalRowCount, rerenderFn) {
+        const container = document.querySelector(`[data-page-controls="${listKey}"]`);
+        if (!container) return;
+        const state = pageStateFor(listKey);
+        const totalPages = Math.max(1, Math.ceil(totalRowCount / state.pageSize));
+        if (state.page > totalPages) state.page = totalPages;
+
+        if (totalRowCount === 0) { container.innerHTML = ''; return; }
+
+        const start = (state.page - 1) * state.pageSize + 1;
+        const end = Math.min(totalRowCount, state.page * state.pageSize);
+
+        window[`__rerender_${listKey}`] = rerenderFn; // stash so inline onclick can reach it without a closure per row
+
+        container.innerHTML = `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:10px 4px; font-size:0.8rem; color:var(--text-muted);">
+                <span>Showing ${start}\u2013${end} of ${totalRowCount}</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <label style="font-size:0.75rem; margin:0;">Rows</label>
+                    <select style="width:auto; padding:4px 6px; font-size:0.78rem;" onchange="changePageSize('${listKey}', this.value, window['__rerender_${listKey}'])">
+                        <option value="25" ${state.pageSize == 25 ? 'selected' : ''}>25</option>
+                        <option value="50" ${state.pageSize == 50 ? 'selected' : ''}>50</option>
+                        <option value="100" ${state.pageSize == 100 ? 'selected' : ''}>100</option>
+                    </select>
+                    <button type="button" ${state.page <= 1 ? 'disabled' : ''} onclick="goToPage('${listKey}', ${state.page - 1}, window['__rerender_${listKey}'])" style="width:auto; padding:6px 12px; font-size:0.78rem; ${state.page <= 1 ? 'opacity:0.4;' : ''}">&#8592; Prev</button>
+                    <span style="font-size:0.78rem;">Page ${state.page} of ${totalPages}</span>
+                    <button type="button" ${state.page >= totalPages ? 'disabled' : ''} onclick="goToPage('${listKey}', ${state.page + 1}, window['__rerender_${listKey}'])" style="width:auto; padding:6px 12px; font-size:0.78rem; ${state.page >= totalPages ? 'opacity:0.4;' : ''}">Next &#8594;</button>
+                </div>
+            </div>
+        `;
+    }
+
     const listSelections = {};
     const listSelectModeActive = {};
 
@@ -6872,8 +7038,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             body.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No ${kind.toLowerCase()}s in this period.</td></tr>`;
         } else {
             if (isPay) paymentsRowOrder = rows.map(t => t.id); else receiptsRowOrder = rows.map(t => t.id);
-            rows.forEach(t => {
-                total += t.grandTotal;
+            rows.forEach(t => { total += t.grandTotal; }); // full-set total, independent of which page is showing
+            const pageRows = paginateRows(listKey, rows);
+            pageRows.forEach(t => {
                 const ref = t.refInvoiceNo
                     ? `<span style="color:var(--accent);">${escapeHtml(t.refInvoiceNo)}</span>`
                     : '<span style="color:var(--text-muted);">On Account</span>';
@@ -6896,6 +7063,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             });
         }
 
+        renderPaginationControls(listKey, rows.length, () => renderCashList(kind));
         document.getElementById(isPay ? 'payPeriodTotal' : 'rcptPeriodTotal').innerText =
             `\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
     }
@@ -7147,8 +7315,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             body.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted);">No sales in this period.</td></tr>';
         } else {
             salesStatementRowOrder = rows.map(t => t.id);
-            rows.forEach(t => {
-                total += t.grandTotal;
+            rows.forEach(t => { total += t.grandTotal; }); // full-set total, independent of which page is showing
+            const pageRows = paginateRows('salesStatement', rows);
+            pageRows.forEach(t => {
                 const cat = t.subLedger
                     ? `<span style="color:var(--violet); text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openCategoryDetail('${escapeHtml(t.subLedger)}')" title="Open category detail">${escapeHtml(t.subLedger)}</span>`
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
@@ -7173,6 +7342,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPaginationControls('salesStatement', rows.length, renderSalesStatement);
         document.getElementById('salesPeriodTotal').innerText =
             `\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
     }
@@ -7203,8 +7373,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             body.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">No purchases in this period.</td></tr>';
         } else {
             purchaseReportRowOrder = rows.map(t => t.id);
-            rows.forEach(t => {
-                total += t.grandTotal;
+            rows.forEach(t => { total += t.grandTotal; }); // full-set total, independent of which page is showing
+            const pageRows = paginateRows('purchaseReport', rows);
+            pageRows.forEach(t => {
                 const cat = t.subLedger
                     ? `<span style="color:var(--violet); text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openCategoryDetail('${escapeHtml(t.subLedger)}')" title="Open category detail">${escapeHtml(t.subLedger)}</span>`
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
@@ -7233,6 +7404,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 `;
             });
         }
+        renderPaginationControls('purchaseReport', rows.length, renderPurchaseReport);
         document.getElementById('purchPeriodTotal').innerText =
             `\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
     }
@@ -8383,6 +8555,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('ledPeriod').value = 'all';
         document.getElementById('ledCustomWrap').style.display = 'none';
         document.getElementById('ledRowFilter').value = '';
+        pageStateFor('ledgerStatement').page = 1;
         openLedgerStatement(kind, id);
     }
 
@@ -8608,8 +8781,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (ledgerTxns.length === 0) {
             tbody.innerHTML += `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No transactions found for this ledger.</td></tr>`;
         } else {
-            ledgerCurrentRowOrder = ledgerTxns.map(t => t.id);
-            ledgerTxns.forEach(txn => {
+            ledgerCurrentRowOrder = ledgerTxns.map(t => t.id); // full set, for Print Selected — independent of which page is showing
+            const pageRows = paginateRows('ledgerStatement', ledgerTxns);
+            pageRows.forEach(txn => {
                 let debit = 0;
                 let credit = 0;
 
@@ -8792,6 +8966,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </td>
             </tr>
         `;
+
+        renderPaginationControls('ledgerStatement', ledgerTxns.length, () => openLedgerStatement(kind, id));
 
         document.getElementById('ledgerPrintArea').style.display = 'block';
         if (!document.getElementById('panelLedger').classList.contains('active')) {
@@ -9229,11 +9405,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                             ${tin ? `<div class="small">TIN No ${escapeHtml(tin)}</div>` : ''}
                             ${mobile ? `<div class="small">Contact: ${escapeHtml(mobile)}</div>` : ''}
                         </td>
-                        <td class="no-border" style="width:40%;">
-                            <table class="no-border">
-                                <tr><td class="no-border small">Invoice No.<br><strong>${escapeHtml(txn.invNo)}</strong></td>
-                                    <td class="no-border small">Dated<br><strong>${txn.date}</strong></td></tr>
-                            </table>
+                        <td class="no-border" style="width:40%; overflow:hidden;">
+                            <div style="display:flex; gap:4px;">
+                                <div class="small" style="flex:1; min-width:0; overflow-wrap:break-word;">Invoice No.<br><strong>${escapeHtml(txn.invNo)}</strong></div>
+                                <div class="small" style="flex:1; min-width:0;">Dated<br><strong>${txn.date}</strong></div>
+                            </div>
                         </td>
                     </tr>
                 </table>
@@ -9249,6 +9425,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     </tr>
                 </table>
 
+                <div class="itemTableScroll">
                 <table style="border-top:1px solid #000;">
                     <tr>
                         <th class="center small">HSN/SAC</th>
@@ -9264,6 +9441,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td class="right bold">\u20B9${txn.grandTotal.toFixed(2)}</td>
                     </tr>
                 </table>
+                </div>
 
                 <table class="no-border">
                     <tr>
@@ -9618,30 +9796,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             populateRefInvoices();
         }
   
-        const stockBody = document.getElementById('stockSummaryBody');  
-        stockBody.innerHTML = '';  
-        stockItems.forEach(i => {  
-            const totalVal = i.qty * i.rate;  
-            const isOversold = i.qty < 0;
-            const qtyColor = isOversold ? 'var(--danger)' : (i.qty < 5 ? 'var(--danger)' : 'var(--success)');
-            const qtyDisplay = isOversold
-                ? `${i.qty} ${escapeHtml(i.uom)} <span style="font-size:0.68rem; font-weight:normal; background:var(--danger); color:#fff; padding:1px 6px; border-radius:4px; margin-left:4px;">Oversold</span>`
-                : `${i.qty} ${escapeHtml(i.uom)}`;
-            stockBody.innerHTML += `  
-                <tr>  
-                    <td onclick="viewStockItem(${i.id})" style="cursor:pointer;" title="View item summary"><strong>${escapeHtml(i.name)}</strong></td>  
-                    <td><span class="group-badge${i.groupId ? '' : ' muted'}">${escapeHtml(getStockGroupName(i.groupId))}</span></td>
-                    <td>${escapeHtml(i.hsn)}</td>  
-                    <td onclick="viewStockItem(${i.id})" style="cursor:pointer; color:${qtyColor}"><strong>${qtyDisplay}</strong></td>  
-                    <td>\u20B9${i.rate.toFixed(2)}</td>  
-                    <td>\u20B9${totalVal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>  
-                    <td style="display:flex; gap:6px;">
-                        <button onclick="editItem(${i.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button>
-                        <button onclick="deleteItem(${i.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
-                    </td>
-                </tr>  
-            `;  
-        });  
+        renderStockSummary();
 
         const lBody = document.getElementById('ledgerBody');  
         lBody.innerHTML = '';  
