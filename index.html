@@ -63,7 +63,16 @@
     --grad-warm: linear-gradient(135deg, #dc2626 0%, #dc2626 100%);
     --radius-sm: 999px;
     --radius: 999px;
-    --radius-lg: 999px;
+    /* Used only by large multi-row containers (.panel, #tileMenu,
+       .edit-box) — NOT by buttons/badges/inputs, which use --radius /
+       --radius-sm above and are meant to look like pills. A full 999px
+       radius on a box that's much taller than it is wide curves inward
+       on all four corners at once, which is what was cutting into /
+       overlapping the content inside these panels (the same bug fixed
+       on the login card earlier, happening everywhere else too). A
+       normal card radius here keeps the rounded-corner look without
+       distorting into a capsule/ellipse. */
+    --radius-lg: 28px;
 }
 
 * { box-sizing: border-box; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -1021,8 +1030,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid rgba(255,255,255,0.35);
-    /* Keep the dramatic pill/arch look up top (matches the rest of the
-       app's fully-rounded --radius-lg pieces), but round the bottom
+    /* Keep the dramatic pill/arch look up top, but round the bottom
        corners normally — a full 999px pill radius on a box this tall
        curves inward on ALL four corners, which was clipping the Login
        button right off the bottom edge. */
