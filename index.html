@@ -4564,7 +4564,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             const dateA = new Date(a.date).getTime();
             const dateB = new Date(b.date).getTime();
             if (dateA !== dateB) return mult * (dateA - dateB);
-            return a.id - b.id; // same-day tiebreak: always entry order
+            // Same-day tiebreak: follows the same Newest/Oldest First
+            // direction as the date comparison above, so "Newest First"
+            // genuinely means the most-recently-created entry on that day
+            // shows at the top too — not just newer dates overall.
+            return mult * (a.id - b.id);
         });
     }
 
