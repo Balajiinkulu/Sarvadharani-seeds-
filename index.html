@@ -479,7 +479,9 @@ tbody td {
     color: var(--text-main);
 }
 tbody tr:nth-child(even) td { background: var(--statement-row-alt); }
+.invoice-box tbody tr:nth-child(even) td { background: #F7F3E3; }
 tbody tr:hover td { background: var(--accent-soft); }
+.invoice-box tbody tr:hover td { background: #FBF6E3; }
 tbody tr:last-child td { border-bottom: none; }
 tfoot td {
     font-weight: 700;
@@ -2405,6 +2407,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <thead>
                     <tr>
                         <th>Party</th>
+                        <th>Invoice No(s)</th>
                         <th>Invoices Pending</th>
                         <th>Total Invoiced</th>
                         <th>Received So Far</th>
@@ -2432,6 +2435,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <thead>
                     <tr>
                         <th>Vendor</th>
+                        <th>Invoice No(s)</th>
                         <th>Vouchers Pending</th>
                         <th>Total Invoiced</th>
                         <th>Paid So Far</th>
@@ -4081,11 +4085,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 const due = invoiceOutstanding(t);
                 if (due <= 0.001) return;
                 if (!byParty[t.partyId]) {
-                    byParty[t.partyId] = { partyId: t.partyId, partyName: t.partyName, invoiceCount: 0, totalInvoiced: 0, totalDue: 0 };
+                    byParty[t.partyId] = { partyId: t.partyId, partyName: t.partyName, invoiceCount: 0, totalInvoiced: 0, totalDue: 0, invNos: [] };
                 }
                 byParty[t.partyId].invoiceCount += 1;
                 byParty[t.partyId].totalInvoiced += t.grandTotal;
                 byParty[t.partyId].totalDue += due;
+                byParty[t.partyId].invNos.push(t.invNo);
             });
 
         const rows = Object.values(byParty).sort((a, b) => b.totalDue - a.totalDue);
@@ -4095,7 +4100,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         let total = 0;
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nothing pending &mdash; every sale is fully received.</td></tr>';
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Nothing pending &mdash; every sale is fully received.</td></tr>';
         } else {
             rows.forEach(r => {
                 total += r.totalDue;
@@ -4103,6 +4108,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open party ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
                         <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
+                        <td style="font-size:0.78rem;">${r.invNos.map(n => escapeHtml(n)).join('<br>')}</td>
                         <td>${r.invoiceCount}</td>
                         <td>\u20B9${r.totalInvoiced.toFixed(2)}</td>
                         <td style="color:var(--text-muted);">\u20B9${received.toFixed(2)}</td>
@@ -4127,11 +4133,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 const due = invoiceOutstanding(t);
                 if (due <= 0.001) return;
                 if (!byParty[t.partyId]) {
-                    byParty[t.partyId] = { partyId: t.partyId, partyName: t.partyName, invoiceCount: 0, totalInvoiced: 0, totalDue: 0 };
+                    byParty[t.partyId] = { partyId: t.partyId, partyName: t.partyName, invoiceCount: 0, totalInvoiced: 0, totalDue: 0, invNos: [] };
                 }
                 byParty[t.partyId].invoiceCount += 1;
                 byParty[t.partyId].totalInvoiced += t.grandTotal;
                 byParty[t.partyId].totalDue += due;
+                byParty[t.partyId].invNos.push(t.invNo);
             });
 
         const rows = Object.values(byParty).sort((a, b) => b.totalDue - a.totalDue);
@@ -4141,7 +4148,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         let total = 0;
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Nothing pending &mdash; every purchase is fully paid.</td></tr>';
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Nothing pending &mdash; every purchase is fully paid.</td></tr>';
         } else {
             rows.forEach(r => {
                 total += r.totalDue;
@@ -4149,6 +4156,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open vendor ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
                         <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
+                        <td style="font-size:0.78rem;">${r.invNos.map(n => escapeHtml(n)).join('<br>')}</td>
                         <td>${r.invoiceCount}</td>
                         <td>\u20B9${r.totalInvoiced.toFixed(2)}</td>
                         <td style="color:var(--text-muted);">\u20B9${paid.toFixed(2)}</td>
