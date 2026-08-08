@@ -24,27 +24,30 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-    /* Surfaces — clean light cards on a soft neutral background */
-    --bg-main: #F4F6F9;
-    --bg-card: #FFFFFF;
+    /* Surfaces — softly tinted blue-grey rather than stark white, so the
+       UI is easier on the eyes over long sessions */
+    --bg-main: #E4EAF3;
+    --bg-card: #F7F9FC;
     --bg-input: #FFFFFF;
-    --bg-tint: #EEF2F7;
-    --bg-header: #FFFFFF;
-    --statement-bg: #FFFFFF;
-    --statement-row-alt: #F8FAFC;
+    --bg-tint: #DCE4F0;
+    --bg-header: #EFF3FA;
+    --navbar-bg: #16305E;
+    --navbar-text: #EAF0FC;
+    --statement-bg: #F7F9FC;
+    --statement-row-alt: #EEF2F9;
     --glass-blur: none;
     --glass-highlight: none;
 
-    /* Primary accent — modern emerald green (matches the seeds/agriculture
-       brand), with a blue secondary. No navy, no gold. */
-    --accent: #16A34A;
+    /* Primary accent — dark blue (replaces the previous green brand
+       color), with a lighter blue secondary. */
+    --accent: #1E3A8A;
     --accent-2: #2563EB;
-    --accent-hover: #15803D;
-    --accent-soft: #DCFCE7;
+    --accent-hover: #16305E;
+    --accent-soft: #DCE6F7;
 
     /* Text */
     --text-main: #0F172A;
-    --text-muted: #64748B;
+    --text-muted: #5B6B85;
     --text-invert: #FFFFFF;
 
     /* Semantic (used inline in markup) */
@@ -59,8 +62,8 @@
 
     /* Structure — soft modern corners and a light shadow instead of a
        flat, hard-edged ledger grid */
-    --border: #E2E8F0;
-    --border-strong: #CBD5E1;
+    --border: #D7E0EE;
+    --border-strong: #B7C5DC;
     --card-shadow: 0 1px 3px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.04);
     --grad-accent: #16A34A;
     --grad-warm: #D97706;
@@ -115,11 +118,11 @@ table td, table th {
 
 /* ---------- Header — Tally title bar ---------- */
 header {
-    background: var(--bg-header);
-    color: var(--text-invert);
+    background: var(--navbar-bg);
+    color: var(--navbar-text);
     margin: 0 -24px 0;
     padding: 18px 40px;
-    border-bottom: 3px solid var(--accent);
+    border-bottom: 3px solid var(--accent-2);
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -134,7 +137,8 @@ header::before {
     left: 40px;
     font-size: 0.62rem;
     letter-spacing: 0.3em;
-    color: var(--accent);
+    color: var(--navbar-text);
+    opacity: 0.75;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
 }
@@ -149,7 +153,7 @@ header::before {
     text-transform: uppercase;
 }
 .gst-badge {
-    background: var(--accent);
+    background: var(--accent-2);
     border: 1px solid var(--text-invert);
     color: var(--text-invert);
     padding: 6px 14px;
@@ -349,7 +353,7 @@ input[type="number"] {
 input:focus, select:focus, textarea:focus {
     border-color: var(--accent);
     background: #FFFFFF;
-    box-shadow: 0 0 0 2px rgba(244, 196, 48, 0.45);
+    box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.35);
 }
 input::placeholder, textarea::placeholder { color: #7A8CA6; }
 
@@ -1126,9 +1130,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 .login-card button[type="submit"] { margin-top: 22px; }
 .fy-active-badge {
     display: none;
-    background: transparent;
-    border: 1px solid var(--accent);
-    color: var(--accent);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--navbar-text);
+    color: var(--navbar-text);
     padding: 6px 12px;
     border-radius: var(--radius-sm);
     font-family: 'JetBrains Mono', monospace;
@@ -3416,6 +3420,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <button type="button" data-sort-toggle="ledgerStatement" onclick="toggleSortDir('ledgerStatement', refreshLedgerView)" style="width:auto; padding:10px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); white-space:nowrap;">&#8681; Newest first</button>
                 </div>
                 <button onclick="closeActiveLedger()" style="width:auto; padding:10px 18px; background:#64748b; color:#fff;">&#8592; Choose a different ledger</button>
+            </div>
+            <div id="ledgerTotalBalanceBar" style="display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-bottom:10px; padding:10px 16px; background: var(--bg-tint); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);">
+                <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); font-weight:700;">Total Balance</span>
+                <span id="ledgerTotalBalanceValue" style="font-size:1.15rem; font-weight:700;"></span>
             </div>
             <div id="ledgerPrintArea" class="table-responsive" style="background: var(--bg-card); padding: 20px; border-radius: 8px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
@@ -8934,6 +8942,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         } else {
             balanceText = `Settled (\u20B90.00)`;
             balanceColor = 'var(--success)';
+        }
+
+        const totalBalanceValueEl = document.getElementById('ledgerTotalBalanceValue');
+        if (totalBalanceValueEl) {
+            totalBalanceValueEl.style.color = balanceColor;
+            totalBalanceValueEl.textContent = balanceText;
         }
 
         tfoot.innerHTML = `
