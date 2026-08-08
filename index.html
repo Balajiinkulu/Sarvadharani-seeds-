@@ -24,47 +24,49 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-    /* Surfaces — flat Tally-blue panels, no glass/blur */
-    --bg-main: #0A1E44;
-    --bg-card: #0C2657;
+    /* Surfaces — clean light cards on a soft neutral background */
+    --bg-main: #F4F6F9;
+    --bg-card: #FFFFFF;
     --bg-input: #FFFFFF;
-    --bg-tint: #12305E;
-    --bg-header: #051029;
-    --statement-bg: #0C2657;
-    --statement-row-alt: #0F2C5F;
+    --bg-tint: #EEF2F7;
+    --bg-header: #FFFFFF;
+    --statement-bg: #FFFFFF;
+    --statement-row-alt: #F8FAFC;
     --glass-blur: none;
     --glass-highlight: none;
 
-    /* Primary accent — Tally gold, cyan secondary */
-    --accent: #F4C430;
-    --accent-2: #29B6F6;
-    --accent-hover: #FFDD55;
-    --accent-soft: #1C3F7A;
+    /* Primary accent — modern emerald green (matches the seeds/agriculture
+       brand), with a blue secondary. No navy, no gold. */
+    --accent: #16A34A;
+    --accent-2: #2563EB;
+    --accent-hover: #15803D;
+    --accent-soft: #DCFCE7;
 
     /* Text */
-    --text-main: #EAF2FF;
-    --text-muted: #93B3DD;
-    --text-invert: #0A1E44;
+    --text-main: #0F172A;
+    --text-muted: #64748B;
+    --text-invert: #FFFFFF;
 
     /* Semantic (used inline in markup) */
-    --success: #3DDC6E;
-    --danger: #FF5C5C;
-    --warning: #F4C430;
-    --pink: #FF8FB1;
-    --violet: #B69CFF;
-    --cyan: #29B6F6;
-    --lime: #9CDD3A;
-    --orange: #FFA53D;
+    --success: #16A34A;
+    --danger: #DC2626;
+    --warning: #D97706;
+    --pink: #DB2777;
+    --violet: #7C3AED;
+    --cyan: #0891B2;
+    --lime: #65A30D;
+    --orange: #EA580C;
 
-    /* Structure — flat, boxy, hard edges like Tally's ledger grid */
-    --border: #2E5490;
-    --border-strong: #6C9BDB;
-    --card-shadow: none;
-    --grad-accent: #123166;
-    --grad-warm: #7A4A12;
-    --radius-sm: 0px;
-    --radius: 0px;
-    --radius-lg: 0px;
+    /* Structure — soft modern corners and a light shadow instead of a
+       flat, hard-edged ledger grid */
+    --border: #E2E8F0;
+    --border-strong: #CBD5E1;
+    --card-shadow: 0 1px 3px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.04);
+    --grad-accent: #16A34A;
+    --grad-warm: #D97706;
+    --radius-sm: 10px;
+    --radius: 12px;
+    --radius-lg: 20px;
 }
 
 * { box-sizing: border-box; font-family: 'JetBrains Mono', 'Consolas', ui-monospace, monospace; }
@@ -151,7 +153,7 @@ header::before {
     border: 1px solid var(--text-invert);
     color: var(--text-invert);
     padding: 6px 14px;
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
     font-size: 0.75rem;
@@ -196,7 +198,7 @@ h3 {
 .summary-card {
     background: var(--bg-card);
     border: none;
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     padding: 16px 18px;
     box-shadow: none;
     transition: background-color 120ms ease;
@@ -228,7 +230,7 @@ h3 {
 #tileMenu {
     background: var(--bg-card);
     border: 1px solid var(--border-strong);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     padding: 22px;
     margin-top: 20px;
     margin-bottom: 20px;
@@ -240,7 +242,7 @@ h3 {
     display: none;
     background: var(--bg-card);
     border: 1px solid var(--border-strong);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     padding: 22px;
     margin-top: 20px;
     margin-bottom: 20px;
@@ -273,7 +275,7 @@ h3 {
 .tile {
     background: var(--bg-card);
     border: none;
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     padding: 18px 16px;
     text-align: left;
     cursor: pointer;
@@ -331,9 +333,9 @@ label {
 input, select, textarea {
     width: 100%;
     background: var(--bg-input);
-    color: #0A1E44;
+    color: var(--text-main);
     border: 1px solid var(--border-strong);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     padding: 9px 11px;
     font-size: 0.9rem;
     font-family: 'JetBrains Mono', monospace;
@@ -356,7 +358,7 @@ button {
     background: var(--accent);
     color: var(--text-invert);
     border: 1px solid var(--text-invert);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     padding: 10px 18px;
     font-size: 0.86rem;
     font-weight: 700;
@@ -442,7 +444,7 @@ button.back-btn:hover {
 .item-builder {
     background: var(--bg-tint);
     border: 1px solid var(--border);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     padding: 14px;
 }
 
@@ -451,7 +453,7 @@ button.back-btn:hover {
     overflow-x: auto;
     background: var(--bg-card);
     border: 1px solid var(--border-strong);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
 }
 table {
     width: 100%;
@@ -503,10 +505,10 @@ table button {
 .party-ac-list {
     position: absolute;
     z-index: 400;
-    background: #0F2C5F;
+    background: var(--bg-card);
     border: 1px solid var(--border-strong);
-    border-radius: 0;
-    box-shadow: 0 6px 0 0 rgba(0,0,0,0.35);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--card-shadow);
     max-height: 240px;
     overflow-y: auto;
     width: 100%;
@@ -528,7 +530,7 @@ table button {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(5, 16, 41, 0.78);
+    background: rgba(15, 23, 42, 0.6);
     z-index: 100;
     padding: 30px 16px;
     overflow-y: auto;
@@ -537,20 +539,24 @@ table button {
 }
 #invoiceModal.open, #editModal.open { display: flex; }
 
+/* The printed/previewed invoice is deliberately kept plain black-on-white
+   regardless of the app's own theme — a tax invoice should print cleanly
+   on any printer, in color or black-and-white, without colored ink areas
+   (like a shaded header row) that look wrong or waste toner. */
 .invoice-box {
     background: #ffffff;
-    color: #0A1E44;
+    color: #000000;
     padding: 32px;
     max-width: 820px;
     width: 100%;
-    border-radius: 0;
-    border: 2px solid #0A1E44;
+    border-radius: var(--radius);
+    border: 2px solid #000000;
     box-shadow: none;
     font-family: 'IBM Plex Sans', sans-serif;
 }
-.invoice-box h3 { color: #0A1E44 !important; }
-.invoice-box table th, .invoice-box table td { color: #0A1E44; border: 1px solid #0A1E44; }
-.invoice-box table thead tr { background: #F4C430 !important; }
+.invoice-box h3 { color: #000000 !important; }
+.invoice-box table th, .invoice-box table td { color: #000000; border: 1px solid #000000; }
+.invoice-box table thead tr { background: #F2F2F2 !important; }
 
 .edit-box {
     background: var(--bg-card);
@@ -558,7 +564,7 @@ table button {
     padding: 28px;
     max-width: 920px;
     width: 100%;
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     border: 2px solid var(--accent);
     box-shadow: none;
 }
@@ -571,7 +577,7 @@ table button {
     padding: 8px;
     background: var(--bg-tint);
     border: 1px solid var(--border);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     margin-bottom: 8px;
 }
 .edit-line-row .ln-name {
@@ -590,7 +596,7 @@ table button {
     background: var(--bg-header);
     color: var(--accent);
     padding: 10px 14px;
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--accent);
     display: none;
     align-items: center;
@@ -631,7 +637,7 @@ table button {
 .card {
     background: var(--bg-card);
     border: 1px solid var(--border-strong);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     padding: 16px;
 }
 .text-muted-print { color: var(--text-muted); }
@@ -647,7 +653,7 @@ table button {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-left: 3px solid var(--accent);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     box-shadow: none;
 }
 .extras-bar .extras-btn { font-size: 0.78rem; }
@@ -682,16 +688,16 @@ table button {
     justify-content: space-between;
     gap: 14px;
     padding: 12px 16px;
-    background: #2B2000;
-    border: 1px solid var(--accent);
+    background: #FFFBEB;
+    border: 1px solid var(--warning);
     border-left: 3px solid var(--warning);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     margin-bottom: 18px;
     font-size: 0.85rem;
-    color: #F4C430;
+    color: #92400E;
     flex-wrap: wrap;
 }
-.backup-banner strong { color: #FFDD55; }
+.backup-banner strong { color: #92400E; }
 .backup-banner .backup-sub { font-size: 0.78rem; color: #D6AE3B; margin-top: 2px; }
 .backup-banner .backup-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .backup-banner .backup-actions button { min-height: 36px; }
@@ -738,7 +744,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     margin-bottom: 14px;
     background: var(--accent-soft);
     border: 1px dashed var(--border-strong);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
 }
 .extras-invoice-toolbar .extras-paper {
     margin-left: auto;
@@ -768,14 +774,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     color: var(--accent) !important;
 }
 [style*="rgba(251,191,36"] {
-    background: #2B2000 !important;
-    border-color: var(--accent) !important;
-    color: var(--warning) !important;
+    background: #FFFBEB !important;
+    border-color: var(--warning) !important;
+    color: #92400E !important;
 }
 [style*="rgba(52,211,153"] {
-    background: #0F2E1C !important;
+    background: #ECFDF5 !important;
     border-color: var(--success) !important;
-    color: var(--success) !important;
+    color: #065F46 !important;
 }
 
 /* Force any inline dark greys used for cancel buttons back into palette */
@@ -833,7 +839,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     /* Modals become bottom sheet-ish on mobile */
     #invoiceModal, #editModal { padding: 12px 8px; }
-    .invoice-box, .edit-box { padding: 18px 14px; border-radius: 0; }
+    .invoice-box, .edit-box { padding: 18px 14px; border-radius: var(--radius-sm); }
     .invoice-box { font-size: 0.85rem; }
     .invoice-box h3 { font-size: 1.05rem !important; }
     .invoice-box table { min-width: 100%; font-size: 0.75rem; }
@@ -890,14 +896,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
     body.printing-region .print-target * { color: #0f172a !important; }
     body.printing-region .print-target th {
-        background: #e9eff7 !important;
+        background: #f0f0f0 !important;
         color: #0f172a !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
     body.printing-region .print-target td,
     body.printing-region .print-target th {
-        border-bottom: 1px solid #c3d0e0 !important;
+        border-bottom: 1px solid #cccccc !important;
     }
     body.printing-region .no-print { display: none !important; }
 
@@ -938,14 +944,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     body.printing-invoice #invoiceModal th,
     body.printing-invoice #invoiceModal td {
         color: #0f172a !important;
-        border: 1px solid #c3d0e0 !important;
+        border: 1px solid #cccccc !important;
         background: #fff !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
     body.printing-invoice #invoiceModal thead tr,
     body.printing-invoice #invoiceModal thead th {
-        background: #e9eff7 !important;
+        background: #f0f0f0 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
@@ -973,17 +979,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     body.printing-ledger #ledgerPrintArea h3,
     body.printing-ledger #ledgerPrintArea div { color: #0f172a !important; }
     body.printing-ledger th {
-        background: #e9eff7 !important;
+        background: #f0f0f0 !important;
         color: #0f172a !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
     body.printing-ledger td,
     body.printing-ledger th {
-        border-bottom: 1px solid #c3d0e0 !important;
+        border-bottom: 1px solid #cccccc !important;
         color: #0f172a !important;
     }
-    body.printing-ledger .text-muted-print { color: #475569 !important; }
+    body.printing-ledger .text-muted-print { color: #555555 !important; }
 }
 
 /* =========================================================
@@ -1007,7 +1013,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     max-width: 420px;
     background: var(--bg-card);
     border: 2px solid var(--accent);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     box-shadow: none;
     padding: 34px 30px 30px;
     margin: auto;
@@ -1055,7 +1061,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     background: #3A0A0A;
     border: 1px solid var(--danger);
     color: var(--danger);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     padding: 10px 12px;
     font-size: 0.82rem;
     font-weight: 700;
@@ -1081,7 +1087,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     flex: 1;
     text-align: center;
     border: 1px solid var(--border-strong);
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     padding: 8px 10px;
     cursor: pointer;
     background: var(--bg-tint);
@@ -1124,7 +1130,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     border: 1px solid var(--accent);
     color: var(--accent);
     padding: 6px 12px;
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.75rem;
     letter-spacing: 0.02em;
@@ -3476,8 +3482,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <div style="margin: 16px 0; font-size:0.85rem;">
             <strong>Billed To:</strong>
             <div id="invParty" style="font-size:1.05rem; font-weight:bold; margin-top:2px;"></div>
-            <div id="invAddress" style="color:#475569;"></div>
-            <div id="invGstin" style="color:#475569;"></div>
+            <div id="invAddress" style="color:#555555;"></div>
+            <div id="invGstin" style="color:#555555;"></div>
         </div>
 
         <div id="invTransportWrap" style="display:none; margin: 0 0 16px 0; font-size:0.85rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px;">
@@ -3515,15 +3521,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             </div>
         </div>
 
-        <div id="invNarrationWrap" style="display:none; margin-top:12px; font-size:0.82rem; color:#475569; border-top:1px dashed #cbd5e1; padding-top:10px;">
+        <div id="invNarrationWrap" style="display:none; margin-top:12px; font-size:0.82rem; color:#555555; border-top:1px dashed #cbd5e1; padding-top:10px;">
             <strong>Narration:</strong> <span id="invNarrationText"></span>
         </div>
 
         <!-- Authorized Signatory — printed on every voucher, with a blank
              line for a real signature to go on top of once printed. -->
         <div style="display:flex; justify-content:flex-end; margin-top:48px;">
-            <div style="text-align:center; font-size:0.82rem; color:#475569;">
-                <div style="border-top:1px solid #475569; padding-top:6px; min-width:180px;">Authorized Signatory</div>
+            <div style="text-align:center; font-size:0.82rem; color:#555555;">
+                <div style="border-top:1px solid #555555; padding-top:6px; min-width:180px;">Authorized Signatory</div>
             </div>
         </div>
 
