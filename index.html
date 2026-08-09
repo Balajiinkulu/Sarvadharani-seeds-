@@ -65,6 +65,28 @@
     --radius-sm: 12px;
     --radius: 18px;
     --radius-lg: 26px;
+
+    /* ============================================================
+       LEDGER TOKENS — a second, dense/data-forward design language
+       used ONLY by the redesigned screens (Main, Post Voucher,
+       Ledger Statement). Deliberately separate from the tokens
+       above so nothing else in the app is affected by this pass.
+       Paper-like background, real black text, hairline rules
+       instead of shadows, tabular figures for every amount, and one
+       reserved accent color for each screen's single most important
+       number. ============================================================ */
+    --ldg-bg: #F4F5F3;
+    --ldg-ink: #1A1D1B;
+    --ldg-ink-muted: #5B6259;
+    --ldg-rule: #D8DAD5;
+    --ldg-rule-strong: #B8BCB4;
+    --ldg-accent: #1E3A5F;       /* same navy as the rest of the app, kept for continuity */
+    --ldg-accent-hover: #16293F;
+    --ldg-positive: #1B6B3C;     /* receivable / money in — muted, not neon */
+    --ldg-negative: #A6321F;     /* payable / money out — muted, not neon */
+    --ldg-stamp: #B5541C;        /* the ONE rust accent — reserved for each screen's single headline number */
+    --ldg-surface: #FFFFFF;      /* flat white row/card surface — no blur, no translucency */
+    --ldg-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
 }
 
 * { box-sizing: border-box; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -1194,6 +1216,400 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     body.printing-formal #formalPrintOverlay { position: static !important; }
     #formalPrintOverlay .no-print { display:none !important; }
 }
+
+/* ================================================================
+   LEDGER DESIGN LANGUAGE — dense, data-forward, paper-and-ink.
+   Scoped entirely under .ldg-root so it can be applied to specific
+   screens without affecting the rest of the app's existing glass-
+   panel styling. See design tokens in :root above.
+   ================================================================ */
+.ldg-root {
+    background: var(--ldg-bg) !important;
+    color: var(--ldg-ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    margin: 0 -24px -96px;
+    padding: 0 0 136px;
+}
+.ldg-root * { box-shadow: none !important; backdrop-filter: none !important; }
+header.ldg-header {
+    background: var(--ldg-surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    color: var(--ldg-ink) !important;
+    margin: 0 !important;
+    padding: 10px 14px !important;
+    border-bottom: 1px solid var(--ldg-rule-strong) !important;
+    box-shadow: none !important;
+    align-items: center !important;
+}
+header.ldg-header::before { content: none !important; }
+
+.ldg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--ldg-rule-strong);
+    background: var(--ldg-surface);
+}
+.ldg-header .ldg-brand {
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+.ldg-header .ldg-eyebrow {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: var(--ldg-ink-muted);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 1px;
+}
+.ldg-header-actions { display: flex; gap: 6px; align-items: center; }
+.ldg-chip {
+    font-family: var(--ldg-mono);
+    font-size: 0.72rem;
+    padding: 5px 9px;
+    border: 1px solid var(--ldg-rule-strong);
+    background: var(--ldg-surface);
+    color: var(--ldg-ink);
+    border-radius: 4px;
+}
+
+/* Hairline row list — replaces cards/tiles. One row = one hairline
+   below it, no shadow, no radius. Numbers are always right-aligned
+   in tabular monospace so a column of amounts lines up like a real
+   ledger. */
+.ldg-list { border-top: 1px solid var(--ldg-rule); }
+.ldg-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--ldg-rule);
+    background: var(--ldg-surface);
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+.ldg-row:active { background: #EFF1EE; }
+.ldg-row .ldg-row-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ldg-ink);
+}
+.ldg-row .ldg-row-sub {
+    font-size: 0.72rem;
+    color: var(--ldg-ink-muted);
+    margin-top: 1px;
+}
+.ldg-row .ldg-row-amt {
+    font-family: var(--ldg-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.92rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ldg-row .ldg-row-chevron { color: var(--ldg-ink-muted); font-size: 0.8rem; margin-left: 4px; }
+.ldg-amt-positive { color: var(--ldg-positive); }
+.ldg-amt-negative { color: var(--ldg-negative); }
+.ldg-amt-stamp { color: var(--ldg-stamp); font-weight: 700; }
+
+/* The one big number per screen — the "signature" element. Used
+   sparingly: exactly one per screen, always in --ldg-stamp. */
+.ldg-headline {
+    padding: 16px 14px 14px;
+    border-bottom: 1px solid var(--ldg-rule-strong);
+    background: var(--ldg-surface);
+}
+.ldg-headline .ldg-headline-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ldg-ink-muted);
+    margin-bottom: 2px;
+}
+.ldg-headline .ldg-headline-value {
+    font-family: var(--ldg-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--ldg-stamp);
+    line-height: 1.1;
+}
+
+/* Compact text-link menu row, replaces icon tile grids */
+.ldg-menu { display: flex; flex-wrap: wrap; border-top: 1px solid var(--ldg-rule); }
+.ldg-menu-item {
+    flex: 1 1 auto;
+    min-width: 96px;
+    padding: 10px 12px;
+    border-right: 1px solid var(--ldg-rule);
+    border-bottom: 1px solid var(--ldg-rule);
+    background: var(--ldg-surface);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ldg-ink);
+    text-align: center;
+    cursor: pointer;
+}
+.ldg-menu-item:active { background: #EFF1EE; }
+
+.ldg-btn-primary {
+    display: block;
+    width: 100%;
+    padding: 13px 16px;
+    background: var(--ldg-accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+}
+.ldg-btn-primary:active { background: var(--ldg-accent-hover); }
+.ldg-btn-secondary {
+    display: inline-block;
+    padding: 8px 14px;
+    background: var(--ldg-surface);
+    color: var(--ldg-ink);
+    border: 1px solid var(--ldg-rule-strong);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+}
+
+.ldg-section-label {
+    padding: 10px 14px 4px;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ldg-ink-muted);
+    font-weight: 600;
+}
+
+/* Form fields, restyled flat for Post Voucher */
+.ldg-field { padding: 10px 14px; border-bottom: 1px solid var(--ldg-rule); background: var(--ldg-surface); }
+.ldg-field label {
+    display: block;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ldg-ink-muted);
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+.ldg-field input, .ldg-field select {
+    width: 100%;
+    padding: 8px 0;
+    border: none;
+    border-bottom: 1px solid var(--ldg-rule-strong);
+    background: transparent;
+    font-size: 0.9rem;
+    color: var(--ldg-ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    border-radius: 0;
+}
+.ldg-field input:focus, .ldg-field select:focus {
+    outline: none;
+    border-bottom: 2px solid var(--ldg-accent);
+}
+
+/* Table used in Ledger Statement — hairlines, tabular figures,
+   sticky header for scrolling through many rows. */
+.ldg-table { width: 100%; border-collapse: collapse; background: var(--ldg-surface); }
+.ldg-table th {
+    position: sticky; top: 0;
+    background: var(--ldg-surface);
+    text-align: left;
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ldg-ink-muted);
+    font-weight: 600;
+    padding: 8px 8px;
+    border-bottom: 1px solid var(--ldg-rule-strong);
+    white-space: nowrap;
+}
+.ldg-table td {
+    padding: 8px 8px;
+    border-bottom: 1px solid var(--ldg-rule);
+    font-size: 0.8rem;
+    vertical-align: top;
+}
+.ldg-table td.ldg-num {
+    font-family: var(--ldg-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+}
+.ldg-table tr:active td { background: #EFF1EE; }
+
+/* The backup/print-size toolbar is injected by JS after <header> — this
+   scoped override brings it into the ledger look wherever it lands
+   inside .ldg-root, without touching its appearance anywhere else. */
+.ldg-root .extras-bar {
+    background: var(--ldg-surface);
+    border: none;
+    border-bottom: 1px solid var(--ldg-rule);
+    border-radius: 0;
+    padding: 8px 14px;
+    box-shadow: none;
+}
+.ldg-root .extras-bar .extras-btn {
+    background: var(--ldg-surface);
+    color: var(--ldg-ink);
+    border: 1px solid var(--ldg-rule-strong);
+    border-radius: 4px;
+    box-shadow: none;
+}
+.ldg-root .extras-bar .extras-paper select {
+    border: 1px solid var(--ldg-rule-strong);
+    border-radius: 4px;
+    background: var(--ldg-surface);
+    color: var(--ldg-ink);
+}
+.ldg-root .backup-banner {
+    background: #FBF3E1;
+    border: none;
+    border-bottom: 1px solid var(--ldg-rule);
+    border-left: 3px solid var(--ldg-stamp);
+    border-radius: 0;
+    box-shadow: none;
+    padding: 10px 14px;
+}
+.ldg-root .backup-banner .backup-actions button {
+    background: var(--ldg-surface);
+    color: var(--ldg-ink);
+    border: 1px solid var(--ldg-rule-strong);
+    border-radius: 4px;
+    box-shadow: none;
+    min-height: 32px;
+}
+
+/* Post Voucher form, restyled flat — same markup, same JS bindings,
+   just a scoped visual override so nothing about toggleVoucherMode()
+   or the field wiring needs to change. */
+.ldg-root .form-grid, .ldg-root form {
+    display: block;
+    background: var(--ldg-surface);
+}
+.ldg-root .form-grid > div, .ldg-root form > div {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--ldg-rule);
+}
+.ldg-root label {
+    font-size: 0.68rem;
+    color: var(--ldg-ink-muted);
+    margin-bottom: 4px;
+}
+.ldg-root input, .ldg-root select, .ldg-root textarea {
+    background: transparent;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    color: var(--ldg-ink);
+    border: none;
+    border-bottom: 1px solid var(--ldg-rule-strong);
+    border-radius: 0;
+    padding: 6px 0;
+    font-family: 'IBM Plex Sans', sans-serif;
+}
+.ldg-root input[type="number"] { font-family: var(--ldg-mono); }
+.ldg-root input:focus, .ldg-root select:focus, .ldg-root textarea:focus {
+    border-bottom: 2px solid var(--ldg-accent);
+    background: transparent;
+    box-shadow: none;
+}
+.ldg-root button {
+    background: var(--ldg-surface);
+    color: var(--ldg-ink);
+    border: 1px solid var(--ldg-rule-strong);
+    border-radius: 4px;
+    box-shadow: none !important;
+    letter-spacing: normal;
+    width: auto;
+}
+.ldg-root button::before { content: none !important; }
+.ldg-root button:hover { filter: none; transform: none; }
+.ldg-root button:active { transform: none; filter: brightness(0.97); }
+.ldg-root .btn-success, .ldg-root .ldg-btn-primary, .ldg-root button.btn-success {
+    background: var(--ldg-accent) !important;
+    color: #fff !important;
+    border: none;
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+}
+.ldg-root .item-builder {
+    background: var(--ldg-surface);
+    border: 1px solid var(--ldg-rule-strong);
+    border-radius: 0;
+    padding: 10px 14px;
+    margin: 10px 14px;
+}
+/* When a .panel's content is the new ledger design, strip the panel's
+   own glass-card chrome (background/blur/shadow/radius/padding) so
+   ldg-root is the only thing providing visual structure — otherwise
+   the old card shows through as a border/shadow around the new content. */
+.panel:has(> .ldg-root) {
+    background: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    animation: none !important;
+}
+
+/* Ledger Statement's own table — flat hairlines, tabular figures,
+   sticky header, and the dark tfoot swapped for the ledger surface. */
+.ldg-root table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--ldg-surface);
+    border-radius: 0;
+}
+.ldg-root table th {
+    position: sticky; top: 0;
+    background: var(--ldg-surface);
+    text-align: left;
+    font-size: 0.65rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ldg-ink-muted);
+    font-weight: 600;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--ldg-rule-strong);
+    white-space: nowrap;
+}
+.ldg-root table td {
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--ldg-rule);
+    font-size: 0.8rem;
+    vertical-align: top;
+    background: var(--ldg-surface);
+    color: var(--ldg-ink);
+}
+.ldg-root table tfoot {
+    background: var(--ldg-surface) !important;
+}
+.ldg-root table tfoot td {
+    background: var(--ldg-surface) !important;
+    color: var(--ldg-ink) !important;
+    border-top: 2px solid var(--ldg-rule-strong);
+}
+.ldg-root .table-responsive {
+    background: var(--ldg-surface);
+    border: 1px solid var(--ldg-rule-strong);
+    border-radius: 0;
+}
+.ldg-root h3 {
+    color: var(--ldg-ink) !important;
+}
     </style>
 </head>
 <body>
@@ -1348,67 +1764,50 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 </div>
 
 <div class="container">
-    <header>
+    <div class="ldg-root">
+    <header class="ldg-header">
         <div>
-            <h1 class="brand-title" style="margin-bottom:0;">Sarvadharani seeds</h1>
+            <span class="ldg-eyebrow" id="fyActiveBadge">FY —</span>
+            <span class="ldg-brand">Sarvadharani Seeds</span>
         </div>
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <div class="fy-active-badge" id="fyActiveBadge" title="Current Financial Year">FY —</div>
-            <div class="gst-badge" id="roleBadge" style="display:none;" title="Your access level"></div>
-            <button type="button" id="logoutBtn" onclick="logoutAdmin()" title="Log out"
-                style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:999px; line-height:1; font-size:0.85rem; font-weight:600;">
-                &#9211;&nbsp; Logout
-            </button>
+        <div class="ldg-header-actions">
+            <span class="ldg-chip gst-badge" id="roleBadge" style="display:none;" title="Your access level"></span>
+            <button type="button" id="logoutBtn" onclick="logoutAdmin()" title="Log out" class="ldg-chip" style="cursor:pointer;">Logout</button>
         </div>
     </header>
 
     <!-- Dashboard Metrics -->
-    <div class="dashboard-summary" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));">
-        <div class="summary-card" onclick="openPanel('panelPendingReceivable')" style="cursor:pointer;" title="View pending sales invoices">
-            <div>Pending to Receive (Sales)</div>
-            <div id="statReceivable" style="color: var(--success);">&#8377;0.00</div>
+    <div class="ldg-list">
+        <div class="ldg-row" onclick="openPanel('panelPendingReceivable')">
+            <div>
+                <div class="ldg-row-label">Pending to Receive</div>
+                <div class="ldg-row-sub">Sales awaiting payment</div>
+            </div>
+            <div class="ldg-row-amt ldg-amt-stamp" id="statReceivable">&#8377;0.00</div>
         </div>
-        <div class="summary-card" onclick="openPanel('panelPendingPayable')" style="cursor:pointer;" title="View pending purchase invoices">
-            <div>Pending to Pay (Purchase)</div>
-            <div id="statPayable" style="color: var(--danger);">&#8377;0.00</div>
+        <div class="ldg-row" onclick="openPanel('panelPendingPayable')">
+            <div>
+                <div class="ldg-row-label">Pending to Pay</div>
+                <div class="ldg-row-sub">Purchases awaiting payment</div>
+            </div>
+            <div class="ldg-row-amt ldg-amt-negative" id="statPayable">&#8377;0.00</div>
         </div>
     </div>
 
     <!-- TOP-LEVEL GROUP MENU -->
     <div id="tileMenu">
-        <div class="section-label">What would you like to do?</div>
-        <div class="tile-grid">
-            <div class="tile" onclick="openGroup('groupMasters')">
-                <span class="tile-icon">&#128451;&#65039;</span>
-                <div class="tile-name">Masters</div>
-                <div class="tile-sub">Create parties, items, groups, accounts</div>
-            </div>
-            <div class="tile" onclick="openGroup('groupTransactions')">
-                <span class="tile-icon">&#128184;</span>
-                <div class="tile-name">Transactions</div>
-                <div class="tile-sub">Payments, receipts, daybook, delivery notes</div>
-            </div>
-            <div class="tile" onclick="openPanel('panelVoucher')">
-                <span class="tile-icon">&#128221;</span>
-                <div class="tile-name">Post Voucher</div>
-                <div class="tile-sub">Sale / Purchase / Payment / Receipt / Journal</div>
-            </div>
-            <div class="tile" onclick="openGroup('groupReports')">
-                <span class="tile-icon">&#128200;</span>
-                <div class="tile-name">Reports</div>
-                <div class="tile-sub">Balances, stock, ledgers</div>
-            </div>
-            <div class="tile" onclick="openPanel('panelLedger')">
-                <span class="tile-icon">&#129534;</span>
-                <div class="tile-name">Ledger</div>
-                <div class="tile-sub">Search any party, account, or voucher type</div>
-            </div>
-            <div class="tile" onclick="openGroup('groupSettings')">
-                <span class="tile-icon">&#9881;&#65039;</span>
-                <div class="tile-name">Admin</div>
-                <div class="tile-sub">Password, users &amp; app preferences</div>
-            </div>
+        <div style="padding:12px 14px 4px;">
+            <button type="button" class="ldg-btn-primary" onclick="openPanel('panelVoucher')">+ Post Voucher</button>
         </div>
+        <div class="ldg-section-label">Menu</div>
+        <div class="ldg-menu">
+            <div class="ldg-menu-item" onclick="openGroup('groupMasters')">Masters</div>
+            <div class="ldg-menu-item" onclick="openGroup('groupTransactions')">Transactions</div>
+            <div class="ldg-menu-item" onclick="openGroup('groupReports')">Reports</div>
+            <div class="ldg-menu-item" onclick="openPanel('panelLedger')">Ledger</div>
+            <div class="ldg-menu-item" onclick="openGroup('groupSettings')">Admin</div>
+        </div>
+    </div>
     </div>
 
     <!-- SUB-MENU: SETTINGS (tile renamed to "Admin"; internal ids unchanged) -->
@@ -3038,7 +3437,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     <!-- Voucher -->
     <div class="panel" id="panelVoucher">
-        <div class="panel-head"><h3>Post Sales / Purchase / Payment / Receipt</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div class="ldg-root">
+        <header class="ldg-header">
+            <span class="ldg-brand">Post Voucher</span>
+            <button type="button" class="ldg-chip" onclick="closePanel()" style="cursor:pointer;">&#8592; Back</button>
+        </header>
         <div class="form-grid">
             <div>
                 <label>Date</label>
@@ -3237,7 +3640,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <input type="text" id="vNarrationMain" placeholder="e.g. Urgent delivery, quality checked, discount given">
             </div>
 
-            <button type="button" onclick="submitVoucher()" class="col-2 btn-success" style="padding:14px;">Post Voucher Entry</button>
+            <button type="button" onclick="submitVoucher()" class="col-2 ldg-btn-primary" style="padding:14px;">Post Voucher Entry</button>
+        </div>
         </div>
     </div>
 
@@ -3407,7 +3811,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     <!-- Ledger view -->
     <div class="panel" id="panelLedger">
-        <div class="panel-head"><h3>Ledger</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div class="ldg-root">
+        <header class="ldg-header">
+            <span class="ldg-brand">Ledger</span>
+            <button type="button" class="ldg-chip" onclick="closePanel()" style="cursor:pointer;">&#8592; Back</button>
+        </header>
+        <div style="padding: 12px 14px 0;">
         <div style="margin-bottom:12px;">
             <label>Search any ledger &mdash; a party, a cash/bank account, or a whole voucher type (Sales, Purchases, Payments, Receipts...)</label>
             <input type="text" id="ledgerSearchInput" placeholder="Type to search... e.g. Green Traders, Cash, Sales, Payments" oninput="renderLedgerSearchResults()" onfocus="renderLedgerSearchResults()" autocomplete="off">
@@ -3476,13 +3885,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         </tr>
                     </thead>
                     <tbody id="partyLedgerBody"></tbody>
-                    <tfoot id="partyLedgerFoot" style="font-weight:bold; background:#0f172a;"></tfoot>
+                    <tfoot id="partyLedgerFoot" style="font-weight:bold;"></tfoot>
                 </table>
                 <div class="no-print" data-page-controls="ledgerStatement" data-page-anchor="ledgerStatement"></div>
             </div>
         </div>
+        </div>
+        </div>
     </div>
-
 </div>
 
 <!-- Printable Tax Invoice Modal -->
