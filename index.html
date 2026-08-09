@@ -286,8 +286,20 @@ h3 {
     margin: 14px 12px 20px;
     overflow: hidden;
 }
-.ldg-root #tileMenu .ldg-menu { border-top: 1px solid var(--ldg-rule-strong); }
-.ldg-root #tileMenu .ldg-menu-item:last-child { border-right: none; }
+.ldg-root #tileMenu .ldg-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px 14px;
+    border-top: none;
+}
+.ldg-root #tileMenu .ldg-menu-item {
+    flex: 1 1 auto;
+    min-width: 90px;
+    border: 1px solid var(--ldg-rule-strong);
+    border-radius: 10px;
+    background: var(--ldg-bg);
+}
 
 /* Sub-menu and panels are hidden by default; JS toggles .active */
 .submenu, .panel {
