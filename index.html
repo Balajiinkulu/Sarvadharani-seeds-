@@ -3703,7 +3703,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 <div id="formalPrintOverlay" style="display:none; position:fixed; inset:0; z-index:400; background:#fff; overflow-y:auto;">
     <div class="no-print" style="position:sticky; top:0; z-index:5; background:var(--accent-hover); padding:12px 16px; display:flex; gap:10px; align-items:center; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
         <button onclick="closeFormalPrintOverlay()" style="width:auto; padding:10px 20px; background:#fff; color:var(--accent-hover); font-weight:700; border-radius:8px; font-size:0.95rem;">&#8592; Close</button>
-        <button onclick="window.print()" class="btn-success" style="width:auto; padding:10px 20px; font-size:0.95rem;">Print / Save as PDF</button>
+        <button onclick="printFormalDoc()" class="btn-success" style="width:auto; padding:10px 20px; font-size:0.95rem;">Print / Save as PDF</button>
     </div>
     <div id="formalPrintContent" style="padding:20px; font-family: Arial, Helvetica, sans-serif; font-size:12px; color:#000;"></div>
 </div>
@@ -3846,6 +3846,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<!-- PDF export for installed home-screen apps on iOS: window.print() is
+     silently disabled in standalone/home-screen mode there, so printing
+     falls back to rendering the printable area to a PDF and handing it
+     to the native Share Sheet (Save to Files, AirPrint, Mail, etc.)
+     instead. Desktop/browser-tab printing is untouched and still uses
+     window.print() as before. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyDssPwJJfCpDJCdxqDlrSzMDqWn4xJdvLI",
@@ -9161,6 +9169,61 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     // Print any region (panel/statement) on its own page -> browser's
     // print dialog lets the user save it as PDF.
+    // ---- Smart print: PDF + Share Sheet fallback for iOS home-screen apps ----
+    // window.print() is silently disabled by iOS WebKit when the app is
+    // running "standalone" (opened via an Add to Home Screen icon, no
+    // Safari chrome). Detect that case and render the printable node to
+    // a PDF instead, then hand it to the native Share Sheet — from there
+    // the person can Save to Files, AirPrint, or send it anywhere.
+    // Everywhere else (desktop, or the page opened as a normal Safari/
+    // Chrome tab) keeps using window.print() exactly as before.
+    function isStandaloneApp() {
+        return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+            || window.navigator.standalone === true;
+    }
+
+    async function smartPrint(node, filenameBase, fallbackPrintFn) {
+        if (!isStandaloneApp() || typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+            fallbackPrintFn();
+            return;
+        }
+        try {
+            const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+            const imgData = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+                unit: 'px',
+                format: [canvas.width, canvas.height]
+            });
+            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+            const blob = pdf.output('blob');
+            const safeName = (filenameBase || 'Document').replace(/[^\w.-]+/g, '_');
+            const file = new File([blob], `${safeName}.pdf`, { type: 'application/pdf' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({ files: [file], title: safeName });
+                    return;
+                } catch (err) {
+                    if (err && err.name === 'AbortError') return; // person cancelled the share sheet
+                }
+            }
+            // Share Sheet unavailable — fall back to a direct download.
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${safeName}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 4000);
+        } catch (err) {
+            console.error('PDF export failed, falling back to print dialog', err);
+            fallbackPrintFn();
+        }
+    }
+
     function printRegion(elementId, title) {
         if (!isAdmin() && !hasPermission('exportPrint')) { alert("Only an admin, or a user with 'Export / print' turned on, can print or export."); return; }
         const el = document.getElementById(elementId);
@@ -9176,8 +9239,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             window.removeEventListener('afterprint', cleanup);
         };
         window.addEventListener('afterprint', cleanup);
-        window.print();
-        setTimeout(cleanup, 1000);
+        smartPrint(el, title || 'Report', () => {
+            window.print();
+            setTimeout(cleanup, 1000);
+        }).then(() => { if (isStandaloneApp()) cleanup(); });
     }
 
     function csvCell(v) {
@@ -9377,7 +9442,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     function printLedger() {
         if (!isAdmin() && !hasPermission('exportPrint')) return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
-        if (document.getElementById('ledgerPrintArea').style.display !== 'block') {
+        const ledgerEl = document.getElementById('ledgerPrintArea');
+        if (ledgerEl.style.display !== 'block') {
             return alert("Please view a party's ledger statement first.");
         }
         document.body.classList.add('printing-ledger');
@@ -9386,9 +9452,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             window.removeEventListener('afterprint', cleanup);
         };
         window.addEventListener('afterprint', cleanup);
-        window.print();
-        // Fallback for browsers that don't fire afterprint reliably
-        setTimeout(cleanup, 1000);
+        smartPrint(ledgerEl, 'Ledger', () => {
+            window.print();
+            // Fallback for browsers that don't fire afterprint reliably
+            setTimeout(cleanup, 1000);
+        }).then(() => { if (isStandaloneApp()) cleanup(); });
     }
 
     // ================================================================
@@ -9469,6 +9537,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('formalPrintOverlay').style.display = 'none';
         document.getElementById('formalPrintContent').innerHTML = '';
         document.body.classList.remove('printing-formal');
+    }
+
+    function printFormalDoc() {
+        const txn = transactions.find(t => t.id == currentPrintTxnId);
+        const node = document.getElementById('formalPrintContent');
+        smartPrint(node, (txn && txn.invNo) || 'Voucher', () => window.print());
     }
 
     // ---- Formal Voucher (Payment / Receipt) — matches a TallyPrime-style
@@ -9681,8 +9755,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             window.removeEventListener('afterprint', cleanup);
         };
         window.addEventListener('afterprint', cleanup);
-        window.print();
-        setTimeout(cleanup, 1000);
+        const txn = transactions.find(t => t.id == currentPrintTxnId);
+        const invoiceBox = document.querySelector('#invoiceModal .invoice-box');
+        smartPrint(invoiceBox, (txn && txn.invNo) || 'Invoice', () => {
+            window.print();
+            setTimeout(cleanup, 1000);
+        }).then(() => { if (isStandaloneApp()) cleanup(); });
     }
     // ---------------------------------------------------
 
