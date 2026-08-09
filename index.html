@@ -9187,16 +9187,70 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             fallbackPrintFn();
             return;
         }
+        // .no-print elements (action buttons, the e-Way Bill/paper-size
+        // toolbar, etc.) are only hidden via an `@media print` rule,
+        // which never applies to a live on-screen html2canvas capture.
+        // Actually hide them for real just for the snapshot, then restore
+        // exactly what was there before.
+        const noPrintEls = node.querySelectorAll('.no-print');
+        const prevDisplay = Array.from(noPrintEls).map(el => el.style.display);
+        noPrintEls.forEach(el => { el.style.display = 'none'; });
         try {
-            const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+            // Explicit width/height (and matching windowWidth/windowHeight)
+            // tell html2canvas to render the node's FULL scrollable content,
+            // not just whatever fits in one screen's height — without this,
+            // long content (e.g. a ledger with many rows) gets cut off after
+            // one viewport's worth.
+            const canvas = await html2canvas(node, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                width: node.scrollWidth,
+                height: node.scrollHeight,
+                windowWidth: node.scrollWidth,
+                windowHeight: node.scrollHeight
+            });
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
-                unit: 'px',
-                format: [canvas.width, canvas.height]
-            });
-            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+
+            // Slice the (possibly very tall) captured image across as many
+            // A4 pages as it takes, instead of one giant single-page PDF —
+            // same "print a long report" pattern people expect from a real
+            // printer, and it prints/paginates properly if opened on paper.
+            const a4WidthMm = 210;
+            const a4HeightMm = 297;
+            const marginMm = 8;
+            const usableWidthMm = a4WidthMm - marginMm * 2;
+            const usableHeightMm = a4HeightMm - marginMm * 2;
+
+            const imgWidthMm = usableWidthMm;
+            const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
+            const pxPerMm = canvas.width / imgWidthMm;
+            const pageHeightPx = usableHeightMm * pxPerMm;
+
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            let renderedPx = 0;
+            let pageNum = 0;
+            while (renderedPx < canvas.height) {
+                const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedPx);
+
+                const sliceCanvas = document.createElement('canvas');
+                sliceCanvas.width = canvas.width;
+                sliceCanvas.height = sliceHeightPx;
+                sliceCanvas.getContext('2d').drawImage(
+                    canvas, 0, renderedPx, canvas.width, sliceHeightPx,
+                    0, 0, canvas.width, sliceHeightPx
+                );
+                const sliceData = sliceCanvas.toDataURL('image/png');
+                const sliceHeightMm = (sliceHeightPx * imgWidthMm) / canvas.width;
+
+                if (pageNum > 0) pdf.addPage();
+                pdf.addImage(sliceData, 'PNG', marginMm, marginMm, imgWidthMm, sliceHeightMm);
+
+                renderedPx += sliceHeightPx;
+                pageNum++;
+            }
+
             const blob = pdf.output('blob');
             const safeName = (filenameBase || 'Document').replace(/[^\w.-]+/g, '_');
             const file = new File([blob], `${safeName}.pdf`, { type: 'application/pdf' });
@@ -9221,6 +9275,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         } catch (err) {
             console.error('PDF export failed, falling back to print dialog', err);
             fallbackPrintFn();
+        } finally {
+            noPrintEls.forEach((el, i) => { el.style.display = prevDisplay[i]; });
         }
     }
 
