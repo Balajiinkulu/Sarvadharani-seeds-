@@ -431,6 +431,14 @@ input, select, textarea {
     outline: none;
     transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
 }
+
+/* iOS renders <input type="date"> as an oversized picker control by
+   default — pin it down to a normal field height/size. */
+input[type="date"] {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    height: 38px;
+}
 input[type="number"] {
     font-family: 'JetBrains Mono', monospace;
     text-align: right;
