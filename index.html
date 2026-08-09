@@ -287,15 +287,13 @@ h3 {
     overflow: hidden;
 }
 .ldg-root #tileMenu .ldg-menu {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 8px;
     padding: 8px 12px 14px;
     border-top: none;
 }
 .ldg-root #tileMenu .ldg-menu-item {
-    flex: 1 1 auto;
-    min-width: 90px;
     border: 1px solid var(--ldg-rule-strong);
     border-radius: 10px;
     background: var(--ldg-bg);
@@ -1522,10 +1520,14 @@ header.ldg-header::before { content: none !important; }
 .ldg-root .form-grid, .ldg-root form {
     display: block;
     background: var(--ldg-surface);
+    padding: 10px 0;
 }
 .ldg-root .form-grid > div, .ldg-root form > div {
+    background: var(--ldg-surface);
     padding: 10px 14px;
-    border-bottom: 1px solid var(--ldg-rule);
+    margin: 0 14px 8px;
+    border: 1px solid var(--ldg-rule-strong);
+    border-radius: 12px;
 }
 .ldg-root label {
     font-size: 0.68rem;
@@ -1571,9 +1573,9 @@ header.ldg-header::before { content: none !important; }
 .ldg-root .item-builder {
     background: var(--ldg-surface);
     border: 1px solid var(--ldg-rule-strong);
-    border-radius: 0;
+    border-radius: 12px;
     padding: 10px 14px;
-    margin: 10px 14px;
+    margin: 0 14px 8px;
 }
 /* When a .panel's content is the new ledger design, strip the panel's
    own glass-card chrome (background/blur/shadow/radius/padding) so
