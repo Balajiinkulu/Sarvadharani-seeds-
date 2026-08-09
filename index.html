@@ -303,6 +303,38 @@ h3 {
     transform: translateY(-2px);
 }
 
+/* Recent Transactions — fills the empty space below the Menu card
+   with the last few posted vouchers. */
+#recentTxnCard {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    margin-bottom: 20px;
+}
+.recent-txn-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color 160ms ease, transform 160ms ease;
+}
+.recent-txn-row:last-child { margin-bottom: 0; }
+.recent-txn-row:hover { border-color: var(--accent-2); transform: translateY(-1px); }
+.recent-txn-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.recent-txn-party { font-weight: 600; font-size: 0.88rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-txn-meta { font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.02em; }
+.recent-txn-amt { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.9rem; color: var(--text-main); white-space: nowrap; }
+.recent-txn-empty { color: var(--text-muted); font-size: 0.85rem; padding: 8px 2px; }
+
 /* Sub-menu and panels are hidden by default; JS toggles .active */
 .submenu, .panel {
     display: none;
@@ -1466,7 +1498,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     </header>
 
     <!-- Dashboard Metrics -->
-    <div class="dashboard-summary" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));">
+    <div class="dashboard-summary" id="homeDashboardSummary" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));">
         <div class="summary-card" onclick="openPanel('panelPendingReceivable')" style="cursor:pointer;" title="View pending sales invoices">
             <div>Pending to Receive (Sales)</div>
             <div id="statReceivable" style="color: var(--success);">&#8377;0.00</div>
@@ -1488,6 +1520,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="dash-menu-item" onclick="openPanel('panelLedger')">Ledger</div>
             <div class="dash-menu-item" onclick="openGroup('groupSettings')">Admin</div>
         </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div id="recentTxnCard">
+        <div class="section-label" style="margin-top:0;">Recent Transactions</div>
+        <div id="recentTxnList"></div>
     </div>
 
 
@@ -4180,6 +4218,39 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         return Math.max(0, txn.grandTotal - settled);
     }
 
+    // ---- Recent Transactions (dashboard widget) ----
+    // Shows the last few posted vouchers of any type, newest first,
+    // each opening straight into the same edit modal used everywhere
+    // else in the app (openEditModal).
+    function renderRecentTransactions() {
+        const listEl = document.getElementById('recentTxnList');
+        if (!listEl) return;
+
+        const recent = [...transactions]
+            .sort((a, b) => b.id - a.id)
+            .slice(0, 5);
+
+        if (recent.length === 0) {
+            listEl.innerHTML = '<div class="recent-txn-empty">No vouchers posted yet.</div>';
+            return;
+        }
+
+        listEl.innerHTML = recent.map(t => {
+            const who = t.partyName || t.accountName ||
+                (t.type === 'Journal' ? ((t.journalDebit && t.journalDebit.name) || 'Journal Entry') : 'Cash Party');
+            const dateLabel = t.date ? new Date(t.date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
+            return `
+                <div class="recent-txn-row" onclick="openEditModal(${t.id})">
+                    <div class="recent-txn-main">
+                        <div class="recent-txn-party">${escapeHtml(who)}</div>
+                        <div class="recent-txn-meta">${escapeHtml(t.type)} &middot; ${escapeHtml(t.invNo || '')} &middot; ${dateLabel}</div>
+                    </div>
+                    <div class="recent-txn-amt">&#8377;${(t.grandTotal || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
     // ---- Pending to Receive / Pending to Pay (dashboard tile drill-downs) ----
     // Lists every Sales (or Purchase/RawPurchase) invoice that still has
     // money outstanding, using the same invoiceOutstanding() math the
@@ -4705,8 +4776,20 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     };
     let currentGroup = null;
 
+    // Elements that belong to the home dashboard only — hidden the moment
+    // any group/panel is opened, so that content appears right at the top
+    // instead of below the whole dashboard, and restored only when back home.
+    function setHomeDashboardVisible(visible) {
+        const ids = ['homeDashboardSummary', 'extrasBar', 'backupBanner', 'recentTxnCard'];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = visible ? '' : 'none';
+        });
+    }
+
     function hideAllMenus() {
         document.getElementById('tileMenu').style.display = 'none';
+        setHomeDashboardVisible(false);
         document.querySelectorAll('.submenu').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     }
@@ -4724,6 +4807,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         hideAllMenus();
         currentGroup = null;
         document.getElementById('tileMenu').style.display = 'block';
+        setHomeDashboardVisible(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -4774,6 +4858,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             document.getElementById(currentGroup).classList.add('active');
         } else {
             document.getElementById('tileMenu').style.display = 'block';
+            setHomeDashboardVisible(true);
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -9960,6 +10045,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         document.getElementById('statReceivable').innerText = `\u20B9${totalReceivable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         document.getElementById('statPayable').innerText = `\u20B9${totalPayable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        renderRecentTransactions();
         // Net GST Liability is now shown only in Reports > GST Liability
         // (see panelGstLiability / renderGstLiability), not on the
         // dashboard, so there's no #statGst element to write to any more.
