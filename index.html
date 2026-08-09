@@ -440,8 +440,11 @@ form, .form-grid {
 }
 
 /* Date field — skip the big card treatment above; just a small
-   inline label + compact date box. */
-.form-grid > div:has(> #vDate) {
+   inline label + compact date box. Applies to both Post Voucher
+   (#vDate) and the Edit Voucher modal (#editDate), which share the
+   same markup pattern. */
+.form-grid > div:has(> #vDate),
+.form-grid > div:has(> #editDate) {
     background: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -451,11 +454,12 @@ form, .form-grid {
     align-items: center;
     gap: 10px;
 }
-.form-grid > div:has(> #vDate) label {
+.form-grid > div:has(> #vDate) label,
+.form-grid > div:has(> #editDate) label {
     margin-bottom: 0;
     white-space: nowrap;
 }
-#vDate {
+#vDate, #editDate {
     width: auto;
     max-width: 150px;
 }
