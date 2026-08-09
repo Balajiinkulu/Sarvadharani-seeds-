@@ -407,6 +407,27 @@ form, .form-grid {
     padding: 12px 14px;
 }
 
+/* Date field — skip the big card treatment above; just a small
+   inline label + compact date box. */
+.form-grid > div:has(> #vDate) {
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.form-grid > div:has(> #vDate) label {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+#vDate {
+    width: auto;
+    max-width: 150px;
+}
+
 label {
     display: block;
     font-size: 0.72rem;
