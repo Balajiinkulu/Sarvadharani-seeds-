@@ -274,6 +274,21 @@ h3 {
     box-shadow: var(--card-shadow);
 }
 
+/* Inside the ldg (paper/flat) dashboard, give the Post Voucher + Menu
+   block its own rounded, bordered card so it reads as a distinct
+   section instead of blending into the page background. No icons or
+   imagery added — separation comes purely from the border + radius. */
+.ldg-root #tileMenu {
+    background: var(--ldg-surface);
+    border: 1px solid var(--ldg-rule-strong);
+    border-radius: 14px;
+    padding: 0;
+    margin: 14px 12px 20px;
+    overflow: hidden;
+}
+.ldg-root #tileMenu .ldg-menu { border-top: 1px solid var(--ldg-rule-strong); }
+.ldg-root #tileMenu .ldg-menu-item:last-child { border-right: none; }
+
 /* Sub-menu and panels are hidden by default; JS toggles .active */
 .submenu, .panel {
     display: none;
