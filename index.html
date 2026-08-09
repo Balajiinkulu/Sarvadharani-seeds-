@@ -616,6 +616,17 @@ table button {
 .party-ac-item:hover, .party-ac-item.active { background: var(--accent-soft); color: var(--accent-hover); }
 .party-ac-empty { padding: 10px 12px; color: var(--text-muted); font-size: 0.82rem; }
 
+/* The Select Party field card gets a backdrop-filter (see the
+   ".form-grid > div:has(> label)" rule above), and backdrop-filter
+   creates its own stacking context. That traps the dropdown's
+   z-index: 400 inside the card — it can no longer out-rank the Tax
+   Type / Sub-Ledger cards that follow, which get the exact same
+   frosted background and paint on top of it in DOM order. Raising
+   the whole card above its siblings lets the open dropdown (and
+   everything in it) float above the fields underneath instead of
+   being sliced up by them. */
+#vPartyWrap { z-index: 30; }
+
 /* ---------- Invoice modal ---------- */
 #invoiceModal, #editModal {
     display: none;
