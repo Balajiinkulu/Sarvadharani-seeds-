@@ -573,28 +573,42 @@ table button {
     width: auto;
 }
 
-/* ---------- Party autocomplete ---------- */
+/* ---------- Party / item autocomplete — flat table-row style,
+   matching the Ledger search results list ---------- */
 .party-ac-list {
     position: absolute;
     z-index: 400;
-    background: #FFFFFF;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    box-shadow: 0 12px 32px -8px rgba(20,32,26,0.28);
+    background: var(--ldg-surface, #FFFFFF);
+    border: 1px solid var(--ldg-rule-strong, var(--border-strong));
+    border-radius: 10px;
+    box-shadow: 0 12px 32px -8px rgba(20,32,26,0.18);
     max-height: 240px;
     overflow-y: auto;
     width: 100%;
     margin-top: 2px;
 }
 .party-ac-item {
-    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 14px;
     cursor: pointer;
     font-size: 0.85rem;
-    background: #FFFFFF;
-    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    background: var(--ldg-surface, #FFFFFF);
+    color: var(--ldg-ink, var(--text-main));
+    border-bottom: 1px solid var(--ldg-rule, var(--border));
 }
-.party-ac-item:hover, .party-ac-item.active { background: var(--accent-soft); color: var(--accent-hover); }
-.party-ac-empty { padding: 10px 12px; color: var(--text-muted); font-size: 0.82rem; }
+.party-ac-item:last-child { border-bottom: none; }
+.party-ac-item .party-ac-sub {
+    color: var(--ldg-ink-muted, var(--text-muted));
+    font-size: 0.78rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.party-ac-item:hover, .party-ac-item.active { background: #EFF1EE; }
+.party-ac-empty { padding: 12px 14px; color: var(--ldg-ink-muted, var(--text-muted)); font-size: 0.82rem; }
 
 /* ---------- Invoice modal ---------- */
 #invoiceModal, #editModal {
@@ -6009,7 +6023,8 @@ header.ldg-header::before { content: none !important; }
         } else {
             listEl.innerHTML = vItemFiltered.map((s, idx) => `
                 <div class="party-ac-item" data-idx="${idx}" onclick="selectItemFromList(${idx})">
-                    ${escapeHtml(s.name)} <span style="color:var(--text-muted); font-size:0.8em;">(${escapeHtml(s.uom || '')})</span>
+                    <span>${escapeHtml(s.name)}</span>
+                    <span class="party-ac-sub">${escapeHtml(s.uom || '')}</span>
                 </div>
             `).join('');
         }
@@ -6349,7 +6364,8 @@ header.ldg-header::before { content: none !important; }
         } else {
             listEl.innerHTML = vPartyFiltered.map((p, idx) => `
                 <div class="party-ac-item" data-idx="${idx}" onclick="selectPartyFromList(${idx})">
-                    ${escapeHtml(p.name)} <span style="color:var(--text-muted); font-size:0.8em;">(${escapeHtml(p.type)})</span>
+                    <span>${escapeHtml(p.name)}</span>
+                    <span class="party-ac-sub">${escapeHtml(p.type)}</span>
                 </div>
             `).join('');
         }
