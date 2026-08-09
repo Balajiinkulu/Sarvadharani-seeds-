@@ -681,6 +681,31 @@ table button {
 .party-ac-item:hover, .party-ac-item.active { background: var(--accent-soft); color: var(--accent-hover); }
 .party-ac-empty { padding: 10px 12px; color: var(--text-muted); font-size: 0.82rem; }
 
+/* PDF-export capture mode (used only for the instant a node is
+   screenshotted for a shared PDF — see smartPrint() in the script
+   below). Redefines the theme's color tokens to crisp, high-contrast
+   print values instead of the app's on-screen muted glass palette,
+   and gives table rows a visible alternating stripe. Uses the same
+   CSS variables the rest of the app already reads (--text-main,
+   --bg-tint, etc.), so this never touches an element's own explicit
+   inline color (debit/credit red, green, etc. stay exactly as
+   authored — only the inherited/default text and backgrounds change). */
+.pdf-capture-mode {
+    --bg-card: #ffffff;
+    --bg-tint: #E9EFF7;
+    --text-main: #0F172A;
+    --text-muted: #475569;
+    --border: #C3D0E0;
+    --border-strong: #64748B;
+    --statement-row-alt: #EEF2F7;
+    --accent-soft: #ffffff;
+    background: #ffffff !important;
+    overflow: visible !important;
+}
+.pdf-capture-mode table { border: 1px solid #C3D0E0; }
+.pdf-capture-mode thead th { border-bottom: 2px solid #64748B; }
+.pdf-capture-mode tfoot td { border-top: 2px solid #64748B; }
+
 /* The Select Party field card gets a backdrop-filter (see the
    ".form-grid > div:has(> label)" rule above), and backdrop-filter
    creates its own stacking context. That traps the dropdown's
@@ -9195,6 +9220,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const noPrintEls = node.querySelectorAll('.no-print');
         const prevDisplay = Array.from(noPrintEls).map(el => el.style.display);
         noPrintEls.forEach(el => { el.style.display = 'none'; });
+
+        // Swap in crisp print colors (see .pdf-capture-mode) and lift any
+        // overflow-x:auto clipping (e.g. the ledger's scrollable table),
+        // so the snapshot captures the FULL width of wide content instead
+        // of only whatever fit in the on-screen scroll viewport.
+        const prevOverflow = node.style.overflow;
+        node.classList.add('pdf-capture-mode');
+        node.style.overflow = 'visible';
+
         try {
             // Explicit width/height (and matching windowWidth/windowHeight)
             // tell html2canvas to render the node's FULL scrollable content,
@@ -9277,6 +9311,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             fallbackPrintFn();
         } finally {
             noPrintEls.forEach((el, i) => { el.style.display = prevDisplay[i]; });
+            node.classList.remove('pdf-capture-mode');
+            node.style.overflow = prevOverflow;
         }
     }
 
