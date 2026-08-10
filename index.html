@@ -8580,7 +8580,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const rh = document.getElementById('invRateHead');
         if (rh) rh.innerText = (txn.rateMode === 'EXEMPT') ? 'Rate (Nil GST)' : 'Rate (Incl GST)';
         document.getElementById('invNo').innerText = txn.invNo;  
-        document.getElementById('invDate').innerText = txn.date;  
+        // Every voucher's id is a Date.now() timestamp from when it was
+        // created, so the creation time can be shown without needing a
+        // separate stored field — works for vouchers created before this
+        // was added too.
+        const createdTime = txn.id ? new Date(Number(txn.id)).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '';
+        document.getElementById('invDate').innerText = txn.date + (createdTime ? ` \u00B7 ${createdTime}` : '');  
         document.getElementById('invParty').innerText = isJournalTxn
             ? `Dr ${txn.journalDebit ? txn.journalDebit.name : 'Unknown'}  /  Cr ${txn.journalCredit ? txn.journalCredit.name : 'Unknown'}`
             : txn.partyName;  
@@ -9657,7 +9662,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <table class="no-border" style="margin-top:14px;">
                     <tr>
                         <td class="no-border" style="width:50%;">No. : <strong>${escapeHtml(txn.invNo)}</strong></td>
-                        <td class="no-border right">Dated : <strong>${txn.date}</strong></td>
+                        <td class="no-border right">Dated : <strong>${txn.date}${txn.id ? ' &middot; ' + escapeHtml(new Date(Number(txn.id)).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })) : ''}</strong></td>
                     </tr>
                 </table>
 
@@ -9749,7 +9754,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td class="no-border" style="width:40%; overflow:hidden;">
                             <div style="display:flex; gap:4px;">
                                 <div class="small" style="flex:1; min-width:0; overflow-wrap:break-word;">Invoice No.<br><strong>${escapeHtml(txn.invNo)}</strong></div>
-                                <div class="small" style="flex:1; min-width:0;">Dated<br><strong>${txn.date}</strong></div>
+                                <div class="small" style="flex:1; min-width:0;">Dated<br><strong>${txn.date}${txn.id ? ' &middot; ' + escapeHtml(new Date(Number(txn.id)).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })) : ''}</strong></div>
                             </div>
                         </td>
                     </tr>
