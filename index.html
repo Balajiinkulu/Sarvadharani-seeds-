@@ -351,11 +351,8 @@ h3 {
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: border-color 160ms ease, transform 160ms ease;
 }
 .recent-txn-row:last-child { margin-bottom: 0; }
-.recent-txn-row:hover { border-color: var(--accent-2); transform: translateY(-1px); }
 .recent-txn-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .recent-txn-party { font-weight: 600; font-size: 0.88rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent-txn-meta { font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.02em; }
@@ -4399,9 +4396,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     // ---- Recent Transactions (dashboard widget) ----
-    // Shows the last few posted vouchers of any type, newest first,
-    // each opening straight into the same edit modal used everywhere
-    // else in the app (openEditModal).
+    // Shows the last few posted vouchers of any type, newest first.
+    // Read-only summary — rows do not open or navigate anywhere.
     function renderRecentTransactions() {
         const listEl = document.getElementById('recentTxnList');
         if (!listEl) return;
@@ -4420,7 +4416,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 (t.type === 'Journal' ? ((t.journalDebit && t.journalDebit.name) || 'Journal Entry') : 'Cash Party');
             const dateLabel = t.date ? new Date(t.date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
             return `
-                <div class="recent-txn-row" onclick="openEditModal(${t.id})">
+                <div class="recent-txn-row">
                     <div class="recent-txn-main">
                         <div class="recent-txn-party">${escapeHtml(who)}</div>
                         <div class="recent-txn-meta">${escapeHtml(t.type)} &middot; ${escapeHtml(t.invNo || '')} &middot; ${dateLabel}</div>
