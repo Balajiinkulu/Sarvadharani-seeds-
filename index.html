@@ -563,6 +563,21 @@ button::before {
 button:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 8px 20px -6px rgba(46,92,59,0.5), inset 0 1px 0 0 rgba(255,255,255,0.4); }
 button:active { transform: translateY(1px); filter: brightness(0.96); }
 
+/* A lone button in its own block (e.g. a form's single Submit button)
+   is meant to stretch full-width — that's what the default `width:100%`
+   above is for. But wherever a button shares a row with other controls
+   (toolbars, modal footers, per-row action buttons in a table), every
+   button in that row should size to its own label instead, or one
+   button randomly claiming 100% width throws the whole row's spacing
+   off. Nearly every such row in this app is a <div>/<td> with an inline
+   `display:flex` style, so this catches all of them in one place rather
+   than needing width:auto repeated on every single button by hand. */
+div[style*="display:flex"] > button,
+td[style*="display:flex"] > button,
+label[style*="display:flex"] > button {
+    width: auto;
+}
+
 button.btn-success {
     background: var(--grad-accent);
 }
@@ -3793,6 +3808,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <option value="formal">Formal</option>
                 </select>
             </div>
+            <button onclick="document.getElementById('invoiceModal').style.display='none'; openEditModal(currentPrintTxnId);">Edit</button>
             <button onclick="document.getElementById('invoiceModal').style.display='none'" style="background:#64748b; color:white;">Close</button>
         </div>
     </div>
@@ -4323,6 +4339,56 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         localStorage.setItem('tally_mob_refcounter', JSON.stringify(refCounter));
         syncCloud();
         return `SDS/${fy}/${prefix}/` + String(refCounter[counterKey]).padStart(pad || 4, '0');
+    }
+
+    // The refCounter key nextVoucherNo() would have used to create this
+    // exact voucher, reconstructed from the voucher itself. Needed so a
+    // deletion can step the right counter back down (see below).
+    function voucherCounterKeyOf(t) {
+        if (t.customVoucherTypeId) return 'custom_' + t.customVoucherTypeId;
+        if (t.type === 'Purchase') return t.rawPurchase ? 'RawPurchase' : 'Purchase';
+        return t.type; // Sales, RawPurchase, Payment, Receipt, DeliveryNote,
+                        // Journal, Conversion, OptionalSales, OptionalPurchase
+    }
+
+    // Closes the gap a deleted voucher leaves behind, so every series (one
+    // financial year + one prefix, e.g. SDS/26-27/INV) stays a clean,
+    // unbroken 1, 2, 3, ... run with nothing missing — every voucher
+    // AFTER the deleted one in that same series steps its number down by
+    // one, and the counter that hands out the next NEW number for that
+    // series steps back down to match, so the next voucher posted picks
+    // up right where the shifted numbers now leave off.
+    //
+    // Call this with the voucher's own data captured BEFORE removing it
+    // from the transactions array (it only needs txn.invNo and enough of
+    // txn itself for voucherCounterKeyOf() — it doesn't touch the array
+    // membership itself).
+    function renumberSeriesAfterDelete(deletedTxn) {
+        const m = /^SDS\/([^/]+)\/([^/]+)\/(\d+)$/.exec(deletedTxn && deletedTxn.invNo || '');
+        if (!m) return; // not the standard auto-numbered pattern — nothing to shift
+        const fy = m[1], prefix = m[2], deletedNum = parseInt(m[3], 10), pad = m[3].length;
+
+        const affected = transactions
+            .map(t => {
+                const mm = /^SDS\/([^/]+)\/([^/]+)\/(\d+)$/.exec(t.invNo || '');
+                if (!mm || mm[1] !== fy || mm[2] !== prefix) return null;
+                const num = parseInt(mm[3], 10);
+                return num > deletedNum ? { t, num } : null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.num - b.num); // shift lowest-first so numbers never collide mid-shift
+
+        if (affected.length === 0 && !(voucherCounterKeyOf(deletedTxn) + '_' + fy in refCounter)) return;
+
+        affected.forEach(({ t, num }) => {
+            t.invNo = `SDS/${fy}/${prefix}/` + String(num - 1).padStart(pad, '0');
+        });
+
+        const counterKey = voucherCounterKeyOf(deletedTxn) + '_' + fy;
+        if (refCounter[counterKey] !== undefined) {
+            refCounter[counterKey] = Math.max(0, refCounter[counterKey] - 1);
+            localStorage.setItem('tally_mob_refcounter', JSON.stringify(refCounter));
+        }
     }
 
     // Outstanding still due on a Sales/Purchase invoice (grandTotal minus
@@ -5586,15 +5652,16 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // ---- Invoice Number Gap Check ----
     // Every voucher number is produced by nextVoucherNo() as
     // SDS/<financial year>/<prefix>/<number>, and that counter climbs
-    // by exactly 1 each time a voucher of that type+year is posted — it
-    // never steps back down. So within one series (one FY + one prefix,
-    // e.g. SDS/25-26/INV) the numbers actually in use should always run
-    // 1, 2, 3, ... with nothing missing. A hole in that run essentially
-    // only happens one way: a voucher that had already been numbered
-    // was later deleted (its neighbours keep their numbers as-is,
-    // deleting never renumbers anything). Flagging that here means it
-    // gets noticed and can be explained/documented before an audit,
-    // rather than being found for the first time by a tax officer.
+    // by exactly 1 each time a voucher of that type+year is posted. On
+    // top of that, deleting a voucher (see renumberSeriesAfterDelete())
+    // shifts every later voucher in its own series down by one number,
+    // so within one series (one FY + one prefix, e.g. SDS/25-26/INV) the
+    // numbers actually in use should always run 1, 2, 3, ... with
+    // nothing missing. A hole in that run at this point would mean a
+    // voucher's number was edited/typed manually outside the normal
+    // auto-numbering, or a very old voucher predates this renumbering
+    // behaviour — either way, worth checking and documenting before an
+    // audit rather than being found for the first time by a tax officer.
     function renderInvoiceGapCheck() {
         const seriesMap = {};   // "FY/PREFIX" -> { fy, prefix, numbers: { n: [txns] } }
         const unparsed = [];
@@ -7348,6 +7415,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         syncCloud();
 
         transactions.splice(txnIndex, 1);
+        renumberSeriesAfterDelete(txn);
         localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
         syncCloud();
         render();
@@ -7964,6 +8032,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (!t) return;
         if (!confirm(`Delete delivery note ${t.invNo}?`)) return;
         transactions = transactions.filter(x => x.id != txnId);
+        renumberSeriesAfterDelete(t);
         localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
         syncCloud();
         renderDeliveryNotes();
@@ -8305,6 +8374,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         syncCloud();
 
         transactions = transactions.filter(t => t.id != convId);
+        renumberSeriesAfterDelete(conv);
         localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
         syncCloud();
 
@@ -8718,6 +8788,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (!txn) return;
         if (!confirm(`Delete optional voucher ${txn.invNo}?`)) return;
         transactions = transactions.filter(t => t.id != txnId);
+        renumberSeriesAfterDelete(txn);
         localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
         syncCloud();
         renderOptional();
@@ -9057,7 +9128,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (txnMatches.length) {
             html += '<div class="section-label">Vouchers</div>';
             txnMatches.forEach(t => {
-                html += `<div class="party-ac-item" onclick="closeGlobalSearch(); openEditModal(${t.id})">
+                html += `<div class="party-ac-item" onclick="closeGlobalSearch(); printInvoice(${t.id})">
                     <div style="display:flex; justify-content:space-between; gap:10px;">
                         <span><strong>${escapeHtml(t.invNo || t.type || '')}</strong> &mdash; ${escapeHtml(t.partyName || t.type || '')}</span>
                         <span style="font-family:'JetBrains Mono', monospace; white-space:nowrap;">&#8377;${(t.grandTotal || 0).toFixed(2)}</span>
