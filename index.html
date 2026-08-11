@@ -2035,7 +2035,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <th>Qty</th>
                         <th>Rate</th>
                         <th>Amount</th>
-                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="itemTxnBody"></tbody>
@@ -3134,7 +3133,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <th>Qty</th>
                         <th>Rate</th>
                         <th>Total</th>
-                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="rawPurchaseReportBody"></tbody>
@@ -7531,7 +7529,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.accountName || 'Cash')}</td>
                         <td onclick="printInvoice(${openId})">${ref}</td>
                         <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
-                        <td style="display:flex; gap:6px;"><button onclick="event.stopPropagation(); openEditModal(${t.id})" style="padding:4px 10px; font-size:0.72rem; width:auto;">Edit</button><button onclick="event.stopPropagation(); deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
+                        <td style="display:flex; gap:6px;"><button onclick="event.stopPropagation(); deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
                     </tr>
                 `;
             });
@@ -7812,7 +7810,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td onclick="printInvoice(${t.id})">\u20B9${t.totalTax.toFixed(2)}</td>
                         <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
                         <td class="no-print" style="display:flex; gap:6px;">
-                            <button onclick="event.stopPropagation(); openEditModal(${t.id})" style="padding:3px 9px; font-size:0.7rem; width:auto;">Edit</button>
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${t.id})" class="btn-danger" style="padding:3px 9px; font-size:0.7rem;">Delete</button>
                         </td>
                     </tr>
@@ -7874,7 +7871,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td onclick="printInvoice(${t.id})">\u20B9${t.totalTax.toFixed(2)}</td>
                         <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
                         <td class="no-print" style="display:flex; gap:6px;">
-                            <button onclick="event.stopPropagation(); openEditModal(${t.id})" style="padding:3px 9px; font-size:0.7rem; width:auto;">Edit</button>
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${t.id})" class="btn-danger" style="padding:3px 9px; font-size:0.7rem;">Delete</button>
                         </td>
                     </tr>
@@ -8503,7 +8499,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td onclick="printInvoice(${t.id})">${line.qty || 0} ${escapeHtml(line.uom || '')}</td>
                         <td onclick="printInvoice(${t.id})">\u20B9${(line.inclRate || 0).toFixed(2)}</td>
                         <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
-                        <td class="no-print"><button onclick="event.stopPropagation(); openEditModal(${t.id})" style="padding:3px 9px; font-size:0.7rem; width:auto;">Edit</button></td>
                     </tr>
                 `;
             });
@@ -9479,7 +9474,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td style="vertical-align:top; color:${debitColor};" onclick="openTransactionDetail(${txn.id})">${debit > 0 ? debit.toFixed(2) : ''}</td>
                         <td style="vertical-align:top; color:${creditColor};" onclick="openTransactionDetail(${txn.id})">${credit > 0 ? credit.toFixed(2) : ''}</td>
                         <td class="no-print" style="vertical-align:top; white-space:nowrap;">
-                            <button onclick="event.stopPropagation(); openEditModal(${txn.id})" style="padding:2px 8px; font-size:0.68rem; width:auto;">Edit</button>
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${txn.id})" class="btn-danger" style="padding:2px 8px; font-size:0.68rem; width:auto;">Delete</button>
                         </td>
                     </tr>
@@ -10304,7 +10298,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td onclick="printInvoice(${r.openId})">${r.qty} ${escapeHtml(r.uom)}</td>
                         <td onclick="printInvoice(${r.openId})">\u20B9${r.rate.toFixed(2)}</td>
                         <td onclick="printInvoice(${r.openId})" style="font-weight:bold;">\u20B9${r.amount.toFixed(2)}</td>
-                        <td><button onclick="event.stopPropagation(); openEditModal(${r.openId})" style="padding:3px 9px; font-size:0.7rem; width:auto;">Edit</button></td>
                     </tr>
                 `;
             });
@@ -10530,7 +10523,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <td>\u20B9${t.grandTotal.toFixed(2)}</td>  
                     <td style="display:flex; gap:6px;">
                         ${actionBtn}
-                        <button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button>
                         <button onclick="deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
                     </td>  
                 </tr>  
