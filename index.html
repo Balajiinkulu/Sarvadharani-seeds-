@@ -5259,10 +5259,37 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <td>${escapeHtml(p.type)}</td>
                     <td>${escapeHtml(p.phone || '-')}</td>
                     <td style="color:${bal >= 0 ? 'var(--success)' : 'var(--danger)'};">\u20B9${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}</td>
-                    <td><button onclick="editPartyAlter(${p.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button></td>
+                    <td style="display:flex; gap:6px;">
+                        <button onclick="editPartyAlter(${p.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button>
+                        <button onclick="deleteParty(${p.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
+                    </td>
                 </tr>
             `;
         });
+    }
+
+    // Deletes a party outright — only allowed when nothing references it
+    // (no vouchers posted against it, no non-zero opening/closing balance),
+    // same safety pattern used for deleting an account/item/group. This
+    // prevents Ledger/Statement history from ever pointing at a party that
+    // no longer exists.
+    function deleteParty(partyId) {
+        if (!isAdmin() && !hasPermission('deleteParty')) return alert("Only an admin, or a user with 'Delete a party' turned on, can delete a party.");
+        const p = parties.find(x => x.id == partyId);
+        if (!p) return;
+
+        const used = transactions.some(t => t.partyId == partyId);
+        if (used) return alert(`Cannot delete "${p.name}" — it has vouchers linked to it. Delete or reassign those first.`);
+
+        const bal = partyBalance(partyId);
+        if (Math.abs(bal) > 0.005) return alert(`Cannot delete "${p.name}" — it still has an outstanding balance of \u20B9${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}. Clear the balance first.`);
+
+        if (!confirm(`Delete party "${p.name}"? This cannot be undone.`)) return;
+        parties = parties.filter(x => x.id != partyId);
+        localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
+        syncCloud();
+        renderAlterParty();
+        render();
     }
 
     function editPartyAlter(partyId) {
