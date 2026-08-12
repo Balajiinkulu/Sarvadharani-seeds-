@@ -3998,15 +3998,49 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         console.warn('Firestore offline persistence not enabled:', err.code);
     });
 
-    // Every device reads/writes this one shared document, so mobile
-    // and desktop always stay in sync automatically.
+    // Two Firestore locations now, instead of one:
+    //  - CLOUD_DOC: parties, stock items, accounts, groups, settings —
+    //    small, changes rarely, stays as one shared document.
+    //  - TXN_COL: one document PER VOUCHER. Previously every voucher lived
+    //    inside a single giant array on CLOUD_DOC, so posting/editing/
+    //    deleting ANY voucher re-uploaded the ENTIRE transaction history,
+    //    and the whole dataset was capped by Firestore's 1MB per-document
+    //    limit. Splitting transactions into their own collection means a
+    //    single voucher change only ever moves that one small record.
     const CLOUD_DOC = cloudDb.collection('sarvadharaniSeeds').doc('appData');
+    const TXN_COL = cloudDb.collection('sarvadharaniSeeds_transactions');
 
-    let cloudBootstrapped = false;
+    let cloudBootstrapped = false;   // CLOUD_DOC has been read at least once
+    let txnBootstrapped = false;     // TXN_COL has been read at least once
     let cloudPushTimer = null;
+    let txnPushTimer = null;
 
-    // Push current in-memory state to Firestore (debounced so a burst
-    // of edits doesn't fire a write per keystroke).
+    // What we last confirmed is saved in TXN_COL, keyed by id (as a JSON
+    // string of the row) — lets syncCloud() diff the in-memory list
+    // against it and only write the rows that actually changed, instead
+    // of re-uploading every voucher on every save.
+    let lastSyncedTxnSnapshot = new Map();
+
+    // Splits a batch of Firestore writes into chunks of at most 400 (the
+    // hard limit is 500 ops per batch) so a large one-time migration or
+    // bulk change can never silently fail from exceeding it.
+    function commitInChunks(ops) {
+        const CHUNK = 400;
+        let chain = Promise.resolve();
+        for (let i = 0; i < ops.length; i += CHUNK) {
+            const slice = ops.slice(i, i + CHUNK);
+            chain = chain.then(() => {
+                const batch = cloudDb.batch();
+                slice.forEach(op => op(batch));
+                return batch.commit();
+            });
+        }
+        return chain;
+    }
+
+    // Push current in-memory metadata (everything except transactions) to
+    // Firestore (debounced so a burst of edits doesn't fire a write per
+    // keystroke).
     //
     // IMPORTANT: this refuses to run until cloudBootstrapped is true —
     // i.e. until we've heard back from Firestore at least once. Without
@@ -4018,21 +4052,52 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         clearTimeout(cloudPushTimer);
         cloudPushTimer = setTimeout(() => {
             CLOUD_DOC.set({
-                parties, stockItems, transactions, accounts,
+                parties, stockItems, accounts,
                 stockGroups, ledgerGroups, refCounter, subLedgers,
                 customVoucherTypes, userRoles, updatedAt: Date.now()
             }, { merge: true }).catch(err => console.error('Cloud sync failed:', err));
         }, 400);
+        syncTxnsCloud();
     }
 
-    // Apply data that came from Firestore (this device's own confirmed
-    // write, or a change made on another device) into memory + the
-    // local cache, then redraw.
+    // Push only the transactions that changed since the last confirmed
+    // sync — same debounce pattern as syncCloud(), but diffs against
+    // lastSyncedTxnSnapshot first so a single new/edited/deleted voucher
+    // becomes one small write instead of re-uploading the whole ledger.
+    function syncTxnsCloud() {
+        if (!txnBootstrapped) return;
+        clearTimeout(txnPushTimer);
+        txnPushTimer = setTimeout(() => {
+            const ops = [];
+            const seenIds = new Set();
+
+            transactions.forEach(t => {
+                const id = String(t.id);
+                seenIds.add(id);
+                const json = JSON.stringify(t);
+                if (lastSyncedTxnSnapshot.get(id) !== json) {
+                    ops.push(batch => batch.set(TXN_COL.doc(id), t));
+                }
+            });
+            lastSyncedTxnSnapshot.forEach((_, id) => {
+                if (!seenIds.has(id)) ops.push(batch => batch.delete(TXN_COL.doc(id)));
+            });
+
+            if (ops.length === 0) return;
+            commitInChunks(ops).then(() => {
+                lastSyncedTxnSnapshot = new Map(transactions.map(t => [String(t.id), JSON.stringify(t)]));
+            }).catch(err => console.error('Cloud sync failed:', err));
+        }, 400);
+    }
+
+    // Apply metadata that came from Firestore (this device's own confirmed
+    // write, or a change made on another device) into memory + the local
+    // cache, then redraw. Transactions are handled separately by
+    // applyTxnChanges() below, via the TXN_COL listener.
     function applyCloudData(data) {
         if (!data) return;
         parties = data.parties || [];
         stockItems = data.stockItems || [];
-        transactions = data.transactions || [];
         accounts = data.accounts || [];
         stockGroups = data.stockGroups || [];
         ledgerGroups = data.ledgerGroups || [];
@@ -4043,7 +4108,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
         localStorage.setItem('tally_mob_stock', JSON.stringify(stockItems));
-        localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
         localStorage.setItem('tally_mob_accounts', JSON.stringify(accounts));
         localStorage.setItem('tally_mob_stockgroups', JSON.stringify(stockGroups));
         localStorage.setItem('tally_mob_ledgergroups', JSON.stringify(ledgerGroups));
@@ -4055,31 +4119,107 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (typeof render === 'function') render();
     }
 
-    // Live listener — fires immediately once signed in with whatever is
-    // already saved, and again any time this device or ANY other
-    // device (phone/laptop) changes the data. Only starts after real
-    // Firebase Auth confirms a signed-in user, so it lines up with a
-    // Firestore rule like `allow read, write: if request.auth != null`.
+    // Applies incremental added/modified/removed changes from the TXN_COL
+    // listener into the in-memory array + local cache, then redraws.
+    function applyTxnChanges(docChanges) {
+        docChanges.forEach(change => {
+            const id = change.doc.id;
+            const idx = transactions.findIndex(t => String(t.id) === id);
+            if (change.type === 'removed') {
+                if (idx !== -1) transactions.splice(idx, 1);
+            } else {
+                const data = change.doc.data();
+                if (idx !== -1) transactions[idx] = data; else transactions.push(data);
+            }
+        });
+        localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
+        if (typeof render === 'function') render();
+    }
+
+    // One-time migration from the old single-document design: the first
+    // time this runs after both listeners below have reported in, if the
+    // new transactions collection is still empty AND the old appData
+    // document still has a legacy `transactions` array on it, copy every
+    // row over as its own document, then remove the old array field.
+    // Safe to run from more than one device at once — it only ever
+    // re-writes the same rows with the same ids (set(), not add()), and
+    // deleting an already-deleted field is a no-op.
+    let legacyMigrationChecked = false;
+    let legacyTxnsFromMeta = null;   // array once the metadata doc has been read, else null
+    let txnCollectionEmptyAtStart = null; // boolean once TXN_COL has been read, else null
+    function maybeMigrateLegacyTransactions() {
+        if (legacyMigrationChecked) return;
+        if (legacyTxnsFromMeta === null || txnCollectionEmptyAtStart === null) return;
+        legacyMigrationChecked = true;
+        if (!txnCollectionEmptyAtStart || legacyTxnsFromMeta.length === 0) return;
+
+        console.warn(`Migrating ${legacyTxnsFromMeta.length} transaction(s) to per-voucher cloud storage...`);
+        const ops = legacyTxnsFromMeta.map(t => (batch => batch.set(TXN_COL.doc(String(t.id)), t)));
+        commitInChunks(ops).then(() => {
+            return CLOUD_DOC.set({ transactions: firebase.firestore.FieldValue.delete() }, { merge: true });
+        }).then(() => {
+            console.warn('Migration to per-voucher cloud storage complete.');
+        }).catch(err => console.error('Cloud sync failed:', err));
+    }
+
+    // Live listeners — fire immediately once signed in with whatever is
+    // already saved, and again any time this device or ANY other device
+    // (phone/laptop) changes the data. Only start after real Firebase Auth
+    // confirms a signed-in user, so they line up with a Firestore rule
+    // like `allow read, write: if request.auth != null`.
     let cloudListenerStarted = false;
+    let txnFirstSnapshotReconciled = false;
     cloudAuth.onAuthStateChanged(user => {
         if (user && !cloudListenerStarted) {
             cloudListenerStarted = true;
+
             CLOUD_DOC.onSnapshot(snap => {
                 if (!snap.exists) {
                     // Nothing in the cloud yet (genuinely first ever run) — mark
                     // bootstrapped FIRST, then seed the cloud with whatever this
                     // device already has.
                     cloudBootstrapped = true;
+                    legacyTxnsFromMeta = [];
                     syncCloud();
                 } else if (!snap.metadata.hasPendingWrites) {
                     // Confirmed server data (own write acknowledged, or a change
                     // pushed from another device) — safe to apply.
                     cloudBootstrapped = true;
-                    applyCloudData(snap.data());
+                    const data = snap.data();
+                    legacyTxnsFromMeta = Array.isArray(data.transactions) ? data.transactions : [];
+                    applyCloudData(data);
                     ensureRoleBootstrap();
                 } else {
                     cloudBootstrapped = true;
                 }
+                maybeMigrateLegacyTransactions();
+            }, err => console.error('Cloud listener error:', err));
+
+            TXN_COL.onSnapshot(snap => {
+                if (snap.metadata.hasPendingWrites) { txnBootstrapped = true; return; }
+
+                if (!txnFirstSnapshotReconciled) {
+                    // First read ever from this collection. If it already has
+                    // data, treat it as the authoritative full list (replaces
+                    // whatever was cached locally, clearing out any ghost rows
+                    // left over from before this device's listener started —
+                    // e.g. a voucher deleted on another device while this one
+                    // was closed). If it's empty, leave the locally-cached
+                    // transactions untouched for now — that emptiness may just
+                    // mean the one-time migration below hasn't run yet.
+                    txnFirstSnapshotReconciled = true;
+                    txnCollectionEmptyAtStart = snap.empty;
+                    if (!snap.empty) {
+                        transactions = snap.docs.map(d => d.data());
+                        localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
+                        if (typeof render === 'function') render();
+                    }
+                } else {
+                    applyTxnChanges(snap.docChanges());
+                }
+                lastSyncedTxnSnapshot = new Map(snap.docs.map(d => [d.id, JSON.stringify(d.data())]));
+                txnBootstrapped = true;
+                maybeMigrateLegacyTransactions();
             }, err => console.error('Cloud listener error:', err));
         } else if (!user) {
             console.warn('Cloud sync waiting for authentication...');
