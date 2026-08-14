@@ -7679,10 +7679,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 const ref = t.refInvoiceNo
                     ? `<span style="color:var(--accent);">${escapeHtml(t.refInvoiceNo)}</span>`
                     : '<span style="color:var(--text-muted);">On Account</span>';
-                // Clicking the row opens the Payment/Receipt voucher itself —
-                // never the sale/purchase invoice it's linked against, even
-                // when "Against Invoice" is filled in.
+                // Ref No opens the Payment/Receipt voucher itself. Against
+                // Invoice opens the sale/purchase invoice it's settling, if
+                // any — same distinction as Purchase/Sales reports.
                 const openId = t.id;
+                const invOpenId = t.refInvoiceId || t.id;
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open ${kind.toLowerCase()}">
                         <td class="no-print" data-select-col="${listKey}" style="display:none;" onclick="event.stopPropagation();">
@@ -7692,7 +7693,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.accountName || 'Cash')}</td>
-                        <td onclick="printInvoice(${openId})">${ref}</td>
+                        <td onclick="printInvoice(${invOpenId})">${ref}</td>
                         <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
                         <td style="display:flex; gap:6px;"><button onclick="event.stopPropagation(); deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
                     </tr>
@@ -7778,10 +7779,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     ).join(', ');
                 }
 
-                // Clicking the row opens the voucher itself — never the
-                // sale/purchase invoice a Payment/Receipt happens to be
-                // linked against.
+                // Ref No opens the Payment/Receipt voucher itself. Against
+                // Invoice opens the sale/purchase invoice it's settling, if
+                // any — same distinction as Purchase/Sales reports.
                 const openId = t.id;
+                const invOpenId = t.refInvoiceId || t.id;
                 const typeColor = t.type === 'Receipt' ? 'var(--success)' : 'var(--danger)';
 
                 body.innerHTML += `
@@ -7791,8 +7793,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.accountName || 'Cash')}</td>
-                        <td onclick="printInvoice(${openId})">${ref}</td>
-                        <td onclick="printInvoice(${openId})" style="white-space:normal; max-width:260px;">${inventoryHtml}</td>
+                        <td onclick="printInvoice(${invOpenId})">${ref}</td>
+                        <td onclick="printInvoice(${invOpenId})" style="white-space:normal; max-width:260px;">${inventoryHtml}</td>
                         <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
                     </tr>
                 `;
