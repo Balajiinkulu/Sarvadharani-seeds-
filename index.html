@@ -7679,10 +7679,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 const ref = t.refInvoiceNo
                     ? `<span style="color:var(--accent);">${escapeHtml(t.refInvoiceNo)}</span>`
                     : '<span style="color:var(--text-muted);">On Account</span>';
-                // Clicking the row opens the linked invoice if present, else the voucher itself.
-                const openId = t.refInvoiceId || t.id;
+                // Clicking the row opens the Payment/Receipt voucher itself —
+                // never the sale/purchase invoice it's linked against, even
+                // when "Against Invoice" is filled in.
+                const openId = t.id;
                 body.innerHTML += `
-                    <tr style="cursor:pointer;" title="Open invoice">
+                    <tr style="cursor:pointer;" title="Open ${kind.toLowerCase()}">
                         <td class="no-print" data-select-col="${listKey}" style="display:none;" onclick="event.stopPropagation();">
                             <input type="checkbox" data-select-key="${listKey}" data-select-id="${t.id}" onchange="toggleRowSelection('${listKey}', ${t.id}, this.checked)">
                         </td>
@@ -7776,11 +7778,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     ).join(', ');
                 }
 
-                const openId = t.refInvoiceId || t.id;
+                // Clicking the row opens the voucher itself — never the
+                // sale/purchase invoice a Payment/Receipt happens to be
+                // linked against.
+                const openId = t.id;
                 const typeColor = t.type === 'Receipt' ? 'var(--success)' : 'var(--danger)';
 
                 body.innerHTML += `
-                    <tr style="cursor:pointer;" title="Open invoice">
+                    <tr style="cursor:pointer;" title="Open voucher">
                         <td onclick="printInvoice(${openId})">${t.date}</td>
                         <td onclick="printInvoice(${openId})" style="color:${typeColor}; font-weight:bold;">${t.type}</td>
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.invNo)}</td>
@@ -11052,6 +11057,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     function generateEwayBill(txnId) {
+        // Pulls a 6-digit PIN code out of a party's free-text address (the
+        // Address field already asks for "Street, City, State, Pincode" as
+        // one block) so the e-Way Bill JSON carries the party's real
+        // location instead of a hardcoded placeholder.
+        const extractPincode = (address) => {
+            const m = String(address || '').match(/\b(\d{6})\b/);
+            return m ? Number(m[1]) : null;
+        };
+
         const s = appState();
         const t = (s.transactions || []).find(x => String(x.id) === String(txnId));
         if (!t) { alert('Voucher not found for e-Way bill'); return; }
@@ -11103,7 +11117,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 fromAddr1: (isSale ? COMPANY.addr1 : (party.address || '')).slice(0, 120),
                 fromAddr2: '',
                 fromPlace: (isSale ? COMPANY.place : '').slice(0, 50),
-                fromPincode: isSale ? Number(COMPANY.pincode) : 495001,
+                fromPincode: isSale ? Number(COMPANY.pincode) : (extractPincode(party.address) || Number(COMPANY.pincode)),
                 fromStateCode: isSale ? ownState : partyState,
                 actFromStateCode: isSale ? ownState : partyState,
                 toGstin: isSale ? (party.gstin || 'URP') : ownGstin,
@@ -11111,7 +11125,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 toAddr1: (isSale ? (party.address || '') : COMPANY.addr1).slice(0, 120),
                 toAddr2: '',
                 toPlace: (isSale ? '' : COMPANY.place).slice(0, 50),
-                toPincode: 495001,
+                toPincode: isSale ? (extractPincode(party.address) || Number(COMPANY.pincode)) : Number(COMPANY.pincode),
                 toStateCode: isSale ? partyState : ownState,
                 actToStateCode: isSale ? partyState : ownState,
                 itemList: items,
