@@ -4010,10 +4010,42 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     const CLOUD_DOC = cloudDb.collection('sarvadharaniSeeds').doc('appData');
     const TXN_COL = cloudDb.collection('sarvadharaniSeeds_transactions');
 
+    // ---- Master records: one document each, same as transactions ----
+    // Parties, stock items, accounts and the groups used to travel as whole
+    // ARRAYS inside CLOUD_DOC. That made every edit a rewrite of the entire
+    // list, so two devices editing two DIFFERENT records at roughly the
+    // same moment each wrote their own full copy — and the slower write
+    // silently erased the other person's change. Giving every record its
+    // own document means editing one party can never touch another,
+    // exactly as TXN_COL already does for vouchers.
+    //
+    // CLOUD_DOC keeps receiving the same fields it always did, but is now
+    // only a mirror/backup — these collections are what actually gets read
+    // back. Settings that aren't id-keyed records (refCounter, subLedgers,
+    // userRoles) really are single shared values, so they stay on
+    // CLOUD_DOC and are unaffected by any of this.
+    const MASTER_SPECS = [
+        { name: 'parties',            lsKey: 'tally_mob_parties',      get: () => parties,            set: v => { parties = v; } },
+        { name: 'stockItems',         lsKey: 'tally_mob_stock',        get: () => stockItems,         set: v => { stockItems = v; } },
+        { name: 'accounts',           lsKey: 'tally_mob_accounts',     get: () => accounts,           set: v => { accounts = v; } },
+        { name: 'stockGroups',        lsKey: 'tally_mob_stockgroups',  get: () => stockGroups,        set: v => { stockGroups = v; } },
+        { name: 'ledgerGroups',       lsKey: 'tally_mob_ledgergroups', get: () => ledgerGroups,       set: v => { ledgerGroups = v; } },
+        { name: 'customVoucherTypes', lsKey: 'tally_mob_vouchertypes', get: () => customVoucherTypes, set: v => { customVoucherTypes = v; } }
+    ];
+    MASTER_SPECS.forEach(s => {
+        s.ref = cloudDb.collection('sarvadharaniSeeds_' + s.name);
+        s.bootstrapped = false;   // this collection has been read at least once
+        s.lastSynced = new Map(); // id -> JSON of what we last confirmed saved
+        s.reconciled = false;     // first snapshot has been handled
+        s.emptyAtStart = null;    // was it empty on that first read?
+        s.legacyFromMeta = null;  // the old CLOUD_DOC array, once read
+    });
+
     let cloudBootstrapped = false;   // CLOUD_DOC has been read at least once
     let txnBootstrapped = false;     // TXN_COL has been read at least once
     let cloudPushTimer = null;
     let txnPushTimer = null;
+    let masterPushTimer = null;
 
     // What we last confirmed is saved in TXN_COL, keyed by id (as a JSON
     // string of the row) — lets syncCloud() diff the in-memory list
@@ -4058,6 +4090,46 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             }, { merge: true }).catch(err => console.error('Cloud sync failed:', err));
         }, 400);
         syncTxnsCloud();
+        syncMastersCloud();
+    }
+
+    // Push only the master records that actually changed, one document per
+    // record — same debounce-and-diff approach as syncTxnsCloud() above, so
+    // editing a single party writes exactly one small document instead of
+    // re-uploading every party, item and account.
+    //
+    // Each collection refuses to write until its own first read has come
+    // back (s.bootstrapped), for the same reason syncCloud() waits on
+    // cloudBootstrapped: a device that hasn't heard from Firestore yet
+    // would otherwise push its empty starting state over real data.
+    function syncMastersCloud() {
+        clearTimeout(masterPushTimer);
+        masterPushTimer = setTimeout(() => {
+            MASTER_SPECS.forEach(s => {
+                if (!s.bootstrapped) return;
+                const rows = s.get() || [];
+                const ops = [];
+                const seenIds = new Set();
+
+                rows.forEach(r => {
+                    if (!r || r.id == null) return;
+                    const id = String(r.id);
+                    seenIds.add(id);
+                    const json = JSON.stringify(r);
+                    if (s.lastSynced.get(id) !== json) ops.push(batch => batch.set(s.ref.doc(id), r));
+                });
+                s.lastSynced.forEach((_, id) => {
+                    if (!seenIds.has(id)) ops.push(batch => batch.delete(s.ref.doc(id)));
+                });
+
+                if (ops.length === 0) return;
+                commitInChunks(ops).then(() => {
+                    s.lastSynced = new Map(
+                        (s.get() || []).filter(r => r && r.id != null).map(r => [String(r.id), JSON.stringify(r)])
+                    );
+                }).catch(err => console.error('Cloud sync failed:', err));
+            });
+        }, 400);
     }
 
     // Push only the transactions that changed since the last confirmed
@@ -4096,27 +4168,100 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // applyTxnChanges() below, via the TXN_COL listener.
     function applyCloudData(data) {
         if (!data) return;
-        parties = data.parties || [];
-        stockItems = data.stockItems || [];
-        accounts = data.accounts || [];
-        stockGroups = data.stockGroups || [];
-        ledgerGroups = data.ledgerGroups || [];
+        // The master arrays on this document are now only a mirror — the
+        // per-record collections above are what's authoritative, and their
+        // own listeners apply them. All we take from here is a copy to seed
+        // those collections from, the one time they're still empty.
+        MASTER_SPECS.forEach(s => {
+            s.legacyFromMeta = Array.isArray(data[s.name]) ? data[s.name] : [];
+        });
+
+        // Genuinely single shared values (not id-keyed records), so these
+        // stay on this document and are still read straight from it.
         refCounter = data.refCounter || { Payment: 0, Receipt: 0 };
         subLedgers = data.subLedgers || [];
-        customVoucherTypes = data.customVoucherTypes || [];
         userRoles = data.userRoles || {};
 
-        localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
-        localStorage.setItem('tally_mob_stock', JSON.stringify(stockItems));
-        localStorage.setItem('tally_mob_accounts', JSON.stringify(accounts));
-        localStorage.setItem('tally_mob_stockgroups', JSON.stringify(stockGroups));
-        localStorage.setItem('tally_mob_ledgergroups', JSON.stringify(ledgerGroups));
         localStorage.setItem('tally_mob_refcounter', JSON.stringify(refCounter));
         localStorage.setItem('tally_mob_subledgers', JSON.stringify(subLedgers));
-        localStorage.setItem('tally_mob_vouchertypes', JSON.stringify(customVoucherTypes));
         localStorage.setItem('tally_mob_userroles', JSON.stringify(userRoles));
 
         if (typeof render === 'function') render();
+    }
+
+    // Applies incremental added/modified/removed changes from a master
+    // collection's listener into the in-memory array + local cache.
+    function applyMasterChanges(spec, docChanges) {
+        const arr = (spec.get() || []).slice();
+        docChanges.forEach(change => {
+            const id = change.doc.id;
+            const idx = arr.findIndex(r => r && String(r.id) === id);
+            if (change.type === 'removed') {
+                if (idx !== -1) arr.splice(idx, 1);
+            } else {
+                const data = change.doc.data();
+                if (idx !== -1) arr[idx] = data; else arr.push(data);
+            }
+        });
+        spec.set(arr);
+        localStorage.setItem(spec.lsKey, JSON.stringify(arr));
+        if (typeof render === 'function') render();
+    }
+
+    // Live listener per master collection — mirrors the TXN_COL listener:
+    // the first non-empty read is treated as the authoritative full list,
+    // and everything after that is applied as incremental changes.
+    function startMasterListeners() {
+        MASTER_SPECS.forEach(s => {
+            s.ref.onSnapshot(snap => {
+                if (snap.metadata.hasPendingWrites) { s.bootstrapped = true; return; }
+
+                if (!s.reconciled) {
+                    s.reconciled = true;
+                    s.emptyAtStart = snap.empty;
+                    // Empty may simply mean the one-time migration below
+                    // hasn't run yet, so don't wipe the local cache for it.
+                    if (!snap.empty) {
+                        s.set(snap.docs.map(d => d.data()));
+                        localStorage.setItem(s.lsKey, JSON.stringify(s.get()));
+                        if (typeof render === 'function') render();
+                    }
+                } else {
+                    applyMasterChanges(s, snap.docChanges());
+                }
+                s.lastSynced = new Map(snap.docs.map(d => [d.id, JSON.stringify(d.data())]));
+                s.bootstrapped = true;
+                maybeMigrateLegacyMasters();
+            }, err => console.error('Cloud listener error:', err));
+        });
+    }
+
+    // One-time seed of the per-record collections from the old arrays on
+    // CLOUD_DOC, using the same shape as the transaction migration: only
+    // runs for a collection that was still empty on its first read, only
+    // ever writes the same ids with set() (never add()), so it's safe if
+    // two devices happen to run it at once.
+    let masterMigrationChecked = false;
+    function maybeMigrateLegacyMasters() {
+        if (masterMigrationChecked) return;
+        // Wait until every collection has reported in AND the metadata
+        // document has been read, so we never migrate on partial info.
+        if (MASTER_SPECS.some(s => s.emptyAtStart === null || s.legacyFromMeta === null)) return;
+        masterMigrationChecked = true;
+
+        const ops = [];
+        MASTER_SPECS.forEach(s => {
+            if (!s.emptyAtStart) return; // already migrated by this or another device
+            (s.legacyFromMeta || []).forEach(r => {
+                if (r && r.id != null) ops.push(batch => batch.set(s.ref.doc(String(r.id)), r));
+            });
+        });
+        if (ops.length === 0) return;
+
+        console.warn(`Migrating ${ops.length} master record(s) to per-record cloud storage...`);
+        commitInChunks(ops)
+            .then(() => console.warn('Master data migration complete.'))
+            .catch(err => console.error('Cloud sync failed:', err));
     }
 
     // Applies incremental added/modified/removed changes from the TXN_COL
@@ -4180,6 +4325,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     // device already has.
                     cloudBootstrapped = true;
                     legacyTxnsFromMeta = [];
+                    MASTER_SPECS.forEach(s => { s.legacyFromMeta = []; }); // no legacy arrays to migrate from
                     syncCloud();
                 } else if (!snap.metadata.hasPendingWrites) {
                     // Confirmed server data (own write acknowledged, or a change
@@ -4193,7 +4339,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     cloudBootstrapped = true;
                 }
                 maybeMigrateLegacyTransactions();
+                maybeMigrateLegacyMasters();
             }, err => console.error('Cloud listener error:', err));
+
+            startMasterListeners();
 
             TXN_COL.onSnapshot(snap => {
                 if (snap.metadata.hasPendingWrites) { txnBootstrapped = true; return; }
@@ -4460,6 +4609,27 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         return nextVoucherNo(type, type === 'Receipt' ? 'RCPT' : 'PYMT', null, dateStr);
     }
 
+    // Every record's id is Date.now(). That doubles as the record's
+    // creation timestamp (printed invoices show it as the time of issue),
+    // so the value has to stay a real millisecond figure — but plain
+    // Date.now() is NOT guaranteed unique: anything created inside the
+    // same millisecond gets an identical id. That matters because each
+    // transaction is stored in the cloud under its id as the document
+    // key, so a duplicate id doesn't just confuse a lookup — the second
+    // voucher silently overwrites the first and is gone.
+    //
+    // This keeps the timestamp meaning intact and simply steps forward a
+    // millisecond at a time until it finds a value nothing else in that
+    // collection is already using. The shift is at most a few ms, far too
+    // small to change the printed time.
+    function newId(collection) {
+        let id = Date.now();
+        if (Array.isArray(collection)) {
+            while (collection.some(r => r && r.id == id)) id++;
+        }
+        return id;
+    }
+
     // Sequential, gap-free, financial-year-aware numbering for every
     // voucher type — required for GST tax invoices (no repeats, no gaps
     // within a year), automatically resets to 1 at the start of each new
@@ -4470,10 +4640,33 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     function nextVoucherNo(key, prefix, pad, dateStr) {
         const fy = financialYearLabel(dateStr);
         const counterKey = key + '_' + fy;
-        refCounter[counterKey] = (refCounter[counterKey] || 0) + 1;
+        const padLen = pad || 4;
+        const seriesPrefix = `SDS/${fy}/${prefix}/`;
+
+        // The local counter alone isn't safe to trust blindly — on a
+        // multi-device/cloud-synced setup it can drift behind what's
+        // actually been posted (another device posted moments before this
+        // one's sync caught up, or a delete/renumber shifted things), and
+        // handing out its raw "next" value can collide with a number that
+        // already exists. So cross-check against every invNo currently in
+        // this exact series (same financial year + prefix) and skip past
+        // any that are already taken, guaranteeing whatever we return here
+        // is genuinely free right now.
+        const used = new Set();
+        transactions.forEach(t => {
+            if (t.invNo && t.invNo.indexOf(seriesPrefix) === 0) {
+                const n = parseInt(t.invNo.slice(seriesPrefix.length), 10);
+                if (!isNaN(n)) used.add(n);
+            }
+        });
+
+        let candidate = (refCounter[counterKey] || 0) + 1;
+        while (used.has(candidate)) candidate++;
+
+        refCounter[counterKey] = candidate;
         localStorage.setItem('tally_mob_refcounter', JSON.stringify(refCounter));
         syncCloud();
-        return `SDS/${fy}/${prefix}/` + String(refCounter[counterKey]).padStart(pad || 4, '0');
+        return seriesPrefix + String(candidate).padStart(padLen, '0');
     }
 
     // The refCounter key nextVoucherNo() would have used to create this
@@ -4517,6 +4710,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         affected.forEach(({ t, num }) => {
             t.invNo = `SDS/${fy}/${prefix}/` + String(num - 1).padStart(pad, '0');
+            // Payment/Receipt/Journal vouchers keep a plain-text snapshot of
+            // the invoice number they're settling (refInvoiceNo) alongside
+            // the real link (refInvoiceId). The line above just changed
+            // this invoice's number, so every voucher pointing at it by ID
+            // needs that snapshot refreshed too — otherwise it keeps
+            // displaying a number that no longer belongs to anything.
+            transactions.forEach(other => {
+                if (other.refInvoiceId == t.id) other.refInvoiceNo = t.invNo;
+            });
         });
 
         const counterKey = voucherCounterKeyOf(deletedTxn) + '_' + fy;
@@ -5200,7 +5402,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const openingSign = document.getElementById('pOpeningType').value === 'Cr' ? -1 : 1;
 
         parties.push({  
-            id: Date.now(),  
+            id: newId(parties),  
             type: document.getElementById('pType').value,
             name: document.getElementById('pName').value.trim(),  
             phone: document.getElementById('pPhone').value.trim(),  
@@ -5226,7 +5428,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const name = input.value.trim();
         if (!name) return alert("Enter a group name first.");
         const nature = document.getElementById('pGroupQuickNature').value;
-        const newGroup = { id: Date.now(), name, nature };
+        const newGroup = { id: newId(ledgerGroups), name, nature };
         ledgerGroups.push(newGroup);
         localStorage.setItem('tally_mob_ledgergroups', JSON.stringify(ledgerGroups));
         syncCloud();
@@ -5278,7 +5480,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const p = parties.find(x => x.id == partyId);
         if (!p) return;
 
-        const used = transactions.some(t => t.partyId == partyId);
+        // A Journal voucher doesn't carry partyId — it points at each side
+        // through journalDebit/journalCredit instead. Checking only partyId
+        // would let a party used solely in journals be deleted, leaving
+        // those journals pointing at a ledger that no longer exists.
+        const used = transactions.some(t =>
+            t.partyId == partyId
+            || (t.journalDebit && t.journalDebit.kind === 'party' && t.journalDebit.id == partyId)
+            || (t.journalCredit && t.journalCredit.kind === 'party' && t.journalCredit.id == partyId)
+        );
         if (used) return alert(`Cannot delete "${p.name}" — it has vouchers linked to it. Delete or reassign those first.`);
 
         const bal = partyBalance(partyId);
@@ -5388,7 +5598,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 const proceed = confirm(`A stock item named "${similarItem.name}" already exists.\n\nAdd "${data.name}" anyway as a separate item?`);
                 if (!proceed) return;
             }
-            stockItems.push({ id: Date.now(), ...data });
+            stockItems.push({ id: newId(stockItems), ...data });
         }
         localStorage.setItem('tally_mob_stock', JSON.stringify(stockItems));
         syncCloud();  
@@ -5519,7 +5729,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             const g = stockGroups.find(s => s.id == editId);
             if (g) g.name = name;
         } else {
-            stockGroups.push({ id: Date.now(), name });
+            stockGroups.push({ id: newId(stockGroups), name });
         }
         localStorage.setItem('tally_mob_stockgroups', JSON.stringify(stockGroups));
         syncCloud();
@@ -5592,7 +5802,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const input = document.getElementById('itemGroupQuickInput');
         const name = input.value.trim();
         if (!name) return alert("Enter a group name first.");
-        const newGroup = { id: Date.now(), name };
+        const newGroup = { id: newId(stockGroups), name };
         stockGroups.push(newGroup);
         localStorage.setItem('tally_mob_stockgroups', JSON.stringify(stockGroups));
         syncCloud();
@@ -5626,7 +5836,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             }
             Object.assign(acc, data);
         } else {
-            accounts.push({ id: Date.now(), ...data });
+            accounts.push({ id: newId(accounts), ...data });
         }
         localStorage.setItem('tally_mob_accounts', JSON.stringify(accounts));
         syncCloud();
@@ -5697,6 +5907,19 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 else if (t.type === 'Receipt') bal -= t.grandTotal;
                 else if (t.type === 'Purchase' || t.type === 'RawPurchase') bal -= t.grandTotal;
                 else if (t.type === 'Payment') bal += t.grandTotal;
+                else if (t.customVoucherTypeId && t.inMainBooks) {
+                    // A custom voucher type can be configured to debit or
+                    // credit the party it's raised against ("they owe you" /
+                    // "you owe them"), and the ledger statement already shows
+                    // it in exactly those columns — so the party's actual
+                    // BALANCE has to move by the same amount, or the running
+                    // total on the statement won't agree with the closing
+                    // figure shown everywhere else. Off-book custom types
+                    // (inMainBooks false) are deliberately skipped, same as
+                    // Optional vouchers.
+                    if (t.ledgerEffect === 'debit') bal += t.grandTotal;
+                    else if (t.ledgerEffect === 'credit') bal -= t.grandTotal;
+                }
             }
         });
         return bal;
@@ -6052,7 +6275,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     function deleteAccount(accId) {
         if (!isAdmin() && !hasPermission('deleteAccount')) return alert("Only an admin, or a user with 'Delete a cash/bank account' turned on, can delete an account.");
-        const used = transactions.some(t => t.accountId == accId);
+        // Same Journal blind spot as deleteParty above — journals link to an
+        // account through journalDebit/journalCredit rather than accountId.
+        const used = transactions.some(t =>
+            t.accountId == accId
+            || (t.journalDebit && t.journalDebit.kind === 'account' && t.journalDebit.id == accId)
+            || (t.journalCredit && t.journalCredit.kind === 'account' && t.journalCredit.id == accId)
+        );
         if (used) return alert("Cannot delete an account that has transactions linked to it.");
         const acc = accounts.find(a => a.id == accId);
         if (acc && confirm(`Delete account "${acc.name}"?`)) {
@@ -6073,7 +6302,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             const g = ledgerGroups.find(l => l.id == editId);
             if (g) { g.name = name; g.nature = nature; }
         } else {
-            ledgerGroups.push({ id: Date.now(), name, nature });
+            ledgerGroups.push({ id: newId(ledgerGroups), name, nature });
         }
         localStorage.setItem('tally_mob_ledgergroups', JSON.stringify(ledgerGroups));
         syncCloud();
@@ -6120,7 +6349,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const name = input.value.trim();
         if (!name) return alert("Enter a group name first.");
         const nature = document.getElementById('acctGroupQuickNature').value;
-        const newGroup = { id: Date.now(), name, nature };
+        const newGroup = { id: newId(ledgerGroups), name, nature };
         ledgerGroups.push(newGroup);
         localStorage.setItem('tally_mob_ledgergroups', JSON.stringify(ledgerGroups));
         syncCloud();
@@ -6627,7 +6856,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             const creditRef = parseLedgerRef(creditVal);
 
             const journalTxn = {
-                id: Date.now(),
+                id: newId(transactions),
                 invNo: nextVoucherNo('Journal', 'JRNL', null, document.getElementById('vDate').value),
                 date: document.getElementById('vDate').value,
                 type: 'Journal',
@@ -6685,7 +6914,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             const accObj = accounts.find(a => a.id == accountId);
 
             const cashTxn = {
-                id: Date.now(),
+                id: newId(transactions),
                 invNo: customNoPartyDef
                     ? nextVoucherNo('custom_' + type, customTypeDef.prefix || 'CV', null, document.getElementById('vDate').value)
                     : nextRefNo(type, document.getElementById('vDate').value),
@@ -6742,7 +6971,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             });
 
             const dnTxn = {
-                id: Date.now(),
+                id: newId(transactions),
                 invNo: nextVoucherNo('DeliveryNote', 'DN', null, document.getElementById('vDate').value),
                 date: document.getElementById('vDate').value,
                 type: 'DeliveryNote',
@@ -6822,7 +7051,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             }
 
             const ctTxn = {
-                id: Date.now(),
+                id: newId(transactions),
                 invNo: nextVoucherNo('custom_' + type, customType.prefix || 'CV', null, document.getElementById('vDate').value),
                 date: document.getElementById('vDate').value,
                 type: type,
@@ -6870,7 +7099,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             });
 
             const optTxn = {
-                id: Date.now(),
+                id: newId(transactions),
                 invNo: isSale ? nextVoucherNo('OptionalSales', 'OPT-S', null, document.getElementById('vDate').value) : nextVoucherNo('OptionalPurchase', 'OPT-P', null, document.getElementById('vDate').value),
                 date: document.getElementById('vDate').value,
                 type: type,
@@ -6964,7 +7193,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const invPrefix = type === 'Sales' ? 'INV' : isRawPurchase ? 'RPUR' : 'PUR';
         const counterKey = type === 'Sales' ? 'Sales' : isRawPurchase ? 'RawPurchase' : 'Purchase';
         const txn = {
-            id: Date.now(),
+            id: newId(transactions),
             invNo: nextVoucherNo(counterKey, invPrefix, null, document.getElementById('vDate').value),
             date: document.getElementById('vDate').value,
             type: type,
@@ -7024,6 +7253,46 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (vt && vt.stockEffect === 'out') return 1;
         if (vt && vt.stockEffect === 'in') return -1;
         return 0;
+    }
+
+    // Self-healing stock recalculation. item.qty is normally nudged up or
+    // down incrementally on every post/edit/delete — convenient, but it
+    // means any single missed reversal (a bad edit, a half-applied cloud
+    // sync between devices, anything) leaves it permanently out of step
+    // with what "Total Purchased" / "Total Sold" actually add up to, with
+    // nothing to ever bring it back in line on its own.
+    //
+    // This instead throws away the stored running balance and rebuilds
+    // every item's qty from zero by replaying the full transaction ledger
+    // — the exact same source of truth the item summary screen already
+    // sums Purchased/Sold from. Called on every render(), so stock can
+    // never silently drift again: whatever the ledger says is correct,
+    // the displayed "In Stock" figure is forced to match it immediately.
+    function recalcStockFromLedger() {
+        const qtyById = {};
+        stockItems.forEach(s => { qtyById[s.id] = 0; });
+
+        transactions.forEach(t => {
+            if (t.conversion) {
+                // Raw material consumed, processed good produced.
+                if (t.rawItemId != null && qtyById[t.rawItemId] !== undefined) qtyById[t.rawItemId] -= (t.rawQty || 0);
+                if (t.processedItemId != null && qtyById[t.processedItemId] !== undefined) qtyById[t.processedItemId] += (t.outQty || 0);
+                return;
+            }
+            if (!t.items || !affectsMainStock(t.type)) return; // Optional/DeliveryNote/non-stock custom types never touch main stock
+            const dir = stockDirection(t.type);
+            t.items.forEach(line => {
+                if (line.itemId == null || qtyById[line.itemId] === undefined) return;
+                qtyById[line.itemId] -= dir * line.qty; // same sign convention as the edit/delete reversal logic above
+            });
+        });
+
+        let changed = false;
+        stockItems.forEach(s => {
+            const correct = qtyById[s.id] || 0;
+            if (s.qty !== correct) { s.qty = correct; changed = true; }
+        });
+        if (changed) localStorage.setItem('tally_mob_stock', JSON.stringify(stockItems));
     }
 
     // ---- Alter Voucher (search any voucher, then reuse the Edit popup) ----
@@ -7589,7 +7858,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const item = stockItems.find(s => s.id == itemId);
         if (!item) return;
 
-        if (item.qty > 0) return alert("Cannot delete item with active stock balance!");
+        if (item.qty !== 0) return alert("Cannot delete item with active stock balance!");
 
         if (confirm(`Delete stock item "${item.name}"?`)) {
             stockItems = stockItems.filter(s => s.id != itemId);
@@ -7643,7 +7912,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     function inRange(dateStr, range) {
         if (!range) return true;
-        const d = new Date(dateStr);
+        // Parse at local NOON, not bare "YYYY-MM-DD". A bare date string is
+        // parsed as UTC midnight, which lands on the PREVIOUS day once
+        // converted to a local time behind UTC — silently dropping
+        // start-of-period vouchers out of a report. Noon is far enough from
+        // both midnights that no timezone can shift the day, and it matches
+        // what financialYearLabel() already does.
+        const d = new Date(dateStr + 'T12:00:00');
+        if (isNaN(d)) return true; // unparseable date — don't hide the row
         if (range.from && d < new Date(range.from.getFullYear(), range.from.getMonth(), range.from.getDate())) return false;
         if (range.to && d > new Date(range.to.getFullYear(), range.to.getMonth(), range.to.getDate(), 23, 59, 59)) return false;
         return true;
@@ -8285,7 +8561,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         }
 
         const newItem = {
-            id: Date.now(),
+            id: newId(stockItems),
             name: name,
             groupId: null,
             hsn: hsn,
@@ -8356,7 +8632,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         syncCloud();
 
         const txn = {
-            id: Date.now(),
+            id: newId(transactions),
             invNo: nextVoucherNo('RawPurchase', 'RPUR', null, document.getElementById('rpDate').value),
             date: document.getElementById('rpDate').value,
             type: 'RawPurchase',
@@ -8438,7 +8714,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const hsn = document.getElementById('cvProcessedQuickHsn').value.trim();
         const uom = document.getElementById('cvProcessedQuickUom').value.trim() || 'Bag';
         const newItem = {
-            id: Date.now(),
+            id: newId(stockItems),
             name: name,
             groupId: null,
             hsn: hsn,
@@ -8487,7 +8763,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         syncCloud();
 
         const conv = {
-            id: Date.now(),
+            id: newId(transactions),
             invNo: nextVoucherNo('Conversion', 'CONV', null, document.getElementById('cvDate').value),
             date: document.getElementById('cvDate').value,
             type: 'Conversion',
@@ -10588,6 +10864,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     let daybookRowOrder = [];
     function render() {  
+        recalcStockFromLedger(); // keep "In Stock" mathematically tied to Purchased/Sold on every redraw — see definition above
         populateGroupDropdowns();
         renderGroupTables();
         populateCustomVoucherTypeOptions();
