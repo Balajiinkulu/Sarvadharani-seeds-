@@ -467,6 +467,7 @@ h3 {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 .panel-head {
     display: flex;
     align-items: center;
@@ -1659,6 +1660,17 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </button>
         </div>
     </header>
+
+    <!-- Data freshness notice — shown only until the first confirmed
+         read from Firestore comes back, since the numbers below render
+         from whatever's cached in localStorage the instant the page
+         opens, which can be stale (or empty, on a new device) until the
+         real cloud data arrives a moment later. Removed for good once
+         cloudBootstrapped flips true (see hideDataLoadingBanner()). -->
+    <div id="dataLoadingBanner" class="no-print" style="display:flex; align-items:center; gap:10px; padding:10px 14px; margin-bottom:18px; background:var(--accent-soft); border:1px solid var(--accent); border-radius:var(--radius); font-size:0.85rem; color:var(--text-main);">
+        <span class="spinner" aria-hidden="true" style="width:14px; height:14px; flex:none; border:2px solid var(--accent); border-top-color:transparent; border-radius:50%; animation:spin 0.7s linear infinite;"></span>
+        <span>Loading your latest data from the cloud — figures below may not be final yet.</span>
+    </div>
 
     <!-- Dashboard Metrics -->
     <div class="dashboard-summary" id="homeDashboardSummary" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));">
@@ -4423,6 +4435,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 }
                 maybeMigrateLegacyTransactions();
                 maybeMigrateLegacyMasters();
+                hideDataLoadingBanner();
             }, err => console.error('Cloud listener error:', err));
 
             startMasterListeners();
@@ -4558,8 +4571,22 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         window.addEventListener('offline', () => {
             lastSyncOk = false;
             showSyncToast('error', "You're offline — changes are saved on this device and will sync once you're back online.");
+            // Nothing more to wait for right now — the dashboard is showing
+            // whatever's on this device, and the existing offline banner
+            // above already says so, so leaving "Loading latest data…" up
+            // too would just be a second, redundant notice for the same
+            // fact. It comes back on its own next time the page loads.
+            hideDataLoadingBanner();
         });
     })();
+
+    // Attached to window (not scoped to the IIFE above) so it's callable
+    // from the Firestore onSnapshot handler wherever that's defined, the
+    // same way window.showSyncToast is exposed for cross-scope use.
+    window.hideDataLoadingBanner = function () {
+        const el = document.getElementById('dataLoadingBanner');
+        if (el) el.remove();
+    };
 
     let parties = JSON.parse(localStorage.getItem('tally_mob_parties')) || [];  
     let stockItems = JSON.parse(localStorage.getItem('tally_mob_stock')) || [];  
@@ -5531,7 +5558,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     updateThemeToggleIcon(); // reflect whatever the inline head script already applied
 
     function setHomeDashboardVisible(visible) {
-        const ids = ['homeDashboardSummary', 'extrasBar', 'backupBanner', 'recentTxnCard'];
+        const ids = ['homeDashboardSummary', 'extrasBar', 'backupBanner', 'recentTxnCard', 'dataLoadingBanner'];
         ids.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = visible ? '' : 'none';
