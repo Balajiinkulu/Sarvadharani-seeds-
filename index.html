@@ -2031,6 +2031,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <div class="panel-head"><h3 id="itemViewTitle">Stock Item</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
             <div class="summary-card"><div>In Stock</div><div id="ivStock" style="color:var(--accent);">0</div></div>
+            <div class="summary-card"><div>Opening Qty</div><div id="ivOpening" style="color:var(--text-muted);">0</div></div>
             <div class="summary-card"><div>Total Purchased</div><div id="ivPurch" style="color:var(--text-main);">0</div></div>
             <div class="summary-card"><div>Total Raw Purchased</div><div id="ivRawPurch" style="color:var(--success);">0</div></div>
             <div class="summary-card"><div>Total Sold</div><div id="ivSold" style="color:var(--text-main);">0</div></div>
@@ -4745,6 +4746,68 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         }
     }
 
+    // Repairs an invoice number that's ALREADY duplicated in the live data
+    // — something nextVoucherNo() now prevents from happening again, but
+    // can't undo for vouchers that were saved before that fix went in.
+    // Two vouchers with the identical number is exactly the bug behind the
+    // "Fix numbering" button on the Invoice Number Gap Check screen.
+    //
+    // The oldest voucher (earliest id) keeps the number as-is. Every other
+    // voucher sharing it is moved, one at a time, to the next number in
+    // that series nothing is currently using — the same "skip past what's
+    // taken" search nextVoucherNo() itself does, so the result can never
+    // collide with anything else, including a different duplicate elsewhere
+    // in the same series being fixed in the same pass.
+    function resolveDuplicateInvoiceNumber(fy, prefix, num) {
+        if (!isAdmin() && !hasPermission('editVoucher')) return alert("Only an admin, or a user with 'Edit a voucher' turned on, can fix a duplicate invoice number.");
+        const seriesPrefix = `SDS/${fy}/${prefix}/`;
+        const matches = transactions.filter(t => {
+            if (!t.invNo || t.invNo.indexOf(seriesPrefix) !== 0) return false;
+            return parseInt(t.invNo.slice(seriesPrefix.length), 10) === num;
+        });
+        if (matches.length < 2) { renderInvoiceGapCheck(); return; } // already resolved elsewhere (e.g. another device)
+
+        const pad = matches[0].invNo.length - seriesPrefix.length;
+        matches.sort((a, b) => (a.id || 0) - (b.id || 0)); // oldest keeps the number
+        const keptInvNo = matches[0].invNo;
+
+        const used = new Set();
+        transactions.forEach(t => {
+            if (t.invNo && t.invNo.indexOf(seriesPrefix) === 0) {
+                const n = parseInt(t.invNo.slice(seriesPrefix.length), 10);
+                if (!isNaN(n)) used.add(n);
+            }
+        });
+
+        matches.slice(1).forEach(t => {
+            let candidate = num + 1;
+            while (used.has(candidate)) candidate++;
+            used.add(candidate);
+            t.invNo = seriesPrefix + String(candidate).padStart(pad, '0');
+
+            // Keep that voucher type's own counter ahead of whatever we
+            // just handed out, so the next NEW voucher of this type
+            // doesn't wander back into a number just assigned here.
+            const ck = voucherCounterKeyOf(t) + '_' + fy;
+            refCounter[ck] = Math.max(refCounter[ck] || 0, candidate);
+
+            // Same stale-reference issue as renumberSeriesAfterDelete:
+            // a Payment/Receipt/Journal linked by ID keeps a plain-text
+            // copy of the number it's settling, which needs refreshing now
+            // that this voucher's real number just changed.
+            transactions.forEach(other => {
+                if (other.refInvoiceId == t.id) other.refInvoiceNo = t.invNo;
+            });
+        });
+
+        localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
+        localStorage.setItem('tally_mob_refcounter', JSON.stringify(refCounter));
+        syncCloud();
+        render();
+        renderInvoiceGapCheck();
+        alert(`Fixed. ${keptInvNo} now belongs to one voucher; the other${matches.length - 1 === 1 ? '' : 's'} ${matches.length - 1 === 1 ? 'has' : 'have'} been moved to the next free number${matches.length - 1 === 1 ? '' : 's'} in that series.`);
+    }
+
     // Outstanding still due on a Sales/Purchase invoice (grandTotal minus
     // all cash vouchers linked to it).
     function invoiceOutstanding(txn) {
@@ -5594,12 +5657,21 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (!groupId) return alert("Please select a Stock Group (or create one with + New).");
 
         const editId = document.getElementById('itemEditId').value;
+        // This field is labelled "Opening Qty" but doubles as the everyday
+        // way to correct current stock (after a physical count, spoilage,
+        // etc.), so what's typed here is always the CURRENT stock the item
+        // should show right after saving — not a fixed starting point.
+        // openingQty is back-solved so that opening + net ledger activity
+        // so far reproduces exactly that figure; every future Purchase/Sale
+        // still moves stock normally from there. See recalcStockFromLedger.
+        const desiredQty = parseFloat(document.getElementById('itemQty').value) || 0;
+        const netSoFar = editId ? (netLedgerQtyByItem()[editId] || 0) : 0; // 0 for a brand-new item — nothing can reference it yet
         const data = {
             name: document.getElementById('itemName').value.trim(),  
             groupId: groupId,
             hsn: document.getElementById('itemHsn').value.trim(),  
             uom: uom,  
-            qty: parseFloat(document.getElementById('itemQty').value) || 0,  
+            openingQty: desiredQty - netSoFar,
             rate: parseFloat(document.getElementById('itemRate').value) || 0,  
             gstRate: parseFloat(document.getElementById('itemGst').value) || 0  
         };
@@ -6084,7 +6156,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         });
 
         let totalMissing = 0, seriesWithGaps = 0;
-        const duplicateNotices = [];
+        const duplicateGroups = []; // { fy, prefix, num, count }
 
         const rowsHtml = seriesKeys.map(key => {
             const s = seriesMap[key];
@@ -6099,7 +6171,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
             Object.keys(s.numbers).forEach(numStr => {
                 if (s.numbers[numStr].length > 1) {
-                    duplicateNotices.push(`SDS/${s.fy}/${s.prefix}/${String(numStr).padStart(4, '0')} (used ${s.numbers[numStr].length}\u00d7)`);
+                    duplicateGroups.push({ fy: s.fy, prefix: s.prefix, num: Number(numStr), count: s.numbers[numStr].length });
                 }
             });
 
@@ -6131,9 +6203,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             : `<div style="background: rgba(27,95,168,0.10); border:1px solid var(--success); border-radius: var(--radius-sm); padding:12px 14px; margin-bottom:10px; color:var(--success); font-size:0.85rem;">
                 &#10003; No gaps found in any voucher series.
             </div>`;
-        if (duplicateNotices.length > 0) {
+        if (duplicateGroups.length > 0) {
+            const items = duplicateGroups.map(g => {
+                const label = `SDS/${g.fy}/${g.prefix}/${String(g.num).padStart(4, '0')}`;
+                return `<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:4px 0;">
+                    <span>${escapeHtml(label)} (used ${g.count}\u00d7)</span>
+                    <button onclick="event.stopPropagation(); resolveDuplicateInvoiceNumber('${escapeHtml(g.fy)}','${escapeHtml(g.prefix)}',${g.num})" style="width:auto; padding:5px 12px; font-size:0.75rem; background:var(--warning); border-color:rgba(255,255,255,0.3);">Fix numbering</button>
+                </div>`;
+            }).join('');
             summaryHtml += `<div style="background: rgba(200,127,43,0.12); border:1px solid var(--warning); border-radius: var(--radius-sm); padding:12px 14px; color:var(--warning); font-size:0.85rem;">
-                &#9888; Duplicate invoice number${duplicateNotices.length === 1 ? '' : 's'} (same number used more than once): ${duplicateNotices.map(escapeHtml).join(', ')}
+                &#9888; Duplicate invoice number${duplicateGroups.length === 1 ? '' : 's'} (same number used more than once). The older voucher keeps its number; "Fix numbering" moves the newer one(s) to the next free number in that series and updates any receipt/payment referencing it.
+                <div style="margin-top:8px;">${items}</div>
             </div>`;
         }
         document.getElementById('invoiceGapSummary').innerHTML = summaryHtml;
@@ -7285,28 +7365,47 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // sums Purchased/Sold from. Called on every render(), so stock can
     // never silently drift again: whatever the ledger says is correct,
     // the displayed "In Stock" figure is forced to match it immediately.
-    function recalcStockFromLedger() {
-        const qtyById = {};
-        stockItems.forEach(s => { qtyById[s.id] = 0; });
-
+    // Pure transaction-driven net change for every stock item in one pass —
+    // purchases and "in" custom types add, sales and "out" custom types
+    // subtract, conversions move raw material into processed goods. This
+    // deliberately knows nothing about openingQty; callers combine the two.
+    // Shared by recalcStockFromLedger() (every render) and the item-save
+    // handler above (once per save, to back-solve openingQty from whatever
+    // current stock figure was typed in).
+    function netLedgerQtyByItem() {
+        const net = {};
+        stockItems.forEach(s => { net[s.id] = 0; });
         transactions.forEach(t => {
             if (t.conversion) {
-                // Raw material consumed, processed good produced.
-                if (t.rawItemId != null && qtyById[t.rawItemId] !== undefined) qtyById[t.rawItemId] -= (t.rawQty || 0);
-                if (t.processedItemId != null && qtyById[t.processedItemId] !== undefined) qtyById[t.processedItemId] += (t.outQty || 0);
+                if (t.rawItemId != null && net[t.rawItemId] !== undefined) net[t.rawItemId] -= (t.rawQty || 0);
+                if (t.processedItemId != null && net[t.processedItemId] !== undefined) net[t.processedItemId] += (t.outQty || 0);
                 return;
             }
-            if (!t.items || !affectsMainStock(t.type)) return; // Optional/DeliveryNote/non-stock custom types never touch main stock
+            if (!t.items || !affectsMainStock(t.type)) return;
             const dir = stockDirection(t.type);
             t.items.forEach(line => {
-                if (line.itemId == null || qtyById[line.itemId] === undefined) return;
-                qtyById[line.itemId] -= dir * line.qty; // same sign convention as the edit/delete reversal logic above
+                if (line.itemId == null || net[line.itemId] === undefined) return;
+                net[line.itemId] -= dir * line.qty;
             });
         });
+        return net;
+    }
 
+    function recalcStockFromLedger() {
+        const net = netLedgerQtyByItem();
         let changed = false;
         stockItems.forEach(s => {
-            const correct = qtyById[s.id] || 0;
+            // One-time migration for an item that predates openingQty: back
+            // out what the ledger already explains from its last known
+            // stock figure, and keep the remainder as its opening balance.
+            // Recovers real opening/legacy stock if this item still had the
+            // old incrementally-maintained qty; is a safe no-op (0) if it
+            // had already been forced to a pure ledger figure.
+            if (s.openingQty === undefined) {
+                s.openingQty = (s.qty || 0) - (net[s.id] || 0);
+                changed = true;
+            }
+            const correct = s.openingQty + (net[s.id] || 0);
             if (s.qty !== correct) { s.qty = correct; changed = true; }
         });
         if (changed) localStorage.setItem('tally_mob_stock', JSON.stringify(stockItems));
@@ -8584,6 +8683,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             hsn: hsn,
             uom: 'Quintal',
             qty: 0,
+            openingQty: 0,
             rate: 0,
             gstRate: 5,
             rawMaterial: true
@@ -8737,6 +8837,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             hsn: hsn,
             uom: uom,
             qty: 0,
+            openingQty: 0,
             rate: 0,
             gstRate: 5,
             processedGood: true
@@ -10739,6 +10840,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         document.getElementById('ivStock').innerText = `${item.qty} ${item.uom}`;
         document.getElementById('ivStock').style.color = item.qty < 0 ? 'var(--danger)' : 'var(--accent)';
+        document.getElementById('ivOpening').innerText = `${item.openingQty || 0} ${item.uom}`;
         document.getElementById('ivPurch').innerText = `${purchased} ${item.uom}`;
         document.getElementById('ivRawPurch').innerText = `${rawPurchased} ${item.uom}`;
         document.getElementById('ivSold').innerText = `${sold} ${item.uom}`;
@@ -11223,7 +11325,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             }));
             const itemsFlat = (data.stockItems || []).map(s => ({
                 Name: s.name, HSN: s.hsn, UOM: s.uom, GST_Rate: s.gstRate,
-                Rate: s.rate, Opening_Qty: s.qty, StockGroupId: s.groupId
+                Rate: s.rate, Current_Qty: s.qty, Opening_Qty: s.openingQty || 0, StockGroupId: s.groupId
             }));
             const acctFlat = (data.accounts || []).map(a => ({
                 Name: a.name, Type: a.type, LedgerGroupId: a.groupId, Opening: a.opening
