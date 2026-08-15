@@ -270,8 +270,8 @@ h3 {
     color: var(--text-muted);
     font-weight: 600;
     margin: 8px 0 12px;
-    padding-left: 10px;
-    border-left: 3px solid var(--accent-2);
+    padding-left: 0;
+    border-left: none;
 }
 
 /* ---------- Dashboard KPI cards ---------- */
@@ -1112,8 +1112,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     table { font-size: 0.82rem; min-width: 560px; }
     thead th, tbody td { padding: 8px 10px; }
 
-    /* Modals become bottom sheet-ish on mobile */
-    #invoiceModal, #editModal { padding: 12px 8px; }
+    /* Modals become bottom sheet-ish on mobile.
+       Extra top padding + safe-area so the company logo / invoice header
+       is not hidden under the status bar or cut off. */
+    #invoiceModal, #editModal {
+        padding: max(12px, env(safe-area-inset-top, 0px)) 8px max(12px, env(safe-area-inset-bottom, 0px));
+        align-items: flex-start;
+    }
     .invoice-box, .edit-box { padding: 18px 14px; border-radius: var(--radius); }
     .invoice-box { font-size: 0.85rem; }
     .invoice-box h3 { font-size: 1.05rem !important; }
@@ -3824,7 +3829,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         </div>
 
         <div style="margin: 16px 0; font-size:0.85rem;">
-            <strong>Billed To:</strong>
+            <strong id="invPartyLabel">Billed To:</strong>
             <div id="invParty" style="font-size:1.05rem; font-weight:bold; margin-top:2px;"></div>
             <div id="invAddress" style="color:#475569;"></div>
             <div id="invGstin" style="color:#475569;"></div>
@@ -9719,7 +9724,10 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 ? (txn.customVoucherTypeName || 'CUSTOM VOUCHER').toUpperCase() + (txn.inMainBooks === false ? ' (OFF-BOOK)' : '')
                 : 'TAX INVOICE';
         const rh = document.getElementById('invRateHead');
-        if (rh) rh.innerText = (txn.rateMode === 'EXEMPT') ? 'Rate (Nil GST)' : 'Rate (Incl GST)';
+        if (rh) {
+            if (isCash) rh.innerText = 'Amount';
+            else rh.innerText = (txn.rateMode === 'EXEMPT') ? 'Rate (Nil GST)' : 'Rate (Incl GST)';
+        }
         document.getElementById('invNo').innerText = txn.invNo;  
         // Every voucher's id is a Date.now() timestamp from when it was
         // created, so the creation time can be shown without needing a
@@ -9727,6 +9735,15 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         // was added too.
         const createdTime = txn.id ? new Date(Number(txn.id)).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '';
         document.getElementById('invDate').innerText = txn.date + (createdTime ? ` \u00B7 ${createdTime}` : '');  
+        // Label adapts to voucher type so payment/expense vouchers don't
+        // awkwardly say "Billed To" for a cash-out / expense party.
+        const partyLabelEl = document.getElementById('invPartyLabel');
+        if (partyLabelEl) {
+            if (isJournalTxn) partyLabelEl.textContent = 'Accounts:';
+            else if (txn.type === 'Receipt') partyLabelEl.textContent = 'Received From:';
+            else if (txn.type === 'Payment' || isCustomNoPartyType(txn.type)) partyLabelEl.textContent = 'Paid To:';
+            else partyLabelEl.textContent = 'Billed To:';
+        }
         document.getElementById('invParty').innerText = isJournalTxn
             ? `Dr ${txn.journalDebit ? txn.journalDebit.name : 'Unknown'}  /  Cr ${txn.journalCredit ? txn.journalCredit.name : 'Unknown'}`
             : txn.partyName;  
@@ -9842,7 +9859,19 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             narrWrap.style.display = 'none';
         }
 
-        document.getElementById('invoiceModal').style.display = 'flex';  
+        const invModalEl = document.getElementById('invoiceModal');
+        invModalEl.style.display = 'flex';
+        // Always start at the top so the company logo + title (invoice header)
+        // are visible on mobile instead of opening mid-scroll.
+        invModalEl.scrollTop = 0;
+
+        // Hide e-Way Bill button for vouchers that cannot generate one
+        const ewayBtn = document.getElementById('ewayBillBtn');
+        if (ewayBtn) {
+            const allowed = ['Sales', 'Purchase', 'DeliveryNote'].includes(txn.type);
+            ewayBtn.style.display = allowed ? '' : 'none';
+        }
+
         if (!suppressInvoiceModalHistory) navPushState(closeInvoiceModalUI);
     }  
 
@@ -11954,7 +11983,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             const bar = document.createElement('div');
             bar.className = 'extras-invoice-toolbar no-print';
             bar.innerHTML = `
-                <button type="button" class="btn-inline" onclick="generateEwayBillFromModal()">📄 e-Way Bill JSON</button>
+                <button type="button" id="ewayBillBtn" class="btn-inline" onclick="generateEwayBillFromModal()">📄 e-Way Bill JSON</button>
                 <label class="extras-paper">
                     <span>Size</span>
                     <select class="paperSizeSelect" onchange="setPaperSize(this.value)">
