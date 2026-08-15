@@ -24,14 +24,17 @@
 
 :root {
     /* Surfaces — translucent "glass" panels, blurred over a colorful
-       backdrop instead of flat opaque cards */
+       backdrop instead of flat opaque cards.
+       Opacities are deliberately high: this app is used at a shop counter,
+       often in daylight, so panels stay near-solid to keep figures legible
+       while retaining the soft, layered character of the design. */
     --bg-main: #EAEFF6;
-    --bg-card: rgba(255, 255, 255, 0.52);
-    --bg-input: rgba(255, 255, 255, 0.65);
-    --bg-tint: rgba(255, 255, 255, 0.35);
-    --bg-header: rgba(15, 26, 46, 0.55);
-    --statement-bg: rgba(255, 255, 255, 0.55);
-    --statement-row-alt: rgba(255, 255, 255, 0.28);
+    --bg-card: rgba(255, 255, 255, 0.88);
+    --bg-input: rgba(255, 255, 255, 0.92);
+    --bg-tint: rgba(255, 255, 255, 0.62);
+    --bg-header: rgba(15, 26, 46, 0.72);
+    --statement-bg: rgba(255, 255, 255, 0.88);
+    --statement-row-alt: rgba(236, 241, 248, 0.72);
     --glass-blur: blur(22px) saturate(180%);
     --glass-highlight: inset 0 1px 0 0 rgba(255,255,255,0.65), inset 0 0 0 1px rgba(255,255,255,0.18);
 
@@ -57,8 +60,8 @@
     --orange: #C6642E;
 
     /* Structure */
-    --border: rgba(255, 255, 255, 0.45);
-    --border-strong: rgba(255, 255, 255, 0.65);
+    --border: rgba(30, 58, 95, 0.14);
+    --border-strong: rgba(30, 58, 95, 0.26);
     --card-shadow: 0 8px 32px -8px rgba(15, 26, 46, 0.18), 0 1px 2px 0 rgba(15,26,46,0.05), inset 0 1px 0 0 rgba(255,255,255,0.6);
     --grad-accent: linear-gradient(135deg, #23466F 0%, #4A82B8 100%);
     --grad-warm: linear-gradient(135deg, #C6642E 0%, #C87F2B 100%);
@@ -702,6 +705,11 @@ table button {
     font-size: 0.78rem;
     overflow-wrap: anywhere;
     line-height: 1.45;
+    /* Without a floor, this column gets squeezed to nothing on a phone and
+       a single item breaks across four lines, making every row very tall.
+       A minimum width keeps each item to one or two lines; the surrounding
+       .table-responsive scrolls sideways to accommodate it. */
+    min-width: 215px;
 }
 
 /* ---------- Party autocomplete ---------- */
