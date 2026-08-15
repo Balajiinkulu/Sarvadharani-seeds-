@@ -1960,6 +1960,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div>
                 <label>Opening Qty</label>
                 <input type="number" id="itemQty" value="0" min="0" step="any" required>
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">New item: how much you're starting with. Existing item: type today's real count to correct it — stock updates immediately from that number.</div>
             </div>
             <div>
                 <label>Unit Rate (&#8377; Incl. GST)</label>
@@ -2033,7 +2034,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="summary-card"><div>In Stock</div><div id="ivStock" style="color:var(--accent);">0</div></div>
             <div class="summary-card"><div>Opening Qty</div><div id="ivOpening" style="color:var(--text-muted);">0</div>
                 <div id="ivOpeningAsOf" style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;"></div>
-                <div style="margin-top:4px;"><span onclick="resetItemOpeningQty(currentStockItemViewId)" style="font-size:0.7rem; color:var(--accent); text-decoration:underline; cursor:pointer;">Reset to 0</span></div>
+                <div id="ivOpeningResetWrap" style="margin-top:4px;"><span onclick="resetItemOpeningQty(currentStockItemViewId)" style="font-size:0.7rem; color:var(--accent); text-decoration:underline; cursor:pointer;">Reset to 0</span></div>
             </div>
             <div class="summary-card"><div>Total Purchased</div><div id="ivPurch" style="color:var(--text-main);">0</div></div>
             <div class="summary-card"><div>Total Raw Purchased</div><div id="ivRawPurch" style="color:var(--success);">0</div></div>
@@ -10969,6 +10970,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('ivStock').style.color = item.qty < 0 ? 'var(--danger)' : 'var(--accent)';
         document.getElementById('ivOpening').innerText = `${item.openingQty || 0} ${item.uom}`;
         document.getElementById('ivOpeningAsOf').innerText = item.openingAsOf ? `as of ${item.openingAsOf} (FY close)` : '';
+        document.getElementById('ivOpeningResetWrap').style.display = (item.openingQty || 0) === 0 ? 'none' : 'block';
         document.getElementById('ivPurch').innerText = `${purchased} ${item.uom}`;
         document.getElementById('ivRawPurch').innerText = `${rawPurchased} ${item.uom}`;
         document.getElementById('ivSold').innerText = `${sold} ${item.uom}`;
@@ -11449,14 +11451,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
             const partiesFlat = (data.parties || []).map(p => ({
                 Name: p.name, Type: p.type, Phone: p.phone, GSTIN: p.gstin,
-                Address: p.address, LedgerGroupId: p.groupId
+                Address: p.address, LedgerGroupId: p.groupId,
+                Opening: p.opening || 0, Opening_As_Of: p.openingAsOf || ''
             }));
             const itemsFlat = (data.stockItems || []).map(s => ({
                 Name: s.name, HSN: s.hsn, UOM: s.uom, GST_Rate: s.gstRate,
-                Rate: s.rate, Current_Qty: s.qty, Opening_Qty: s.openingQty || 0, StockGroupId: s.groupId
+                Rate: s.rate, Current_Qty: s.qty, Opening_Qty: s.openingQty || 0,
+                Opening_As_Of: s.openingAsOf || '', StockGroupId: s.groupId
             }));
             const acctFlat = (data.accounts || []).map(a => ({
-                Name: a.name, Type: a.type, LedgerGroupId: a.groupId, Opening: a.opening
+                Name: a.name, Type: a.type, LedgerGroupId: a.groupId,
+                Opening: a.opening, Opening_As_Of: a.openingAsOf || ''
             }));
             const txnFlat = (data.transactions || []).map(t => ({
                 Date: t.date, Type: t.type, Voucher_No: t.invNo, Party_Id: t.partyId,
