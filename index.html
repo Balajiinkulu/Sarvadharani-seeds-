@@ -152,15 +152,7 @@ body {
     margin: 0;
     padding: 0;
     min-height: 100vh;
-    /* Flat parchment with a faint fibre texture (two hairline dot grids,
-       offset) instead of glowing color blobs — reads as paper, not glass. */
     background-color: var(--bg-main);
-    background-image:
-        radial-gradient(rgba(43,53,36,0.05) 1px, transparent 1px),
-        radial-gradient(rgba(43,53,36,0.035) 1px, transparent 1px);
-    background-size: 3px 3px, 7px 7px;
-    background-position: 0 0, 2px 3px;
-    background-attachment: fixed;
     font-feature-settings: "ss01", "cv01";
     line-height: 1.45;
 }
@@ -270,8 +262,8 @@ h3 {
     color: var(--text-muted);
     font-weight: 600;
     margin: 8px 0 12px;
-    padding-left: 0;
-    border-left: none;
+    padding-left: 10px;
+    border-left: 3px solid var(--accent-2);
 }
 
 /* ---------- Dashboard KPI cards ---------- */
@@ -469,10 +461,6 @@ h3 {
 .tile:hover {
     border-color: var(--accent-2);
     background: var(--bg-tint);
-}
-/* Icons removed — tiles show name + subtitle only for a cleaner look. */
-.tile-icon {
-    display: none;
 }
 .tile-name {
     font-family: 'Fraunces', serif;
@@ -834,6 +822,16 @@ table button {
 .invoice-box h3 { color: #0f1a12 !important; }
 .invoice-box table th, .invoice-box table td { color: #0f1a12; }
 .invoice-box table thead tr { background: #E9EFF7 !important; }
+/* The app-wide `thead th` rule below follows the light/dark theme (it's
+   meant for the app's own on-screen report tables), but this table is a
+   printable document that must always render as dark ink on light paper,
+   regardless of which mode the screen is in — so its header cells need
+   their own light-background/dark-text pinned with !important, not just
+   inherited from the row. */
+.invoice-box table thead th {
+    background: #E9EFF7 !important;
+    color: #0f1a12 !important;
+}
 
 .edit-box {
     background: var(--bg-card);
@@ -1093,7 +1091,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     #tileMenu, .submenu, .panel { padding: 16px; }
     .tile-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
     .tile { padding: 14px 12px; }
-    .tile-icon { font-size: 1.5rem; }
     .tile-name { font-size: 0.92rem; }
     .tile-sub { font-size: 0.72rem; }
 
@@ -1112,13 +1109,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     table { font-size: 0.82rem; min-width: 560px; }
     thead th, tbody td { padding: 8px 10px; }
 
-    /* Modals become bottom sheet-ish on mobile.
-       Extra top padding + safe-area so the company logo / invoice header
-       is not hidden under the status bar or cut off. */
-    #invoiceModal, #editModal {
-        padding: max(12px, env(safe-area-inset-top, 0px)) 8px max(12px, env(safe-area-inset-bottom, 0px));
-        align-items: flex-start;
-    }
+    /* Modals become bottom sheet-ish on mobile */
+    #invoiceModal, #editModal { padding: 12px 8px; }
     .invoice-box, .edit-box { padding: 18px 14px; border-radius: var(--radius); }
     .invoice-box { font-size: 0.85rem; }
     .invoice-box h3 { font-size: 1.05rem !important; }
@@ -1293,7 +1285,6 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     max-width: 420px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-top: 3px solid var(--accent-2);
     border-radius: var(--radius-lg);
     box-shadow: 0 20px 50px -15px rgba(10,10,8,0.5);
     padding: 34px 30px 30px;
@@ -1420,8 +1411,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 /* Formal Print overlay content — matches the traditional Tax Invoice /
    Voucher layout, scoped so it never leaks into the rest of the app. */
 #formalPrintContent * { box-sizing: border-box; }
+#formalPrintContent { background: #ffffff; color: #000000; }
 #formalPrintContent table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-#formalPrintContent td, #formalPrintContent th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; }
+#formalPrintContent td, #formalPrintContent th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; background: #fff !important; color: #000 !important; }
 #formalPrintContent .no-border td, #formalPrintContent .no-border th { border: none; }
 #formalPrintContent .outer { border: 1px solid #000; }
 #formalPrintContent .title { text-align:center; font-size:18px; font-weight:bold; margin-bottom:8px; letter-spacing:1px; }
@@ -1666,27 +1658,22 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         <div class="panel-head"><h3>Admin</h3><button class="back-btn" onclick="backToGroups()">&#8592; Back</button></div>
         <div class="tile-grid">
             <div class="tile" onclick="openChangePasswordModal()">
-                <span class="tile-icon">&#128272;</span>
                 <div class="tile-name">Change Password</div>
                 <div class="tile-sub">Update the admin login password</div>
             </div>
             <div class="tile" onclick="openCompanyAddressModal()">
-                <span class="tile-icon">&#127968;</span>
                 <div class="tile-name">Company Address</div>
                 <div class="tile-sub">Shown on invoices &amp; e-Way bills</div>
             </div>
             <div class="tile" onclick="openCompanyMobileModal()">
-                <span class="tile-icon">&#128241;</span>
                 <div class="tile-name">Company Mobile Number</div>
                 <div class="tile-sub">Shown on printed invoices</div>
             </div>
             <div class="tile" onclick="openCompanyBankModal()">
-                <span class="tile-icon">&#127974;</span>
                 <div class="tile-name">Bank &amp; TIN Details</div>
                 <div class="tile-sub">Shown on the Formal print style</div>
             </div>
             <div class="tile" id="manageStaffTile" onclick="openPanel('panelManageStaff')" style="display:none;">
-                <span class="tile-icon">&#128100;</span>
                 <div class="tile-name">Users</div>
                 <div class="tile-sub">Who can sign in, and exactly what they can do</div>
             </div>
@@ -1747,47 +1734,38 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         <div class="panel-head"><h3>Masters</h3><button class="back-btn" onclick="backToGroups()">&#8592; Back</button></div>
         <div class="tile-grid">
             <div class="tile" onclick="openPanel('panelParty')">
-                <span class="tile-icon">&#128101;</span>
                 <div class="tile-name">Add Party</div>
                 <div class="tile-sub">Customer / Vendor</div>
             </div>
             <div class="tile" onclick="openPanel('panelItem')">
-                <span class="tile-icon">&#128230;</span>
                 <div class="tile-name">Add Stock Item</div>
                 <div class="tile-sub">Create inventory</div>
             </div>
             <div class="tile" onclick="openPanel('panelStockGroup')">
-                <span class="tile-icon">&#128193;</span>
                 <div class="tile-name">Stock Groups</div>
                 <div class="tile-sub">Categorize items</div>
             </div>
             <div class="tile" onclick="openPanel('panelAccounts')">
-                <span class="tile-icon">&#127974;</span>
                 <div class="tile-name">Cash / Bank Accounts</div>
                 <div class="tile-sub">Capital, Bank, Cash ledgers</div>
             </div>
             <div class="tile" onclick="openPanel('panelLedgerGroup')">
-                <span class="tile-icon">&#128194;</span>
                 <div class="tile-name">Ledger Groups</div>
                 <div class="tile-sub">Sundry Debtors, Creditors, etc.</div>
             </div>
             <div class="tile" onclick="openPanel('panelOptional')">
-                <span class="tile-icon">&#128220;</span>
                 <div class="tile-name">Optional Vouchers</div>
                 <div class="tile-sub">Off-book sales &amp; purchases</div>
             </div>
             <div class="tile" onclick="openPanel('panelVoucherTypes')">
-                <span class="tile-icon">&#128295;</span>
                 <div class="tile-name">Voucher Types</div>
                 <div class="tile-sub">Create custom voucher types</div>
             </div>
             <div class="tile" onclick="openPanel('panelAlter')">
-                <span class="tile-icon">&#9999;&#65039;</span>
                 <div class="tile-name">Alter / Edit</div>
                 <div class="tile-sub">Edit masters, ledgers, vouchers, units</div>
             </div>
             <div class="tile" onclick="openPanel('panelDataTransfer')">
-                <span class="tile-icon">&#128190;</span>
                 <div class="tile-name">Import / Export Data</div>
                 <div class="tile-sub">Backup or move to another device</div>
             </div>
@@ -1799,32 +1777,26 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         <div class="panel-head"><h3>Transactions</h3><button class="back-btn" onclick="backToGroups()">&#8592; Back</button></div>
         <div class="tile-grid">
             <div class="tile" onclick="openPanel('panelPayments')">
-                <span class="tile-icon">&#128184;</span>
                 <div class="tile-name">Payments</div>
                 <div class="tile-sub">Money paid out</div>
             </div>
             <div class="tile" onclick="openPanel('panelReceipts')">
-                <span class="tile-icon">&#128181;</span>
                 <div class="tile-name">Receipts</div>
                 <div class="tile-sub">Money received</div>
             </div>
             <div class="tile" onclick="openPanel('panelDaybook')">
-                <span class="tile-icon">&#128214;</span>
                 <div class="tile-name">Daybook</div>
                 <div class="tile-sub">All transactions</div>
             </div>
             <div class="tile" onclick="openPanel('panelDeliveryNotes')">
-                <span class="tile-icon">&#128667;</span>
                 <div class="tile-name">Delivery Notes</div>
                 <div class="tile-sub">Dispatch records</div>
             </div>
             <div class="tile" onclick="openPanel('panelRawPurchase')">
-                <span class="tile-icon">&#127806;</span>
                 <div class="tile-name">Raw Purchase Entry</div>
                 <div class="tile-sub">Buy raw seed in Quintals</div>
             </div>
             <div class="tile" onclick="openPanel('panelConversion')">
-                <span class="tile-icon">&#9881;&#65039;</span>
                 <div class="tile-name">Stock Conversion</div>
                 <div class="tile-sub">Process raw seed into bags</div>
             </div>
@@ -1836,57 +1808,46 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         <div class="panel-head"><h3>Reports</h3><button class="back-btn" onclick="backToGroups()">&#8592; Back</button></div>
         <div class="tile-grid">
             <div class="tile" onclick="openPanel('panelStock')">
-                <span class="tile-icon">&#128209;</span>
                 <div class="tile-name">Stock Summary</div>
                 <div class="tile-sub">Inventory on hand</div>
             </div>
             <div class="tile" onclick="openPanel('panelLedgerGroup')">
-                <span class="tile-icon">&#128203;</span>
                 <div class="tile-name">Ledger Groups</div>
                 <div class="tile-sub">Group balances &amp; parties</div>
             </div>
             <div class="tile" onclick="openPanel('panelSalesStatement')">
-                <span class="tile-icon">&#129534;</span>
                 <div class="tile-name">Sales Statement</div>
                 <div class="tile-sub">All sales by period</div>
             </div>
             <div class="tile" onclick="openPanel('panelPurchaseReport')">
-                <span class="tile-icon">&#128722;</span>
                 <div class="tile-name">Purchase Report</div>
                 <div class="tile-sub">All purchases by period</div>
             </div>
             <div class="tile" onclick="openPanel('panelSubLedgerReport')">
-                <span class="tile-icon">&#127793;</span>
                 <div class="tile-name">Sub-Ledger Report</div>
                 <div class="tile-sub">Sales &amp; purchases by category</div>
             </div>
             <div class="tile" onclick="openPanel('panelCashReport')">
-                <span class="tile-icon">&#128179;</span>
                 <div class="tile-name">Payments &amp; Receipts Report</div>
                 <div class="tile-sub">Ref no., inventory, period</div>
             </div>
             <div class="tile" onclick="openPanel('panelProcessedReport')">
-                <span class="tile-icon">&#127806;</span>
                 <div class="tile-name">Processed Report</div>
                 <div class="tile-sub">Raw &#8594; Bags conversion history</div>
             </div>
             <div class="tile" onclick="openPanel('panelRawPurchaseReport')">
-                <span class="tile-icon">&#128230;</span>
                 <div class="tile-name">Raw Purchase Report</div>
                 <div class="tile-sub">Raw seed bought, by variety &amp; period</div>
             </div>
             <div class="tile" onclick="openPanel('panelTrialBalance')">
-                <span class="tile-icon">&#9878;&#65039;</span>
                 <div class="tile-name">Trial Balance</div>
                 <div class="tile-sub">Every ledger's Dr/Cr closing balance</div>
             </div>
             <div class="tile" onclick="openPanel('panelGstLiability')">
-                <span class="tile-icon">&#129297;</span>
                 <div class="tile-name">GST Liability</div>
                 <div class="tile-sub">Output vs input tax, by period</div>
             </div>
             <div class="tile" onclick="openPanel('panelInvoiceGapCheck')">
-                <span class="tile-icon">&#128269;</span>
                 <div class="tile-name">Invoice Number Gap Check</div>
                 <div class="tile-sub">Flags missing/skipped numbers, by series</div>
             </div>
@@ -2338,42 +2299,34 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         <div class="panel-head"><h3>Alter / Edit</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
         <div class="tile-grid">
             <div class="tile" onclick="openPanel('panelAlterParty')">
-                <span class="tile-icon">&#128100;</span>
                 <div class="tile-name">Alter Party</div>
                 <div class="tile-sub">Edit customer / vendor details</div>
             </div>
             <div class="tile" onclick="openPanel('panelStock')">
-                <span class="tile-icon">&#128230;</span>
                 <div class="tile-name">Alter Stock Item</div>
                 <div class="tile-sub">Edit item, unit &amp; rate</div>
             </div>
             <div class="tile" onclick="openPanel('panelAlterUnit')">
-                <span class="tile-icon">&#128207;</span>
                 <div class="tile-name">Alter Unit</div>
                 <div class="tile-sub">Rename a unit everywhere it's used</div>
             </div>
             <div class="tile" onclick="openPanel('panelLedgerGroup')">
-                <span class="tile-icon">&#128194;</span>
                 <div class="tile-name">Alter Ledger Group</div>
                 <div class="tile-sub">Edit group name &amp; nature</div>
             </div>
             <div class="tile" onclick="openPanel('panelStockGroup')">
-                <span class="tile-icon">&#128193;</span>
                 <div class="tile-name">Alter Stock Group</div>
                 <div class="tile-sub">Edit stock category</div>
             </div>
             <div class="tile" onclick="openPanel('panelAccounts')">
-                <span class="tile-icon">&#127974;</span>
                 <div class="tile-name">Alter Cash/Bank Account</div>
                 <div class="tile-sub">Edit account details</div>
             </div>
             <div class="tile" onclick="openPanel('panelVoucherTypes')">
-                <span class="tile-icon">&#128295;</span>
                 <div class="tile-name">Alter Voucher Type</div>
                 <div class="tile-sub">Edit a custom voucher type</div>
             </div>
             <div class="tile" onclick="openPanel('panelAlterVoucher')">
-                <span class="tile-icon">&#128221;</span>
                 <div class="tile-name">Alter Voucher</div>
                 <div class="tile-sub">Find &amp; edit any sale, purchase, payment...</div>
             </div>
@@ -9724,10 +9677,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 ? (txn.customVoucherTypeName || 'CUSTOM VOUCHER').toUpperCase() + (txn.inMainBooks === false ? ' (OFF-BOOK)' : '')
                 : 'TAX INVOICE';
         const rh = document.getElementById('invRateHead');
-        if (rh) {
-            if (isCash) rh.innerText = 'Amount';
-            else rh.innerText = (txn.rateMode === 'EXEMPT') ? 'Rate (Nil GST)' : 'Rate (Incl GST)';
-        }
+        if (rh) rh.innerText = (txn.rateMode === 'EXEMPT') ? 'Rate (Nil GST)' : 'Rate (Incl GST)';
         document.getElementById('invNo').innerText = txn.invNo;  
         // Every voucher's id is a Date.now() timestamp from when it was
         // created, so the creation time can be shown without needing a
@@ -9735,18 +9685,20 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         // was added too.
         const createdTime = txn.id ? new Date(Number(txn.id)).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '';
         document.getElementById('invDate').innerText = txn.date + (createdTime ? ` \u00B7 ${createdTime}` : '');  
-        // Label adapts to voucher type so payment/expense vouchers don't
-        // awkwardly say "Billed To" for a cash-out / expense party.
-        const partyLabelEl = document.getElementById('invPartyLabel');
-        if (partyLabelEl) {
-            if (isJournalTxn) partyLabelEl.textContent = 'Accounts:';
-            else if (txn.type === 'Receipt') partyLabelEl.textContent = 'Received From:';
-            else if (txn.type === 'Payment' || isCustomNoPartyType(txn.type)) partyLabelEl.textContent = 'Paid To:';
-            else partyLabelEl.textContent = 'Billed To:';
-        }
         document.getElementById('invParty').innerText = isJournalTxn
             ? `Dr ${txn.journalDebit ? txn.journalDebit.name : 'Unknown'}  /  Cr ${txn.journalCredit ? txn.journalCredit.name : 'Unknown'}`
-            : txn.partyName;  
+            : txn.partyName;
+        // "Billed To" only makes sense for an invoice-style voucher — a
+        // Payment/Receipt/expense voucher didn't bill anyone, it paid or
+        // received money, and a Journal entry has no single counterparty.
+        const partyLabel = document.getElementById('invPartyLabel');
+        if (partyLabel) {
+            partyLabel.innerText = isJournalTxn
+                ? 'Entry:'
+                : isCash
+                    ? (txn.type === 'Receipt' ? 'Received From:' : 'Paid To:')
+                    : 'Billed To:';
+        }  
         document.getElementById('invAddress').innerText = partyObj && partyObj.address ? `Address: ${partyObj.address}` : '';
         document.getElementById('invGstin').innerText = partyObj && partyObj.gstin ? `GSTIN: ${partyObj.gstin}` : '';
 
@@ -9859,19 +9811,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             narrWrap.style.display = 'none';
         }
 
-        const invModalEl = document.getElementById('invoiceModal');
-        invModalEl.style.display = 'flex';
-        // Always start at the top so the company logo + title (invoice header)
-        // are visible on mobile instead of opening mid-scroll.
-        invModalEl.scrollTop = 0;
-
-        // Hide e-Way Bill button for vouchers that cannot generate one
-        const ewayBtn = document.getElementById('ewayBillBtn');
-        if (ewayBtn) {
-            const allowed = ['Sales', 'Purchase', 'DeliveryNote'].includes(txn.type);
-            ewayBtn.style.display = allowed ? '' : 'none';
-        }
-
+        document.getElementById('invoiceModal').style.display = 'flex';  
         if (!suppressInvoiceModalHistory) navPushState(closeInvoiceModalUI);
     }  
 
@@ -11929,9 +11869,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             bar.id = 'extrasBar';
             bar.className = 'extras-bar no-print';
             bar.innerHTML = `
-                <button type="button" id="pwaInstallBtn" class="btn-inline extras-btn" style="display:none;" onclick="triggerInstall()">📲 Install app</button>
-                <button type="button" class="btn-inline extras-btn" onclick="backupJSON()">💾 Backup JSON</button>
-                <button type="button" class="btn-inline extras-btn" onclick="backupExcel()">📊 Backup Excel</button>
+                <button type="button" id="pwaInstallBtn" class="btn-inline extras-btn" style="display:none;" onclick="triggerInstall()">Install app</button>
+                <button type="button" class="btn-inline extras-btn" onclick="backupJSON()">Backup JSON</button>
+                <button type="button" class="btn-inline extras-btn" onclick="backupExcel()">Backup Excel</button>
                 <label class="extras-paper">
                     <span>Print size</span>
                     <select class="paperSizeSelect" onchange="setPaperSize(this.value)">
@@ -11983,7 +11923,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             const bar = document.createElement('div');
             bar.className = 'extras-invoice-toolbar no-print';
             bar.innerHTML = `
-                <button type="button" id="ewayBillBtn" class="btn-inline" onclick="generateEwayBillFromModal()">📄 e-Way Bill JSON</button>
+                <button type="button" class="btn-inline" onclick="generateEwayBillFromModal()">e-Way Bill JSON</button>
                 <label class="extras-paper">
                     <span>Size</span>
                     <select class="paperSizeSelect" onchange="setPaperSize(this.value)">
