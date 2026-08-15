@@ -2031,7 +2031,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <div class="panel-head"><h3 id="itemViewTitle">Stock Item</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
             <div class="summary-card"><div>In Stock</div><div id="ivStock" style="color:var(--accent);">0</div></div>
-            <div class="summary-card"><div>Opening Qty</div><div id="ivOpening" style="color:var(--text-muted);">0</div></div>
+            <div class="summary-card"><div>Opening Qty</div><div id="ivOpening" style="color:var(--text-muted);">0</div>
+                <div id="ivOpeningAsOf" style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;"></div>
+                <div style="margin-top:4px;"><span onclick="resetItemOpeningQty(currentStockItemViewId)" style="font-size:0.7rem; color:var(--accent); text-decoration:underline; cursor:pointer;">Reset to 0</span></div>
+            </div>
             <div class="summary-card"><div>Total Purchased</div><div id="ivPurch" style="color:var(--text-main);">0</div></div>
             <div class="summary-card"><div>Total Raw Purchased</div><div id="ivRawPurch" style="color:var(--success);">0</div></div>
             <div class="summary-card"><div>Total Sold</div><div id="ivSold" style="color:var(--text-main);">0</div></div>
@@ -3493,6 +3496,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <option value="">All Categories</option>
             </select>
             <button onclick="printRegion('panelStock','Stock Summary')" class="btn-success" style="width:auto; padding:8px 14px; font-size:0.8rem;">Save as PDF</button>
+            <button onclick="resetAllOpeningQuantities()" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--warning); border-color:rgba(255,255,255,0.3);" title="Fix items where Opening Qty was set incorrectly">Fix Opening Qty</button>
         </div>
         <div class="table-responsive">
             <table>
@@ -6090,8 +6094,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         diffEl.style.color = Math.abs(diff) < 0.01 ? 'var(--success)' : 'var(--danger)';
     }
 
-    // Snapshots every party's and account's CURRENT closing balance as
-    // their new Opening Balance from the chosen date onward. Nothing is
+    // Snapshots every party's, account's, and stock item's CURRENT closing
+    // balance as their new Opening Balance/Opening Qty from the chosen date onward. Nothing is
     // deleted — every past voucher stays exactly as editable/deletable as
     // it always was; this only moves where the running-balance count
     // starts from, same as closing a financial year in any accounting
@@ -6101,7 +6105,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const asOfDate = document.getElementById('fyCarryForwardDate').value;
         if (!asOfDate) return alert("Please choose the date the new financial year starts on.");
 
-        const confirmMsg = `This will set every party's and account's current closing balance as their new Opening Balance, effective ${asOfDate}.\n\nPast vouchers are NOT deleted or locked — they stay fully visible and editable.\n\nProceed?`;
+        const confirmMsg = `This will set every party's and account's current closing balance, AND every stock item's current "In Stock" figure, as their new Opening Balance/Opening Qty, effective ${asOfDate}.\n\nPast vouchers are NOT deleted or locked — they stay fully visible and editable.\n\nProceed?`;
         if (!confirm(confirmMsg)) return;
 
         parties.forEach(p => {
@@ -6112,9 +6116,20 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             a.opening = accountBalance(a.id);
             a.openingAsOf = asOfDate;
         });
+        // Same rollover for stock: whatever's currently on the shelf becomes
+        // each item's new Opening Qty, and openingAsOf moves forward so
+        // netLedgerQtyByItem() stops counting anything before this date —
+        // it's already folded into the new opening figure. recalcStockFromLedger()
+        // then rebuilds item.qty from that new baseline before render() runs.
+        stockItems.forEach(s => {
+            s.openingQty = s.qty;
+            s.openingAsOf = asOfDate;
+        });
+        recalcStockFromLedger();
 
         localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
         localStorage.setItem('tally_mob_accounts', JSON.stringify(accounts));
+        localStorage.setItem('tally_mob_stock', JSON.stringify(stockItems));
         syncCloud();
 
         render();
@@ -7368,23 +7383,33 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // Pure transaction-driven net change for every stock item in one pass —
     // purchases and "in" custom types add, sales and "out" custom types
     // subtract, conversions move raw material into processed goods. This
-    // deliberately knows nothing about openingQty; callers combine the two.
-    // Shared by recalcStockFromLedger() (every render) and the item-save
-    // handler above (once per save, to back-solve openingQty from whatever
-    // current stock figure was typed in).
+    // deliberately knows nothing about openingQty itself; callers combine
+    // the two. Shared by recalcStockFromLedger() (every render) and the
+    // item-save handler above (once per save, to back-solve openingQty from
+    // whatever current stock figure was typed in).
+    //
+    // Each item only counts transactions from its OWN openingAsOf date
+    // onward — same "opening + everything since openingAsOf" pattern as
+    // accountBalanceAsOf/partyBalanceAsOf above. This is what makes Start
+    // New Financial Year safe for stock: rolling an item's closing qty
+    // into its new Opening Qty, and moving openingAsOf forward to match,
+    // means transactions before that date stop being counted a second
+    // time — they're already folded into the new opening figure.
     function netLedgerQtyByItem() {
         const net = {};
-        stockItems.forEach(s => { net[s.id] = 0; });
+        const cutoff = {};
+        stockItems.forEach(s => { net[s.id] = 0; cutoff[s.id] = s.openingAsOf || '2000-01-01'; });
         transactions.forEach(t => {
             if (t.conversion) {
-                if (t.rawItemId != null && net[t.rawItemId] !== undefined) net[t.rawItemId] -= (t.rawQty || 0);
-                if (t.processedItemId != null && net[t.processedItemId] !== undefined) net[t.processedItemId] += (t.outQty || 0);
+                if (t.rawItemId != null && net[t.rawItemId] !== undefined && !(t.date < cutoff[t.rawItemId])) net[t.rawItemId] -= (t.rawQty || 0);
+                if (t.processedItemId != null && net[t.processedItemId] !== undefined && !(t.date < cutoff[t.processedItemId])) net[t.processedItemId] += (t.outQty || 0);
                 return;
             }
             if (!t.items || !affectsMainStock(t.type)) return;
             const dir = stockDirection(t.type);
             t.items.forEach(line => {
                 if (line.itemId == null || net[line.itemId] === undefined) return;
+                if (t.date < cutoff[line.itemId]) return; // predates this item's own opening-balance cutoff — already folded into openingQty
                 net[line.itemId] -= dir * line.qty;
             });
         });
@@ -7395,20 +7420,110 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const net = netLedgerQtyByItem();
         let changed = false;
         stockItems.forEach(s => {
-            // One-time migration for an item that predates openingQty: back
-            // out what the ledger already explains from its last known
-            // stock figure, and keep the remainder as its opening balance.
-            // Recovers real opening/legacy stock if this item still had the
-            // old incrementally-maintained qty; is a safe no-op (0) if it
-            // had already been forced to a pure ledger figure.
+            // One-time migration for an item that predates openingQty.
+            // This USED to back-calculate an opening balance from whatever
+            // qty happened to be cached on this device at the moment the
+            // migration first ran — but that figure isn't trustworthy: if
+            // this device hadn't yet re-rendered since the ledger-only fix
+            // that came before openingQty, or pulled back a stale value via
+            // sync, the OLD bug's wrong number got permanently canonised as
+            // real opening stock instead of healing to 0 (exactly what
+            // happened here — Purchased 50, Sold 50, but a leftover "1"
+            // got locked in as Opening Qty instead of clearing to 0).
+            // Defaulting to 0 is deterministic and correct for a shop
+            // whose stock has always come through tracked Purchase entries;
+            // any item with genuine un-invoiced opening stock can still
+            // have that entered via Edit Stock Item, which now holds it
+            // correctly (see the item-form submit handler above).
             if (s.openingQty === undefined) {
-                s.openingQty = (s.qty || 0) - (net[s.id] || 0);
+                s.openingQty = 0;
                 changed = true;
             }
             const correct = s.openingQty + (net[s.id] || 0);
             if (s.qty !== correct) { s.qty = correct; changed = true; }
         });
         if (changed) localStorage.setItem('tally_mob_stock', JSON.stringify(stockItems));
+    }
+
+    // Clears one item's Opening Qty back to 0 — the quick per-item fix for
+    // the migration mistake described above: a stale pre-fix number that
+    // got locked in as if it were real opening stock. In Stock immediately
+    // becomes whatever this item's own transactions add up to.
+    //
+    // openingAsOf is what tells the two cases apart. A leftover migration
+    // artifact never has it set — the old migration only ever touched
+    // openingQty. A REAL opening balance, from Start New Financial Year,
+    // always sets both together. So an item with openingAsOf present isn't
+    // a bug to clean up — it's this item's actual carried-forward stock
+    // from closing the books, and clearing it to 0 would erase real
+    // trading history, not fix anything. Still allowed if an admin
+    // deliberately wants that, but the warning has to say so honestly
+    // instead of describing it as a fix.
+    function resetItemOpeningQty(itemId) {
+        if (!isAdmin() && !hasPermission('editItem')) return alert("Only an admin, or a user with 'Edit a stock item' turned on, can reset an item's opening quantity.");
+        const item = stockItems.find(s => s.id == itemId);
+        if (!item) return;
+        if ((item.openingQty || 0) === 0) return alert("Opening Qty is already 0 for this item.");
+
+        if (item.openingAsOf) {
+            const ok = confirm(
+                `"${item.name}"'s Opening Qty of ${item.openingQty} ${item.uom} isn't a leftover bug — it's this item's real carried-forward stock as of ${item.openingAsOf}, set when a financial year was closed.\n\n`
+                + `Clearing it to 0 will erase that opening balance, not fix anything. Only proceed if you're deliberately correcting it (in which case Edit Stock Item, entering the right count directly, is usually what you want instead).\n\n`
+                + `Clear it to 0 anyway?`
+            );
+            if (!ok) return;
+        } else {
+            if (!confirm(`Reset "${item.name}"'s Opening Qty from ${item.openingQty} to 0? In Stock will then be purely what its Purchase/Sale entries add up to.`)) return;
+        }
+
+        item.openingQty = 0;
+        recalcStockFromLedger();
+        syncCloud();
+        render();
+        if (typeof viewStockItem === 'function') viewStockItem(itemId);
+    }
+
+    // Bulk version of the fix above, for a device where several items
+    // picked up a bogus Opening Qty the same way — shows exactly what will
+    // change before touching anything, since this alters stock data across
+    // the whole item list at once.
+    //
+    // Deliberately excludes any item with openingAsOf set (see
+    // resetItemOpeningQty above): this bulk tool exists to sweep up
+    // migration artifacts, not to mass-clear real financial-year opening
+    // balances. Those stay untouched here even if nonzero — fixing one of
+    // those, if it's ever genuinely wrong, is a deliberate one-item
+    // decision via resetItemOpeningQty or Edit Stock Item, never a bulk
+    // sweep.
+    function resetAllOpeningQuantities() {
+        if (!isAdmin()) return alert("Only an admin can reset opening quantities for every item at once.");
+        const affected = stockItems.filter(s => (s.openingQty || 0) !== 0 && !s.openingAsOf);
+        const protectedCount = stockItems.filter(s => (s.openingQty || 0) !== 0 && s.openingAsOf).length;
+
+        if (affected.length === 0) {
+            return alert(protectedCount > 0
+                ? `Nothing to fix. ${protectedCount} item(s) have a nonzero Opening Qty, but each is a real financial-year opening balance (not a bug) — use Reset to 0 on an individual item if one genuinely needs correcting.`
+                : "Every item's Opening Qty is already 0 — nothing to fix.");
+        }
+
+        const preview = affected.slice(0, 15)
+            .map(s => `\u2022 ${s.name}: ${s.openingQty} ${s.uom} \u2192 0`)
+            .join('\n') + (affected.length > 15 ? `\n\u2026 and ${affected.length - 15} more` : '');
+
+        const ok = confirm(
+            `Reset Opening Qty to 0 for ${affected.length} item(s), so In Stock becomes purely what Purchase/Sale/etc. entries add up to:\n\n${preview}\n\n`
+            + `If any of these genuinely has real stock that was never entered as a Purchase in this app, re-enter that amount afterward via Edit Stock Item.`
+            + (protectedCount > 0 ? `\n\n(${protectedCount} other item(s) with a real financial-year opening balance are left untouched.)` : '')
+            + `\n\nProceed?`
+        );
+        if (!ok) return;
+
+        affected.forEach(s => { s.openingQty = 0; });
+        localStorage.setItem('tally_mob_stock', JSON.stringify(stockItems));
+        recalcStockFromLedger();
+        syncCloud();
+        render();
+        alert(`Done — ${affected.length} item(s) now show stock purely from transactions.`);
     }
 
     // ---- Alter Voucher (search any voucher, then reuse the Edit popup) ----
@@ -10813,7 +10928,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     // Single item: headline summary + every transaction touching it.
+    let currentStockItemViewId = null;
     function viewStockItem(itemId) {
+        currentStockItemViewId = itemId;
         const item = stockItems.find(s => s.id == itemId);
         if (!item) return;
         document.getElementById('itemViewTitle').innerText = item.name;
@@ -10823,14 +10940,24 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         let purchased = 0, sold = 0, rawPurchased = 0;
         const rows = [];
+        const openingAsOf = item.openingAsOf || '2000-01-01';
         transactions.forEach(t => {
             if (!t.items) return;
             if (t.optional || t.deliveryNote || t.conversion) return; // optional/delivery/conversion stay off the main item view
             t.items.forEach(line => {
                 if (line.itemId != itemId) return;
-                if (t.type === 'Purchase') purchased += line.qty;
-                if (t.type === 'RawPurchase') rawPurchased += line.qty;
-                if (t.type === 'Sales') sold += line.qty;
+                // Purchased/Sold only count from this item's own opening-
+                // balance date onward — same as the In Stock figure itself
+                // (see netLedgerQtyByItem) — so Opening + Purchased - Sold
+                // still reconciles to In Stock after a financial year
+                // rollover. The transaction list below stays unfiltered:
+                // past vouchers are never deleted or hidden, only excluded
+                // from this running total once they're folded into Opening.
+                if (!(t.date < openingAsOf)) {
+                    if (t.type === 'Purchase') purchased += line.qty;
+                    if (t.type === 'RawPurchase') rawPurchased += line.qty;
+                    if (t.type === 'Sales') sold += line.qty;
+                }
                 rows.push({ date: t.date, type: t.rawPurchase ? 'Raw Purchase' : t.type, invNo: t.invNo, party: t.partyName, partyId: t.partyId,
                             qty: line.qty, uom: line.uom, rate: line.inclRate,
                             amount: line.lineTotal != null ? line.lineTotal : line.inclRate * line.qty,
@@ -10841,6 +10968,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('ivStock').innerText = `${item.qty} ${item.uom}`;
         document.getElementById('ivStock').style.color = item.qty < 0 ? 'var(--danger)' : 'var(--accent)';
         document.getElementById('ivOpening').innerText = `${item.openingQty || 0} ${item.uom}`;
+        document.getElementById('ivOpeningAsOf').innerText = item.openingAsOf ? `as of ${item.openingAsOf} (FY close)` : '';
         document.getElementById('ivPurch').innerText = `${purchased} ${item.uom}`;
         document.getElementById('ivRawPurch').innerText = `${rawPurchased} ${item.uom}`;
         document.getElementById('ivSold').innerText = `${sold} ${item.uom}`;
