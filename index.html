@@ -27,50 +27,118 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-    /* Surfaces — flat parchment, not glass. This app is used at a shop
-       counter in direct daylight, where blurred translucent panels wash
-       out; flat, high-contrast paper surfaces stay legible in sun. */
-    --bg-main: #F0F0EE;
+    /* Surfaces — plain white, no tint. This app is used at a shop
+       counter in direct daylight, so flat, high-contrast surfaces stay
+       legible in sun; --bg-tint is used sparingly for very light
+       differentiation (hover states, input cards), never as a color. */
+    --bg-main: #FFFFFF;
     --bg-card: #FFFFFF;
     --bg-input: #FFFFFF;
-    --bg-tint: #E8E8E5;
+    --bg-tint: #F2F3F5;
     --bg-header: #1C2318;
     --statement-bg: #FFFFFF;
-    --statement-row-alt: #F1F1EF;
+    --statement-row-alt: #F6F7F8;
     --glass-blur: none;
     --glass-highlight: none;
 
-    /* Primary accent — deep ink-olive (fountain-pen ledger ink) */
-    --accent: #2B3524;
-    --accent-2: #ACA89C;      /* whitish-grey secondary (was mustard-brass) */
-    --accent-hover: #1C2318;
-    --accent-soft: rgba(172, 168, 156, 0.18);
+    /* Primary accent — blue (default/primary buttons, links, borders) */
+    --accent: #2563EB;
+    --accent-2: #9CA3AF;      /* neutral grey secondary */
+    --accent-hover: #1D4ED8;
+    --accent-soft: rgba(37, 99, 235, 0.12);
 
     /* Text */
-    --text-main: #241F14;
-    --text-muted: #6B5F45;
-    --text-invert: #F0F0EE;
+    --text-main: #1A1A1A;
+    --text-muted: #666666;
+    --text-invert: #FFFFFF;
 
-    /* Semantic — traditional ledger red (debit) / green (credit) ink */
-    --success: #4B6B3A;
-    --danger: #8B3A2B;
-    --warning: #A5721E;
-    --pink: #8B3A2B;     /* re-mapped to ledger-red so inline uses stay in palette */
-    --violet: #5B4A8F;
-    --cyan: #2E6B78;
-    --lime: #4B6B3A;
-    --orange: #A5581E;
+    /* Semantic — green (success/save/credit) / red (danger/delete/debit) */
+    --success: #16A34A;
+    --danger: #DC2626;
+    --warning: #D97706;
+    --pink: #DC2626;
+    --violet: #7C3AED;
+    --cyan: #0891B2;
+    --lime: #16A34A;
+    --orange: #D97706;
 
     /* Structure */
-    --border: rgba(43, 53, 36, 0.18);
-    --border-strong: rgba(43, 53, 36, 0.34);
-    --card-shadow: 0 1px 0 0 rgba(43,53,36,0.06);
-    --grad-accent: linear-gradient(135deg, #2B3524 0%, #435339 100%);
-    --grad-warm: linear-gradient(135deg, #A5581E 0%, #A5721E 100%);
+    --border: rgba(0, 0, 0, 0.12);
+    --border-strong: rgba(0, 0, 0, 0.22);
+    --card-shadow: 0 1px 0 0 rgba(0,0,0,0.04);
+    --grad-accent: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    --grad-success: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
+    --grad-danger: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+    --danger-bg: #FBE9E7;
+    --danger-border: #F0BDB6;
+    --success-bg: #E6F4EA;
+    --success-border: #A8D8B5;
+    --success-text: #1E4620;
+    --info-bg: #F8FAFC;
+    --info-border: #E2E8F0;
     --radius-sm: 14px;
     --radius: 20px;
     --radius-lg: 26px;
 }
+
+/* ---------- Dark mode ----------
+   Toggled via a class on <body> (see toggleTheme() in the script below),
+   not prefers-color-scheme — the person's choice should stick regardless
+   of their OS setting, since this runs full-screen as an installed app.
+   Only the token values change; every component below already reads
+   colors through var(), so this one block re-themes the whole app.
+   Printable surfaces (invoice-box, pdf-capture-mode, the formal print
+   overlay) are deliberately left out — a printed page should always be
+   black ink on white paper regardless of which mode the screen is in. */
+body.dark-mode {
+    --bg-main: #121212;
+    --bg-card: #1E1E1E;
+    --bg-input: #2A2A2A;
+    --bg-tint: #262626;
+    --bg-header: #0D0D0D;
+    --statement-bg: #1E1E1E;
+    --statement-row-alt: #242424;
+
+    --accent: #3B82F6;
+    --accent-2: #8B93A0;
+    --accent-hover: #60A5FA;
+    --accent-soft: rgba(59, 130, 246, 0.18);
+
+    --text-main: #EDEDED;
+    --text-muted: #A0A0A0;
+    --text-invert: #FFFFFF;
+
+    --success: #22C55E;
+    --danger: #EF4444;
+    --warning: #F59E0B;
+    --pink: #EF4444;
+    --violet: #A78BFA;
+    --cyan: #22D3EE;
+    --lime: #22C55E;
+    --orange: #F59E0B;
+
+    --border: rgba(255, 255, 255, 0.14);
+    --border-strong: rgba(255, 255, 255, 0.26);
+    --card-shadow: 0 1px 0 0 rgba(0,0,0,0.3);
+    --grad-accent: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    --grad-success: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
+    --grad-danger: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+
+    --danger-bg: #3A1F1E;
+    --danger-border: #5C2E2B;
+    --success-bg: #1B3324;
+    --success-border: #2E5B3E;
+    --success-text: #86EFAC;
+}
+/* Autocomplete dropdown shadow reads as a light-mode assumption
+   (dark shadow meant for a white surface) — flip it in dark mode so it
+   doesn't just look like a dim halo around an already-dark panel. */
+body.dark-mode .party-ac-list { box-shadow: 0 12px 32px -8px rgba(0,0,0,0.6); }
+/* Login screen's dark backdrop gradient behind the card — kept
+   independent of --bg-header since dark mode makes the header nearly
+   black, which would flatten the login screen into a single black
+   rectangle with no separation between backdrop and card. */
+body.dark-mode #loginGate { background: #17181A; }
 
 * { box-sizing: border-box; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
 
@@ -514,10 +582,10 @@ input[type="number"] {
 }
 input:focus, select:focus, textarea:focus {
     border-color: var(--accent-2);
-    background: #FFFFFF;
-    box-shadow: 0 0 0 3px rgba(122, 106, 46, 0.16);
+    background: var(--bg-input);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
-input::placeholder, textarea::placeholder { color: #A69A7D; }
+input::placeholder, textarea::placeholder { color: #9CA0A6; }
 
 /* Buttons — flat, stamp-edged rectangles rather than glossy pills;
    the tone this app runs on is a ledger book, not a consumer app. */
@@ -556,12 +624,13 @@ label[style*="display:flex"] > button {
 }
 
 button.btn-success {
-    background: var(--grad-accent);
+    background: var(--grad-success);
+    border-color: #15803D;
 }
 
 button.btn-danger {
-    background: linear-gradient(135deg, #8B3A2B 0%, #A5482F 100%);
-    border-color: #6E2E22;
+    background: var(--grad-danger);
+    border-color: #B91C1C;
 }
 button.btn-danger:hover { filter: brightness(1.12); }
 
@@ -689,7 +758,7 @@ table button {
 .party-ac-list {
     position: absolute;
     z-index: 400;
-    background: #FFFFFF;
+    background: var(--bg-card);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-sm);
     box-shadow: 0 12px 32px -8px rgba(36,31,20,0.28);
@@ -1277,8 +1346,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    background: #FBE9E7;
-    border: 1px solid #F0BDB6;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
     color: var(--danger);
     border-radius: var(--radius-sm);
     padding: 10px 12px;
@@ -1388,6 +1457,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     </style>
 </head>
 <body>
+<script>
+// Applied synchronously, before anything paints, so a saved dark-mode
+// preference doesn't show a flash of the light theme first.
+if (localStorage.getItem('sds_theme') === 'dark') {
+    document.body.classList.add('dark-mode');
+}
+</script>
 
 <div id="loginGate">
     <div class="login-card">
@@ -1437,7 +1513,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <span id="changePasswordErrorText"></span>
             <button type="button" onclick="document.getElementById('changePasswordError').style.display='none'" aria-label="Dismiss">&times;</button>
         </div>
-        <div class="login-error" id="changePasswordSuccess" style="display:none; background:#e6f4ea; color:#1e4620; border-color:#a8d8b5;">
+        <div class="login-error" id="changePasswordSuccess" style="display:none; background:var(--success-bg); color:var(--success-text); border-color:var(--success-border);">
             <span>Password changed successfully.</span>
             <button type="button" onclick="document.getElementById('changePasswordSuccess').style.display='none'" aria-label="Dismiss" style="color:#1e4620;">&times;</button>
         </div>
@@ -1466,7 +1542,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
             Shown under your company name on printed invoices and used as the "from" address on e-Way bills. Leave blank to show nothing.
         </p>
-        <div class="login-error" id="companyAddressSuccess" style="display:none; background:#e6f4ea; color:#1e4620; border-color:#a8d8b5;">
+        <div class="login-error" id="companyAddressSuccess" style="display:none; background:var(--success-bg); color:var(--success-text); border-color:var(--success-border);">
             <span>Company address saved.</span>
             <button type="button" onclick="document.getElementById('companyAddressSuccess').style.display='none'" aria-label="Dismiss" style="color:#1e4620;">&times;</button>
         </div>
@@ -1493,7 +1569,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <span id="companyMobileErrorText"></span>
             <button type="button" onclick="document.getElementById('companyMobileError').style.display='none'" aria-label="Dismiss">&times;</button>
         </div>
-        <div class="login-error" id="companyMobileSuccess" style="display:none; background:#e6f4ea; color:#1e4620; border-color:#a8d8b5;">
+        <div class="login-error" id="companyMobileSuccess" style="display:none; background:var(--success-bg); color:var(--success-text); border-color:var(--success-border);">
             <span>Mobile number saved.</span>
             <button type="button" onclick="document.getElementById('companyMobileSuccess').style.display='none'" aria-label="Dismiss" style="color:#1e4620;">&times;</button>
         </div>
@@ -1516,7 +1592,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
             Shown on the "Formal" print style for Sales, Payments, and Receipts. Your existing GSTIN is used automatically &mdash; this is only for the extra details that style needs. Leave any field blank to hide that line.
         </p>
-        <div class="login-error" id="companyBankSuccess" style="display:none; background:#e6f4ea; color:#1e4620; border-color:#a8d8b5;">
+        <div class="login-error" id="companyBankSuccess" style="display:none; background:var(--success-bg); color:var(--success-text); border-color:var(--success-border);">
             <span>Bank &amp; TIN details saved.</span>
             <button type="button" onclick="document.getElementById('companyBankSuccess').style.display='none'" aria-label="Dismiss" style="color:#1e4620;">&times;</button>
         </div>
@@ -1546,6 +1622,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <div class="fy-active-badge" id="fyActiveBadge" title="Current Financial Year">FY —</div>
             <div class="gst-badge" id="roleBadge" style="display:none;" title="Your access level"></div>
+            <button type="button" id="themeToggleBtn" onclick="toggleTheme()" title="Switch light/dark mode"
+                style="width:auto; padding:8px 12px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:999px; line-height:1; font-size:0.95rem; font-weight:600;">
+                <span id="themeToggleIcon">&#127769;</span>
+            </button>
             <button type="button" id="logoutBtn" onclick="logoutAdmin()" title="Log out"
                 style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:999px; line-height:1; font-size:0.85rem; font-weight:600;">
                 &#9211;&nbsp; Logout
@@ -5449,6 +5529,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             navPushState(closeAppConfirmUI);
         });
     }
+
+    // ---------- Light/dark mode ----------
+    function updateThemeToggleIcon() {
+        const icon = document.getElementById('themeToggleIcon');
+        if (icon) icon.innerHTML = document.body.classList.contains('dark-mode') ? '&#9728;&#65039;' : '&#127769;';
+    }
+    function toggleTheme() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('sds_theme', isDark ? 'dark' : 'light');
+        updateThemeToggleIcon();
+    }
+    updateThemeToggleIcon(); // reflect whatever the inline head script already applied
 
     function setHomeDashboardVisible(visible) {
         const ids = ['homeDashboardSummary', 'extrasBar', 'backupBanner', 'recentTxnCard'];
