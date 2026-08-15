@@ -42,9 +42,9 @@
 
     /* Primary accent — deep ink-olive (fountain-pen ledger ink) */
     --accent: #2B3524;
-    --accent-2: #7A6A2E;      /* mustard-brass (secondary / scale weights) */
+    --accent-2: #ACA89C;      /* whitish-grey secondary (was mustard-brass) */
     --accent-hover: #1C2318;
-    --accent-soft: rgba(122, 106, 46, 0.14);
+    --accent-soft: rgba(172, 168, 156, 0.18);
 
     /* Text */
     --text-main: #241F14;
@@ -216,7 +216,6 @@ h3 {
 .summary-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-left: 3px solid var(--accent-2);
     border-radius: var(--radius-sm);
     padding: 16px 18px;
     box-shadow: var(--card-shadow);
@@ -226,7 +225,7 @@ h3 {
 }
 .summary-card:hover {
     background: var(--bg-tint);
-    border-left-color: var(--accent);
+    border-color: var(--border-strong);
 }
 .summary-card > div:first-child {
     font-size: 0.7rem;
@@ -5495,6 +5494,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             alert("Your account doesn't have access to this. Ask an admin to enable it for you under Admin \u2192 Users.");
             return;
         }
+        // Capture what's actually on screen right now, before hideAllMenus()
+        // wipes it — this is what "back" needs to restore. PANEL_GROUP below
+        // still sets currentGroup (used elsewhere for e.g. permission
+        // context), but it's a guess at which group a panel *conceptually*
+        // belongs to, not proof that group's screen was ever shown: a
+        // dashboard shortcut like "Pending to Pay" opens panelPendingPayable
+        // directly, skipping the Reports group screen entirely. Restoring
+        // "Reports" on back in that case would show a screen with no real
+        // history entry behind it — back from there has nowhere left to go.
+        const activeSubmenu = document.querySelector('.submenu.active');
+        const previousGroupId = activeSubmenu ? activeSubmenu.id : null;
         hideAllMenus();
         currentGroup = PANEL_GROUP[id] || null;
         const panel = document.getElementById(id);
@@ -5502,7 +5512,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         // Pushed here (not at the end) so that a branch below which itself
         // calls closePanel() — e.g. the Users permission check — pops
         // exactly this one entry instead of the one underneath it.
-        navPushState(closePanelUI);
+        navPushState(() => closePanelUI(previousGroupId));
         if (id === 'panelVoucher') toggleVoucherMode();
         if (id === 'panelPayments') renderCashList('Payment');
         if (id === 'panelReceipts') renderCashList('Receipt');
@@ -5551,13 +5561,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         setTimeout(() => field.focus(), 60);
     }
 
-    // Back from a panel → return to its sub-menu (or top if unknown).
+    // Back from a panel → return to whichever screen was actually showing
+    // before it opened (a group's tile list, or straight to home if the
+    // panel was opened directly from a dashboard shortcut).
     function closePanel() { history.back(); }
-    function closePanelUI() {
+    function closePanelUI(previousGroupId) {
         hideAllMenus();
-        if (currentGroup) {
-            document.getElementById(currentGroup).classList.add('active');
+        if (previousGroupId) {
+            currentGroup = previousGroupId;
+            document.getElementById(previousGroupId).classList.add('active');
         } else {
+            currentGroup = null;
             document.getElementById('tileMenu').style.display = 'block';
             setHomeDashboardVisible(true);
         }
