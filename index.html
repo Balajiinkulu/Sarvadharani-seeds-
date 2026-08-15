@@ -227,7 +227,6 @@ header {
     color: var(--text-invert);
     margin: 0 -24px 28px;
     padding: 22px 40px 20px;
-    border-bottom: 3px solid var(--accent-2);
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -236,7 +235,7 @@ header {
     position: relative;
 }
 header::before {
-    content: "SEEDS \00b7 BOOKS \00b7 EST. LEDGER";
+    content: "SEEDS \00b7 BOOKS \00b7 GST LEDGER";
     position: absolute;
     top: 9px;
     left: 40px;
@@ -619,6 +618,13 @@ button {
 }
 button:hover { filter: brightness(1.12); }
 button:active { transform: translateY(1px); filter: brightness(0.94); }
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: none;
+    transform: none;
+}
+button:disabled:hover { filter: none; }
 
 /* A lone button in its own block (e.g. a form's single Submit button)
    is meant to stretch full-width — that's what the default `width:100%`
@@ -3516,7 +3522,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <input type="text" id="vNarrationMain" placeholder="e.g. Urgent delivery, quality checked, discount given">
             </div>
 
-            <button type="button" onclick="submitVoucher()" class="col-2 btn-success" style="padding:14px;">Post Voucher Entry</button>
+            <button type="button" id="postVoucherBtn" onclick="postVoucherGuarded()" class="col-2 btn-success" style="padding:14px;">Post Voucher Entry</button>
         </div>
     </div>
 
@@ -4655,7 +4661,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <td><span class="group-badge${i.groupId ? '' : ' muted'}">${escapeHtml(getStockGroupName(i.groupId))}</span></td>
                         <td>${escapeHtml(i.hsn)}</td>
                         <td onclick="viewStockItem(${i.id})" style="cursor:pointer; color:${qtyColor}"><strong>${qtyDisplay}</strong></td>
-                        <td>\u20B9${i.rate.toFixed(2)}</td>
+                        <td>\u20B9${i.rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td>\u20B9${totalVal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="display:flex; gap:6px;">
                             <button onclick="editItem(${i.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button>
@@ -4953,9 +4959,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <tr style="cursor:pointer;" title="Open party ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
                         <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
                         <td style="white-space:normal;">${invoiceLinks}</td>
-                        <td>\u20B9${r.totalInvoiced.toFixed(2)}</td>
-                        <td style="color:var(--text-muted);">\u20B9${received.toFixed(2)}</td>
-                        <td style="color:var(--success); font-weight:bold;">\u20B9${r.totalDue.toFixed(2)}</td>
+                        <td>\u20B9${r.totalInvoiced.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="color:var(--text-muted);">\u20B9${received.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="color:var(--success); font-weight:bold;">\u20B9${r.totalDue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
                 `;
             });
@@ -5004,9 +5010,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <tr style="cursor:pointer;" title="Open vendor ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
                         <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
                         <td style="white-space:normal;">${invoiceLinks}</td>
-                        <td>\u20B9${r.totalInvoiced.toFixed(2)}</td>
-                        <td style="color:var(--text-muted);">\u20B9${paid.toFixed(2)}</td>
-                        <td style="color:var(--danger); font-weight:bold;">\u20B9${r.totalDue.toFixed(2)}</td>
+                        <td>\u20B9${r.totalInvoiced.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="color:var(--text-muted);">\u20B9${paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="color:var(--danger); font-weight:bold;">\u20B9${r.totalDue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
                 `;
             });
@@ -5728,7 +5734,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <td><strong>${escapeHtml(p.name)}</strong></td>
                     <td>${escapeHtml(p.type)}</td>
                     <td>${escapeHtml(p.phone || '-')}</td>
-                    <td style="color:${bal >= 0 ? 'var(--success)' : 'var(--danger)'};">\u20B9${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}</td>
+                    <td style="color:${bal >= 0 ? 'var(--success)' : 'var(--danger)'};">\u20B9${Math.abs(bal).toLocaleString('en-IN', {minimumFractionDigits: 2})} ${bal >= 0 ? 'Dr' : 'Cr'}</td>
                     <td style="display:flex; gap:6px;">
                         <button onclick="editPartyAlter(${p.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button>
                         <button onclick="deleteParty(${p.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
@@ -5760,7 +5766,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         if (used) return alert(`Cannot delete "${p.name}" — it has vouchers linked to it. Delete or reassign those first.`);
 
         const bal = partyBalance(partyId);
-        if (Math.abs(bal) > 0.005) return alert(`Cannot delete "${p.name}" — it still has an outstanding balance of \u20B9${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}. Clear the balance first.`);
+        if (Math.abs(bal) > 0.005) return alert(`Cannot delete "${p.name}" — it still has an outstanding balance of \u20B9${Math.abs(bal).toLocaleString('en-IN', {minimumFractionDigits: 2})} ${bal >= 0 ? 'Dr' : 'Cr'}. Clear the balance first.`);
 
         if (!(await confirmAsync(`Delete party "${p.name}"? This cannot be undone.`))) return;
         parties = parties.filter(x => x.id != partyId);
@@ -6264,8 +6270,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <tr>
                     <td>${escapeHtml(r.name)}</td>
                     <td style="color:var(--text-muted);">${escapeHtml(r.group)}</td>
-                    <td style="color:var(--success);">${r.dr > 0 ? '\u20B9' + r.dr.toFixed(2) : '-'}</td>
-                    <td style="color:var(--danger);">${r.cr > 0 ? '\u20B9' + r.cr.toFixed(2) : '-'}</td>
+                    <td style="color:var(--success);">${r.dr > 0 ? '\u20B9' + r.dr.toLocaleString('en-IN', {minimumFractionDigits: 2}) : '-'}</td>
+                    <td style="color:var(--danger);">${r.cr > 0 ? '\u20B9' + r.cr.toLocaleString('en-IN', {minimumFractionDigits: 2}) : '-'}</td>
                 </tr>
             `).join('');
         }
@@ -6274,7 +6280,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         document.getElementById('tbTotalCr').innerText = `\u20B9${totalCr.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         const diff = totalDr - totalCr;
         const diffEl = document.getElementById('tbDifference');
-        diffEl.innerText = `\u20B9${Math.abs(diff).toFixed(2)}`;
+        diffEl.innerText = `\u20B9${Math.abs(diff).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         diffEl.style.color = Math.abs(diff) < 0.01 ? 'var(--success)' : 'var(--danger)';
     }
 
@@ -6858,18 +6864,18 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <tr>
                     <td>${escapeHtml(it.name)}</td>
                     <td>${it.qty} ${escapeHtml(it.uom)}</td>
-                    <td>\u20B9${it.inclRate.toFixed(2)}</td>
-                    <td>\u20B9${taxDetails.taxable.toFixed(2)}</td>
-                    <td>\u20B9${taxDetails.taxAmount.toFixed(2)} (${it.gstRate}%)</td>
-                    <td>\u20B9${taxDetails.lineTotal.toFixed(2)}</td>
+                    <td>\u20B9${it.inclRate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td>\u20B9${taxDetails.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td>\u20B9${taxDetails.taxAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})} (${it.gstRate}%)</td>
+                    <td>\u20B9${taxDetails.lineTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td><button onclick="removeTempItem(${idx})" class="btn-danger" style="padding:2px 6px; font-size:0.75rem;">X</button></td>
                 </tr>
             `;
         });
 
-        document.getElementById('lblTaxable').innerText = `\u20B9${totTaxable.toFixed(2)}`;
-        document.getElementById('lblTax').innerText = `\u20B9${totTax.toFixed(2)}`;
-        document.getElementById('lblTotal').innerText = `\u20B9${totGrand.toFixed(2)}`;
+        document.getElementById('lblTaxable').innerText = `\u20B9${totTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('lblTax').innerText = `\u20B9${totTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('lblTotal').innerText = `\u20B9${totGrand.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
     }
 
     function toggleVoucherMode() {
@@ -6995,7 +7001,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             .sort((a, b) => a.id - b.id)
             .forEach(t => {
                 const due = invoiceOutstanding(t);
-                sel.innerHTML += `<option value="${t.id}">${t.invNo} - ${t.date} (Due: \u20B9${due.toFixed(2)})</option>`;
+                sel.innerHTML += `<option value="${t.id}">${t.invNo} - ${t.date} (Due: \u20B9${due.toLocaleString('en-IN', {minimumFractionDigits: 2})})</option>`;
             });
     }
 
@@ -7006,9 +7012,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         const inv = transactions.find(t => t.id == invId);
         if (!inv) return;
         const due = invoiceOutstanding(inv);
-        document.getElementById('vAmount').value = due.toFixed(2);
+        document.getElementById('vAmount').value = due.toLocaleString('en-IN', {minimumFractionDigits: 2});
         wrap.style.display = 'block';
-        wrap.innerHTML = `Invoice <strong>${inv.invNo}</strong> total \u20B9${inv.grandTotal.toFixed(2)}, outstanding <strong style="color:var(--accent);">\u20B9${due.toFixed(2)}</strong>. You may enter a partial amount.`;
+        wrap.innerHTML = `Invoice <strong>${inv.invNo}</strong> total \u20B9${inv.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}, outstanding <strong style="color:var(--accent);">\u20B9${due.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>. You may enter a partial amount.`;
     }
 
     // Called when the party changes on the voucher form
@@ -7115,6 +7121,29 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         list.style.display = 'none';
     });
 
+    // Guards the Post Voucher button against double-submits — a slow
+    // network or an accidental double-tap could otherwise fire
+    // submitVoucher() twice before the first call finishes, posting the
+    // same sale as two separate vouchers. Disabling the button for the
+    // full duration of submitVoucher() (including any stock-shortage
+    // confirm dialog inside it) closes that window without needing to
+    // touch submitVoucher()'s own internals or its several early-return
+    // validation paths — whatever path it takes, this always re-enables
+    // the button once it settles.
+    let postVoucherInFlight = false;
+    async function postVoucherGuarded() {
+        if (postVoucherInFlight) return;
+        postVoucherInFlight = true;
+        const btn = document.getElementById('postVoucherBtn');
+        if (btn) btn.disabled = true;
+        try {
+            await submitVoucher();
+        } finally {
+            postVoucherInFlight = false;
+            if (btn) btn.disabled = false;
+        }
+    }
+
     async function submitVoucher() {
         if (!isAdmin() && !hasPermission('postVouchers')) return alert("Only an admin, or a user with 'Post new vouchers' turned on, can post a voucher.");
         const type = document.getElementById('vType').value;
@@ -7175,7 +7204,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             document.getElementById('vJournalNarration').value = '';
             document.getElementById('vDate').valueAsDate = new Date();
             render();
-            alert(`Journal ${journalTxn.invNo} posted.`);
+            showSyncToast('ok', `Journal posted \u2022 ${journalTxn.invNo}`);
             return;
         }
 
@@ -7202,7 +7231,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 const inv = transactions.find(t => t.id == refInvId);
                 const due = invoiceOutstanding(inv);
                 if (amount > due + 0.001) {
-                    return alert(`Amount exceeds outstanding of \u20B9${due.toFixed(2)} on ${inv.invNo}.`);
+                    return alert(`Amount exceeds outstanding of \u20B9${due.toLocaleString('en-IN', {minimumFractionDigits: 2})} on ${inv.invNo}.`);
                 }
                 refInvNo = inv.invNo;
             }
@@ -7246,6 +7275,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             document.getElementById('vDate').valueAsDate = new Date();
             render();
             if (!customNoPartyDef) populateRefInvoices();
+            showSyncToast('ok', `${customNoPartyDef ? (customTypeDef.name || 'Expense') : type} posted \u2022 ${cashTxn.invNo}`);
 
             if (lastLedger && lastLedger.kind === 'party' && lastLedger.id == partyId
                 && document.getElementById('ledgerPrintArea').style.display === 'block') {
@@ -7301,7 +7331,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             document.getElementById('dnVehicleType').value = '';
             document.getElementById('vDate').valueAsDate = new Date();
             render();
-            alert(`Delivery Note ${dnTxn.invNo} created (dispatch record only).`);
+            showSyncToast('ok', `Delivery Note created (dispatch record only) \u2022 ${dnTxn.invNo}`);
             return;
         }
 
@@ -7377,7 +7407,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             document.getElementById('vNarrationMain').value = '';
             document.getElementById('vDate').valueAsDate = new Date();
             render();
-            alert(`${customType.name} ${ctTxn.invNo} created.`);
+            showSyncToast('ok', `${customType.name} created \u2022 ${ctTxn.invNo}`);
             return;
         }
 
@@ -7516,6 +7546,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         document.getElementById('vNarrationMain').value = '';
         document.getElementById('vDate').valueAsDate = new Date();
         render();
+        showSyncToast('ok', `${type === 'Sales' ? 'Sale' : isRawPurchase ? 'Raw purchase' : 'Purchase'} posted \u2022 ${txn.invNo}`);
         
         // Refresh Ledger if open
         if (lastLedger && lastLedger.kind === 'party' && lastLedger.id == partyId
@@ -7741,7 +7772,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <td>${escapeHtml(typeLabel)}</td>
                     <td>${escapeHtml(t.invNo)}</td>
                     <td>${escapeHtml(t.partyName || '-')}</td>
-                    <td>\u20B9${t.grandTotal.toFixed(2)}</td>
+                    <td>\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td><button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button></td>
                 </tr>
             `;
@@ -7812,7 +7843,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         const base = editOriginalBaseTotal();
         const target = Math.max(0, base - discount);
         document.getElementById('editDiscountNote').innerText =
-            `Rates scaled down so the invoice totals \u20B9${target.toFixed(2)} (was \u20B9${base.toFixed(2)}).`;
+            `Rates scaled down so the invoice totals \u20B9${target.toLocaleString('en-IN', {minimumFractionDigits: 2})} (was \u20B9${base.toLocaleString('en-IN', {minimumFractionDigits: 2})}).`;
         scaleEditRatesToTotal(target);
         recomputeEditTotal();
     }
@@ -7827,7 +7858,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         }
         const base = editOriginalBaseTotal();
         document.getElementById('editDiscountNote').innerText =
-            `Rates scaled so the invoice totals \u20B9${target.toFixed(2)} (was \u20B9${base.toFixed(2)}).`;
+            `Rates scaled so the invoice totals \u20B9${target.toLocaleString('en-IN', {minimumFractionDigits: 2})} (was \u20B9${base.toLocaleString('en-IN', {minimumFractionDigits: 2})}).`;
         scaleEditRatesToTotal(target);
         recomputeEditTotal();
     }
@@ -8010,7 +8041,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         .filter(t => t.refInvoiceId == inv.id && t.id != txn.id)
                         .reduce((a, c) => a + c.grandTotal, 0);
                     const avail = inv.grandTotal - settledOthers;
-                    note.innerHTML = `Linked to <strong>${escapeHtml(inv.invNo)}</strong>. Max you can set here: <strong style="color:var(--accent);">\u20B9${avail.toFixed(2)}</strong>`;
+                    note.innerHTML = `Linked to <strong>${escapeHtml(inv.invNo)}</strong>. Max you can set here: <strong style="color:var(--accent);">\u20B9${avail.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>`;
                 } else { note.innerHTML = ''; }
             } else {
                 note.innerHTML = 'On-account voucher (not linked to a specific invoice).';
@@ -8035,7 +8066,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         } else {
             editWorkingItems.forEach(it => { total += (it.qty || 0) * (it.inclRate || 0); });
         }
-        document.getElementById('editTotal').innerText = `\u20B9${total.toFixed(2)}`;
+        document.getElementById('editTotal').innerText = `\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
     }
 
     async function saveEditedVoucher() {
@@ -8073,7 +8104,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         .reduce((a, c) => a + c.grandTotal, 0);
                     const avail = inv.grandTotal - settledOthers;
                     if (amount > avail + 0.001) {
-                        return alert(`Amount exceeds available \u20B9${avail.toFixed(2)} on ${inv.invNo}.`);
+                        return alert(`Amount exceeds available \u20B9${avail.toLocaleString('en-IN', {minimumFractionDigits: 2})} on ${inv.invNo}.`);
                     }
                 }
             }
@@ -8108,7 +8139,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             let gt = 0; editWorkingItems.forEach(l => gt += l.qty * l.inclRate);
             const alreadySettled = transactions.filter(t => t.refInvoiceId == txn.id).reduce((a,c)=>a+c.grandTotal,0);
             if (linked && gt < alreadySettled - 0.001) {
-                return alert(`New total \u20B9${gt.toFixed(2)} is less than \u20B9${alreadySettled.toFixed(2)} already settled by linked payments. Adjust or delete those first.`);
+                return alert(`New total \u20B9${gt.toLocaleString('en-IN', {minimumFractionDigits: 2})} is less than \u20B9${alreadySettled.toLocaleString('en-IN', {minimumFractionDigits: 2})} already settled by linked payments. Adjust or delete those first.`);
             }
         }
 
@@ -8387,7 +8418,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.accountName || 'Cash')}</td>
                         <td onclick="printInvoice(${invOpenId})">${ref}</td>
-                        <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
+                        <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="display:flex; gap:6px;"><button onclick="event.stopPropagation(); deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
                     </tr>
                 `;
@@ -8488,7 +8519,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.accountName || 'Cash')}</td>
                         <td onclick="printInvoice(${invOpenId})">${ref}</td>
                         <td onclick="printInvoice(${invOpenId})" style="white-space:normal; max-width:260px;">${inventoryHtml}</td>
-                        <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
+                        <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
                 `;
             });
@@ -8601,7 +8632,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             rows.forEach(t => {
                 const isSaleType = (t.type === 'Sales' || t.type === 'OptionalSales');
                 if (isSaleType) salesTotal += t.grandTotal; else purchTotal += t.grandTotal;
-                const itemList = (t.items || []).map(it => `${escapeHtml(it.name || 'Item')} (${it.qty || 0} ${escapeHtml(it.uom || '')} @ \u20B9${(typeof it.inclRate === 'number' ? it.inclRate : 0).toFixed(2)})`).join(', ');
+                const itemList = (t.items || []).map(it => `${escapeHtml(it.name || 'Item')} (${it.qty || 0} ${escapeHtml(it.uom || '')} @ \u20B9${(typeof it.inclRate === 'number' ? it.inclRate : 0).toLocaleString('en-IN', {minimumFractionDigits: 2})})`).join(', ');
                 const typeColor = isSaleType ? 'var(--success)' : 'var(--pink)';
                 body.innerHTML += `
                     <tr onclick="printInvoice(${t.id})" style="cursor:pointer;" title="Open invoice">
@@ -8613,7 +8644,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <td>${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td style="white-space:normal; max-width:280px;">${itemList}</td>
-                        <td style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
+                        <td style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
                 `;
             });
@@ -8657,7 +8688,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     ? `<span style="color:var(--violet); text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openCategoryDetail('${escapeHtml(t.subLedger)}')" title="Open category detail">${escapeHtml(t.subLedger)}</span>`
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
                 const itemsDetail = (t.items && t.items.length)
-                    ? t.items.map(it => `<div class="item-detail-line">${escapeHtml(it.name)}: ${it.qty}${it.uom ? ' ' + escapeHtml(it.uom) : ''} @ \u20B9${(it.inclRate || 0).toFixed(2)}</div>`).join('')
+                    ? t.items.map(it => `<div class="item-detail-line">${escapeHtml(it.name)}: ${it.qty}${it.uom ? ' ' + escapeHtml(it.uom) : ''} @ \u20B9${(it.inclRate || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>`).join('')
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
                 body.innerHTML += `
                     <tr style="cursor:pointer;">
@@ -8669,9 +8700,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td onclick="printInvoice(${t.id})">${cat}</td>
                         <td onclick="printInvoice(${t.id})">${itemsDetail}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toFixed(2)}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.totalTax.toFixed(2)}</td>
-                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${t.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td class="no-print" style="display:flex; gap:6px;">
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${t.id})" class="btn-danger" style="padding:3px 9px; font-size:0.7rem;">Delete</button>
                         </td>
@@ -8730,9 +8761,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <td onclick="printInvoice(${t.id})">${typeLabel}</td>
                         <td onclick="printInvoice(${t.id})">${cat}</td>
                         <td onclick="printInvoice(${t.id})">${t.items ? t.items.length : 0}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toFixed(2)}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.totalTax.toFixed(2)}</td>
-                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${t.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td class="no-print" style="display:flex; gap:6px;">
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${t.id})" class="btn-danger" style="padding:3px 9px; font-size:0.7rem;">Delete</button>
                         </td>
@@ -8784,14 +8815,14 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 const taxLabel = isSale ? 'Output' : 'Input';
                 const taxCellText = (t.taxType === 'EXEMPT')
                     ? `<span style="color:var(--text-muted);">Nil GST</span>`
-                    : `\u20B9${t.totalTax.toFixed(2)} (${taxLabel})`;
+                    : `\u20B9${t.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})} (${taxLabel})`;
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open invoice">
                         <td onclick="printInvoice(${t.id})">${t.date}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.type)}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toFixed(2)}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td onclick="printInvoice(${t.id})" style="color:${taxColor}; font-weight:bold;">${taxCellText}</td>
                     </tr>
                 `;
@@ -8872,7 +8903,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <td>${escapeHtml(t.partyName)}</td>
                         <td style="white-space:normal; max-width:280px;">${itemList}${narrationHint}</td>
                         <td style="white-space:normal;">${transportHtml}</td>
-                        <td style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
+                        <td style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td class="no-print" style="display:flex; gap:6px;">
                             <button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.72rem;">Print</button>
                             <button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.72rem; width:auto;">Edit</button>
@@ -9015,7 +9046,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         const mode = (taxType === 'EXEMPT') ? 'EXEMPT' : 'INCL';
         const gstRate = item ? item.gstRate : 0;
         const res = calculateLine(rate, qty, gstRate, mode);
-        document.getElementById('rpTotalDisplay').innerText = `\u20B9${res.lineTotal.toFixed(2)}`;
+        document.getElementById('rpTotalDisplay').innerText = `\u20B9${res.lineTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         return res;
     }
     document.getElementById('rpQty').addEventListener('input', recomputeRawPurchaseTotal);
@@ -9080,7 +9111,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         onRpUnitChange(); // reset the rate label back to Quintal, matching the form reset
         populateRawPurchaseDropdowns();
         render();
-        alert(`Raw purchase ${txn.invNo} posted: ${qty} ${purchaseUnit} of ${item.name}.`);
+        showSyncToast('ok', `Raw purchase posted \u2022 ${qty} ${purchaseUnit} of ${item.name} \u2022 ${txn.invNo}`);
     });
 
     // ================================================================
@@ -9213,7 +9244,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         document.getElementById('cvDate').valueAsDate = new Date();
         populateConversionDropdowns();
         render();
-        alert(`Conversion posted: ${rawQty} ${rawItem.uom} of ${rawItem.name} \u2192 ${outQty} ${procItem.uom} of ${procItem.name}.`);
+        showSyncToast('ok', `Conversion posted \u2022 ${rawQty} ${rawItem.uom} of ${rawItem.name} \u2192 ${outQty} ${procItem.uom} of ${procItem.name}`);
     });
 
     async function deleteConversion(convId) {
@@ -9362,8 +9393,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open vendor ledger">${escapeHtml(t.partyName)}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(line.name || '-')}</td>
                         <td onclick="printInvoice(${t.id})">${line.qty || 0} ${escapeHtml(line.uom || '')}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${(line.inclRate || 0).toFixed(2)}</td>
-                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${(line.inclRate || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
                 `;
             });
@@ -9565,7 +9596,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <td>${escapeHtml(t.invNo)}</td>
                     <td style="color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                     <td style="white-space:normal; max-width:280px;">${itemList}</td>
-                    <td style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
+                    <td style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td style="display:flex; gap:6px;">
                         <button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.72rem;">Invoice</button>
                         <button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.72rem; width:auto;">Edit</button>
@@ -9607,7 +9638,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <td>${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td><button onclick="toggleOptItems(${t.id})" style="width:auto; padding:3px 10px; font-size:0.72rem; background:rgba(139,124,255,0.2); color:var(--text-main);">${t.items.length} item(s) &#9662;</button></td>
-                        <td style="font-weight:bold;">\u20B9${t.grandTotal.toFixed(2)}</td>
+                        <td style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="display:flex; gap:6px;"><button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.72rem;">Invoice</button><button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.72rem; width:auto;">Edit</button><button onclick="deleteOptional(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
                     </tr>
                 `;
@@ -9615,7 +9646,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 let itemRows = t.items.map(it =>
                     `<div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px dashed var(--border);">
                         <span>${escapeHtml(it.name || 'Item')} <span style="color:var(--text-muted);">(${escapeHtml(it.hsn || '')})</span></span>
-                        <span>${it.qty || 0} ${escapeHtml(it.uom || '')} &times; \u20B9${(typeof it.inclRate === 'number' ? it.inclRate : 0).toFixed(2)} = <strong>\u20B9${(typeof it.lineTotal === 'number' ? it.lineTotal : 0).toFixed(2)}</strong></span>
+                        <span>${it.qty || 0} ${escapeHtml(it.uom || '')} &times; \u20B9${(typeof it.inclRate === 'number' ? it.inclRate : 0).toLocaleString('en-IN', {minimumFractionDigits: 2})} = <strong>\u20B9${(typeof it.lineTotal === 'number' ? it.lineTotal : 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></span>
                     </div>`
                 ).join('');
                 if (t.narration) {
@@ -9756,7 +9787,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             itemsHtml = `
                 <tr>
                     <td style="border:1px solid #cbd5e1; padding:6px;" colspan="5">${escapeHtml(desc)}</td>
-                    <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${txn.grandTotal.toFixed(2)}</td>
+                    <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 </tr>
             `;
         } else if (isCash) {
@@ -9766,7 +9797,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             itemsHtml = `
                 <tr>
                     <td style="border:1px solid #cbd5e1; padding:6px;" colspan="5">${escapeHtml(desc)}</td>
-                    <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${txn.grandTotal.toFixed(2)}</td>
+                    <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 </tr>
             `;
         } else {
@@ -9785,15 +9816,15 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             txn.items.forEach(it => {
                 const rate = safeNum(it.inclRate);
                 const lineTotal = (typeof it.lineTotal === 'number' && !isNaN(it.lineTotal)) ? it.lineTotal : rate * safeNum(it.qty);
-                const taxableCell = (it.taxable != null && !isNaN(it.taxable)) ? `\u20B9${safeNum(it.taxable).toFixed(2)}` : '\u2014';
+                const taxableCell = (it.taxable != null && !isNaN(it.taxable)) ? `\u20B9${safeNum(it.taxable).toLocaleString('en-IN', {minimumFractionDigits: 2})}` : '\u2014';
                 itemsHtml += `
                     <tr>  
                         <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(String(safeText(it.name, 'Item')))}</td>  
                         <td style="border:1px solid #cbd5e1; padding:6px;">${escapeHtml(String(safeText(it.hsn, '')))}</td>  
                         <td style="border:1px solid #cbd5e1; padding:6px;">${safeNum(it.qty)} ${escapeHtml(String(safeText(it.uom, '')))}</td>  
-                        <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${rate.toFixed(2)}</td>  
+                        <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>  
                         <td style="border:1px solid #cbd5e1; padding:6px;">${taxableCell}</td>  
-                        <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${lineTotal.toFixed(2)}</td>  
+                        <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${lineTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>  
                     </tr>  
                 `;
             });
@@ -9809,19 +9840,19 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             taxText = 'Optional voucher — off the main books. No GST recorded.';
         } else {
             if (txn.taxType === 'EXEMPT') {
-                taxText = `Taxable Value: \u20B9${txn.taxable.toFixed(2)}<br>Nil GST \u2014 no tax charged on this voucher.`;
+                taxText = `Taxable Value: \u20B9${txn.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}<br>Nil GST \u2014 no tax charged on this voucher.`;
             } else {
-                taxText = `Taxable Value: \u20B9${txn.taxable.toFixed(2)}<br>`;
+                taxText = `Taxable Value: \u20B9${txn.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}<br>`;
                 if (txn.taxType === 'INTER') {
-                    taxText += `IGST: \u20B9${txn.totalTax.toFixed(2)}`;
+                    taxText += `IGST: \u20B9${txn.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
                 } else {
-                    taxText += `CGST: \u20B9${(txn.totalTax/2).toFixed(2)} | SGST: \u20B9${(txn.totalTax/2).toFixed(2)}`;
+                    taxText += `CGST: \u20B9${(txn.totalTax/2).toLocaleString('en-IN', {minimumFractionDigits: 2})} | SGST: \u20B9${(txn.totalTax/2).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
                 }
             }
         }
 
         document.getElementById('invTaxBreakdown').innerHTML = taxText;  
-        document.getElementById('invGrandTotal').innerText = `\u20B9${txn.grandTotal.toFixed(2)}`;  
+        document.getElementById('invGrandTotal').innerText = `\u20B9${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;  
 
         // Paid / Balance Due — only for real Sales and Purchase invoices,
         // where "money owed against this invoice" is a meaningful concept.
@@ -9832,8 +9863,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         if (txn.type === 'Sales' || txn.type === 'Purchase') {
             const due = invoiceOutstanding(txn);
             const paid = Math.max(0, txn.grandTotal - due);
-            document.getElementById('invPaidAmount').innerText = `\u20B9${paid.toFixed(2)}`;
-            document.getElementById('invBalanceDue').innerText = `\u20B9${due.toFixed(2)}`;
+            document.getElementById('invPaidAmount').innerText = `\u20B9${paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+            document.getElementById('invBalanceDue').innerText = `\u20B9${due.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
             paidBalanceWrap.style.display = 'block';
         } else {
             paidBalanceWrap.style.display = 'none';
@@ -10016,7 +10047,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 html += `<div class="party-ac-item" onclick="navPendingAfterBack = () => printInvoice(${t.id}); closeGlobalSearch();">
                     <div style="display:flex; justify-content:space-between; gap:10px;">
                         <span><strong>${escapeHtml(t.invNo || t.type || '')}</strong> &mdash; ${escapeHtml(t.partyName || t.type || '')}</span>
-                        <span style="font-family:'JetBrains Mono', monospace; white-space:nowrap;">&#8377;${(t.grandTotal || 0).toFixed(2)}</span>
+                        <span style="font-family:'JetBrains Mono', monospace; white-space:nowrap;">&#8377;${(t.grandTotal || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
                     </div>
                     ${t.narration ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">${escapeHtml(t.narration)}</div>` : ''}
                 </div>`;
@@ -10230,8 +10261,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <td><strong>Opening Balance</strong></td>
                     <td style="vertical-align:top;">-</td>
                     <td style="vertical-align:top;">-</td>
-                    <td style="vertical-align:top;">${opening > 0 ? opening.toFixed(2) : (opening === 0 ? '0.00' : '')}</td>
-                    <td style="vertical-align:top;">${opening < 0 ? Math.abs(opening).toFixed(2) : ''}</td>
+                    <td style="vertical-align:top;">${opening > 0 ? opening.toLocaleString('en-IN', {minimumFractionDigits: 2}) : (opening === 0 ? '0.00' : '')}</td>
+                    <td style="vertical-align:top;">${opening < 0 ? Math.abs(opening).toLocaleString('en-IN', {minimumFractionDigits: 2}) : ''}</td>
                     <td style="vertical-align:top;">-</td>
                 </tr>
             `;
@@ -10257,8 +10288,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <td><strong>Opening Balance</strong></td>
                     <td style="vertical-align:top;">-</td>
                     <td style="vertical-align:top;">-</td>
-                    <td style="vertical-align:top;">${opening > 0 ? opening.toFixed(2) : (opening === 0 ? '0.00' : '')}</td>
-                    <td style="vertical-align:top;">${opening < 0 ? Math.abs(opening).toFixed(2) : ''}</td>
+                    <td style="vertical-align:top;">${opening > 0 ? opening.toLocaleString('en-IN', {minimumFractionDigits: 2}) : (opening === 0 ? '0.00' : '')}</td>
+                    <td style="vertical-align:top;">${opening < 0 ? Math.abs(opening).toLocaleString('en-IN', {minimumFractionDigits: 2}) : ''}</td>
                     <td style="vertical-align:top;">-</td>
                 </tr>
             `;
@@ -10309,7 +10340,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 } else {
                     invDetails = (txn.items || []).map(it => 
                         `<div class="text-muted-print" style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
-                            \u21B3 ${escapeHtml(it.name || 'Item')} : ${it.qty || 0} ${escapeHtml(it.uom || '')} @ \u20B9${(typeof it.inclRate === 'number' ? it.inclRate : 0).toFixed(2)}
+                            \u21B3 ${escapeHtml(it.name || 'Item')} : ${it.qty || 0} ${escapeHtml(it.uom || '')} @ \u20B9${(typeof it.inclRate === 'number' ? it.inclRate : 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
                         </div>`
                     ).join('');
                     if (txn.narration) {
@@ -10361,8 +10392,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         </td>
                         <td style="vertical-align:top;" onclick="openTransactionDetail(${txn.id})">${typeColLabel}</td>
                         <td style="vertical-align:top;" onclick="openTransactionDetail(${txn.id})">${txn.invNo}</td>
-                        <td style="vertical-align:top; color:${debitColor};" onclick="openTransactionDetail(${txn.id})">${debit > 0 ? debit.toFixed(2) : ''}</td>
-                        <td style="vertical-align:top; color:${creditColor};" onclick="openTransactionDetail(${txn.id})">${credit > 0 ? credit.toFixed(2) : ''}</td>
+                        <td style="vertical-align:top; color:${debitColor};" onclick="openTransactionDetail(${txn.id})">${debit > 0 ? debit.toLocaleString('en-IN', {minimumFractionDigits: 2}) : ''}</td>
+                        <td style="vertical-align:top; color:${creditColor};" onclick="openTransactionDetail(${txn.id})">${credit > 0 ? credit.toLocaleString('en-IN', {minimumFractionDigits: 2}) : ''}</td>
                         <td class="no-print" style="vertical-align:top; white-space:nowrap;">
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${txn.id})" class="btn-danger" style="padding:2px 8px; font-size:0.68rem; width:auto;">Delete</button>
                         </td>
@@ -10377,13 +10408,13 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         let balanceColor = '';
 
         if (isAggregate) {
-            balanceText = `Total: \u20B9${(totalDebit + totalCredit).toFixed(2)}`;
+            balanceText = `Total: \u20B9${(totalDebit + totalCredit).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
             balanceColor = 'var(--accent)';
         } else if (netBalance > 0) {
-            balanceText = `By Closing Balance (Dr): \u20B9${netBalance.toFixed(2)}`;
+            balanceText = `By Closing Balance (Dr): \u20B9${netBalance.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
             balanceColor = 'var(--accent)';
         } else if (netBalance < 0) {
-            balanceText = `To Closing Balance (Cr): \u20B9${Math.abs(netBalance).toFixed(2)}`;
+            balanceText = `To Closing Balance (Cr): \u20B9${Math.abs(netBalance).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
             balanceColor = 'var(--danger)';
         } else {
             balanceText = `Settled (\u20B90.00)`;
@@ -10393,8 +10424,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         tfoot.innerHTML = `
             <tr>
                 <td colspan="4" style="text-align:right;"><strong>Total Turnover:</strong></td>
-                <td style="color:var(--accent);">\u20B9${totalDebit.toFixed(2)}</td>
-                <td style="color:var(--danger);">\u20B9${totalCredit.toFixed(2)}</td>
+                <td style="color:var(--accent);">\u20B9${totalDebit.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="color:var(--danger);">\u20B9${totalCredit.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 <td></td>
             </tr>
             <tr>
@@ -10902,7 +10933,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                                 ${escapeHtml(txn.partyName || 'Cash Party')}${refLine}
                             </div>
                         </td>
-                        <td class="right" style="vertical-align:top;">\u20B9${txn.grandTotal.toFixed(2)}</td>
+                        <td class="right" style="vertical-align:top;">\u20B9${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
                     <tr>
                         <td colspan="2" style="height:60px;"></td>
@@ -10922,7 +10953,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                             <span class="bold">Amount (in words) :</span><br>
                             INR ${numberToWordsIndian(txn.grandTotal)} Only
                         </td>
-                        <td class="right bold" style="vertical-align:bottom; font-size:14px;">&#8377; ${txn.grandTotal.toFixed(2)}</td>
+                        <td class="right bold" style="vertical-align:bottom; font-size:14px;">&#8377; ${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
                 </table>
 
@@ -10955,8 +10986,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <td>${escapeHtml(it.name || 'Item')}</td>
                 <td class="center">${it.gstRate || 0}%</td>
                 <td class="right">${it.qty || 0} ${escapeHtml(it.uom || '')}</td>
-                <td class="right">${(typeof it.inclRate === 'number' ? it.inclRate : 0).toFixed(2)}</td>
-                <td class="right">${(typeof it.lineTotal === 'number' ? it.lineTotal : 0).toFixed(2)}</td>
+                <td class="right">${(typeof it.inclRate === 'number' ? it.inclRate : 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td class="right">${(typeof it.lineTotal === 'number' ? it.lineTotal : 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
             </tr>
         `).join('');
 
@@ -11008,7 +11039,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     ${itemRows}
                     <tr>
                         <td colspan="5" class="right bold no-border">Total</td>
-                        <td class="right bold">\u20B9${txn.grandTotal.toFixed(2)}</td>
+                        <td class="right bold">\u20B9${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
                 </table>
                 </div>
@@ -11030,19 +11061,19 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <th class="small">Total Tax</th>
                     </tr>
                     <tr>
-                        <td class="right">${txn.taxable.toFixed(2)}</td>
+                        <td class="right">${txn.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td class="center small">${isIntra ? (txn.items[0] ? (txn.items[0].gstRate / 2) : 0) : 0}%</td>
-                        <td class="right">${isIntra ? halfTax.toFixed(2) : '0.00'}</td>
+                        <td class="right">${isIntra ? halfTax.toLocaleString('en-IN', {minimumFractionDigits: 2}) : '0.00'}</td>
                         <td class="center small">${isIntra ? (txn.items[0] ? (txn.items[0].gstRate / 2) : 0) : 0}%</td>
-                        <td class="right">${isIntra ? halfTax.toFixed(2) : '0.00'}</td>
-                        <td class="right bold">${txn.totalTax.toFixed(2)}</td>
+                        <td class="right">${isIntra ? halfTax.toLocaleString('en-IN', {minimumFractionDigits: 2}) : '0.00'}</td>
+                        <td class="right bold">${txn.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
                 </table>
 
                 ${dueAmt > 0.001 || paidAmt > 0.001 ? `
                 <table class="no-border" style="border-top:1px solid #000;">
                     <tr>
-                        <td class="no-border right small">Paid: <strong>\u20B9${paidAmt.toFixed(2)}</strong> &nbsp;&nbsp; Balance Due: <strong>\u20B9${dueAmt.toFixed(2)}</strong></td>
+                        <td class="no-border right small">Paid: <strong>\u20B9${paidAmt.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong> &nbsp;&nbsp; Balance Due: <strong>\u20B9${dueAmt.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></td>
                     </tr>
                 </table>` : ''}
 
@@ -11130,7 +11161,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <td><strong>${escapeHtml(i.name)}</strong></td>
                     <td>${escapeHtml(i.hsn)}</td>
                     <td style="color:${i.qty < 5 ? 'var(--danger)' : 'var(--success)'}; font-weight:bold;">${i.qty} ${escapeHtml(i.uom)}</td>
-                    <td>\u20B9${i.rate.toFixed(2)}</td>
+                    <td>\u20B9${i.rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td>\u20B9${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 </tr>
             `;
@@ -11201,8 +11232,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <td onclick="printInvoice(${r.openId})">${escapeHtml(r.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${r.partyId})" title="Open party ledger">${escapeHtml(r.party)}</td>
                         <td onclick="printInvoice(${r.openId})">${r.qty} ${escapeHtml(r.uom)}</td>
-                        <td onclick="printInvoice(${r.openId})">\u20B9${r.rate.toFixed(2)}</td>
-                        <td onclick="printInvoice(${r.openId})" style="font-weight:bold;">\u20B9${r.amount.toFixed(2)}</td>
+                        <td onclick="printInvoice(${r.openId})">\u20B9${r.rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${r.openId})" style="font-weight:bold;">\u20B9${r.amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
                 `;
             });
@@ -11278,7 +11309,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             const dr = pTxns.filter(t => t.type === 'Sales' || t.type === 'Payment').reduce((a, c) => a + c.grandTotal, 0);
             const cr = pTxns.filter(t => t.type === 'Purchase' || t.type === 'RawPurchase' || t.type === 'Receipt').reduce((a, c) => a + c.grandTotal, 0);
             const net = dr - cr;
-            const balTxt = net > 0 ? `\u20B9${net.toFixed(2)} (Dr)` : net < 0 ? `\u20B9${Math.abs(net).toFixed(2)} (Cr)` : 'Settled';
+            const balTxt = net > 0 ? `\u20B9${net.toLocaleString('en-IN', {minimumFractionDigits: 2})} (Dr)` : net < 0 ? `\u20B9${Math.abs(net).toLocaleString('en-IN', {minimumFractionDigits: 2})} (Cr)` : 'Settled';
             const balColor = net > 0 ? 'var(--accent)' : net < 0 ? 'var(--danger)' : 'var(--text-muted)';
             body.innerHTML += `
                 <tr style="cursor:pointer;">
@@ -11426,7 +11457,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <td><strong>${typeLabel}</strong></td>  
                     <td>${partyCol}</td>  
                     <td>${detailCol}${narrationHint}</td>  
-                    <td>\u20B9${t.grandTotal.toFixed(2)}</td>  
+                    <td>\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>  
                     <td style="display:flex; gap:6px;">
                         ${actionBtn}
                         <button onclick="deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
@@ -11834,15 +11865,15 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 hsnCode: parseInt((stkItem.hsn || '0').toString().replace(/\D/g, ''), 10) || 0,
                 quantity: Number(it.qty || 0),
                 qtyUnit: unitCodeFor(stkItem.uom),
-                taxableAmount: Number((it.taxable || 0).toFixed(2)),
+                taxableAmount: Number((it.taxable || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})),
                 cgstRate, sgstRate, igstRate, cessRate: 0
             };
         });
 
         const totTaxable = items.reduce((a, c) => a + c.taxableAmount, 0);
-        const cgstValue = isInterState ? 0 : Number(((t.totalTax || 0) / 2).toFixed(2));
-        const sgstValue = isInterState ? 0 : Number(((t.totalTax || 0) / 2).toFixed(2));
-        const igstValue = isInterState ? Number((t.totalTax || 0).toFixed(2)) : 0;
+        const cgstValue = isInterState ? 0 : Number(((t.totalTax || 0) / 2).toLocaleString('en-IN', {minimumFractionDigits: 2}));
+        const sgstValue = isInterState ? 0 : Number(((t.totalTax || 0) / 2).toLocaleString('en-IN', {minimumFractionDigits: 2}));
+        const igstValue = isInterState ? Number((t.totalTax || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})) : 0;
 
         const ewb = {
             version: '1.0.0421',
@@ -11870,9 +11901,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 toStateCode: isSale ? partyState : ownState,
                 actToStateCode: isSale ? partyState : ownState,
                 itemList: items,
-                totalValue: Number(totTaxable.toFixed(2)),
+                totalValue: Number(totTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2})),
                 cgstValue, sgstValue, igstValue, cessValue: 0,
-                totInvValue: Number((t.grandTotal || 0).toFixed(2)),
+                totInvValue: Number((t.grandTotal || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})),
                 transMode: '1',
                 transDistance: '10',
                 transporterName: t.driverName || '',
