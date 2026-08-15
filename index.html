@@ -371,7 +371,7 @@ h3 {
 .txn-detail-stat { display: inline-block; margin-right: 14px; font-size: 0.72rem; color: var(--text-muted); }
 .txn-detail-stat b { color: var(--text-main); font-weight: 600; }
 @media (max-width: 700px) {
-    .table-responsive.has-mobile-cards { display: none; }
+    .has-mobile-cards { display: none; }
     .mobile-txn-cards { display: block; }
 }
 
@@ -2805,7 +2805,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <div class="summary-card"><div id="gstCard2Label">Input Tax (Purchases)</div><div id="gstInputTax" style="color:var(--pink);">&#8377;0.00</div></div>
             <div class="summary-card"><div id="gstCard3Label">Net Payable</div><div id="gstNetPayable" style="color:var(--warning);">&#8377;0.00</div></div>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive has-mobile-cards">
             <table>
                 <thead>
                     <tr>
@@ -2820,6 +2820,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <tbody id="gstLiabilityBody"></tbody>
             </table>
         </div>
+        <div class="mobile-txn-cards" id="gstLiabilityCards"></div>
         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a row to open its invoice. Click a party name to open their ledger statement.</div>
     </div>
 
@@ -3514,7 +3515,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             <button onclick="printRegion('panelStock','Stock Summary')" class="btn-success" style="width:auto; padding:8px 14px; font-size:0.8rem;">Save as PDF</button>
             <button onclick="resetAllOpeningQuantities()" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--warning); border-color:rgba(255,255,255,0.3);" title="Fix items where Opening Qty was set incorrectly">Fix Opening Qty</button>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive has-mobile-cards">
             <table>
                 <thead>
                     <tr>
@@ -3529,8 +3530,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="stockSummaryBody"></tbody>
             </table>
-            <div class="no-print" data-page-controls="stockSummary" data-page-anchor="stockSummary"></div>
         </div>
+        <div class="mobile-txn-cards" id="stockSummaryCards"></div>
+        <div class="no-print" data-page-controls="stockSummary" data-page-anchor="stockSummary"></div>
     </div>
 
     <!-- Daybook -->
@@ -3726,22 +3728,25 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         </div>
                     </div>
                 </div>
-                <table>
-                    <thead id="ledgerTableHead">
-                        <tr>
-                            <th class="no-print" data-select-col="ledgerStatement" style="width:30px; display:none;"><input type="checkbox" data-select-all="ledgerStatement" onchange="toggleSelectAll('ledgerStatement', this.checked)"></th>
-                            <th>Date</th>
-                            <th>Particulars / Inventory Details</th>
-                            <th>Vch Type</th>
-                            <th>Vch No.</th>
-                            <th>Debit (Dr)</th>
-                            <th>Credit (Cr)</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="partyLedgerBody"></tbody>
-                    <tfoot id="partyLedgerFoot" style="font-weight:bold; background:#0f172a;"></tfoot>
-                </table>
+                <div class="has-mobile-cards" style="overflow-x:auto;">
+                    <table>
+                        <thead id="ledgerTableHead">
+                            <tr>
+                                <th class="no-print" data-select-col="ledgerStatement" style="width:30px; display:none;"><input type="checkbox" data-select-all="ledgerStatement" onchange="toggleSelectAll('ledgerStatement', this.checked)"></th>
+                                <th>Date</th>
+                                <th>Particulars / Inventory Details</th>
+                                <th>Vch Type</th>
+                                <th>Vch No.</th>
+                                <th>Debit (Dr)</th>
+                                <th>Credit (Cr)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partyLedgerBody"></tbody>
+                        <tfoot id="partyLedgerFoot" style="font-weight:bold; background:#0f172a;"></tfoot>
+                    </table>
+                </div>
+                <div class="mobile-txn-cards" id="ledgerStatementCards"></div>
                 <div class="no-print" data-page-controls="ledgerStatement" data-page-anchor="ledgerStatement"></div>
             </div>
         </div>
@@ -4599,12 +4604,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 : stockItems.filter(i => i.groupId == selectedGroup);
 
         const stockBody = document.getElementById('stockSummaryBody');
+        const cardsEl = document.getElementById('stockSummaryCards');
         stockBody.innerHTML = '';
 
         if (filteredItems.length === 0) {
             stockBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No items in this category.</td></tr>';
+            cardsEl.innerHTML = '<div class="recent-txn-empty">No items in this category.</div>';
         } else {
             const pageRows = paginateRows('stockSummary', filteredItems);
+            let cardsHtml = '';
             pageRows.forEach(i => {
                 const totalVal = i.qty * i.rate;
                 const isOversold = i.qty < 0;
@@ -4626,7 +4634,21 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         </td>
                     </tr>
                 `;
+                cardsHtml += txnCardHtml({
+                    id: i.id, listKey: 'stockSummary',
+                    title: escapeHtml(i.name),
+                    meta: `${escapeHtml(getStockGroupName(i.groupId))}${i.hsn ? ' &middot; HSN ' + escapeHtml(i.hsn) : ''}`,
+                    detailHtml: `<span class="txn-detail-stat">Unit Rate <b>\u20B9${i.rate.toFixed(2)}</b></span><span class="txn-detail-stat">Total Value <b>\u20B9${totalVal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</b></span>`,
+                    amount: isOversold
+                        ? `${i.qty} ${escapeHtml(i.uom)} <span style="font-size:0.62rem; font-weight:normal; background:var(--danger); color:#fff; padding:1px 5px; border-radius:4px;">Oversold</span>`
+                        : `${i.qty} ${escapeHtml(i.uom)}`,
+                    amountColor: qtyColor,
+                    onClick: `viewStockItem(${i.id})`,
+                    editFn: 'editItem',
+                    deleteFn: 'deleteItem'
+                });
             });
+            cardsEl.innerHTML = cardsHtml;
         }
         renderPaginationControls('stockSummary', filteredItems.length, renderStockSummary);
     }
@@ -4988,39 +5010,58 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     // One row in a mobile statement/report's compact card list — same
     // visual style as the Recent Transactions widget (bold title line,
-    // muted meta line, amount on the right), used instead of dumping
-    // every table column as a mechanical label/value dump — the caller
-    // decides what "full details" means for that screen (item lines, tax
-    // breakdown, whichever fields matter) and passes it as detailHtml,
-    // kept visually distinct from the title/meta so the card still reads
-    // top-to-bottom instead of turning into a wall of text.
-    //   id           — the transaction id (for select/delete wiring)
+    // muted meta line, amount on the right). Full detail (item lines, tax
+    // split, whatever the screen has) lives behind a "More details" toggle
+    // so the card stays narrow by default and only expands the ONE card
+    // that was tapped, not the whole list.
+    //   id           — the transaction/row id (for select/delete/toggle wiring)
+    //   listKey      — short string unique to this screen (e.g. 'salesStatement'),
+    //                  used only to keep toggle element ids unique across lists
     //   title, meta  — already-HTML-safe strings (caller must escapeHtml)
-    //   detailHtml   — optional extra HTML block (item lines, tax split, etc.)
+    //   detailHtml   — optional extra HTML block, hidden until "More details" is tapped
     //   amount       — already-formatted amount string, e.g. "\u20B91,234.00"
     //   amountColor  — optional CSS color, defaults to normal text color
-    //   onClick      — JS expression string, e.g. `printInvoice(${t.id})`
+    //   onClick      — JS expression string, e.g. `printInvoice(${t.id})`, or omit for a non-clickable card
     //   selectKey    — listKey for bulk-select mode, or omit if not needed
-    //   deleteFn     — name of a global delete function taking (id), or omit
-    function txnCardHtml({ id, title, meta, detailHtml, amount, amountColor, onClick, selectKey, deleteFn }) {
+    //   deleteFn     — name of a global delete function taking (id); already confirms before deleting
+    function txnCardHtml({ id, listKey, title, meta, detailHtml, amount, amountColor, onClick, selectKey, editFn, deleteFn }) {
+        const key = `${listKey || selectKey || 'txn'}_${id}`;
         const selectHtml = selectKey ? `
             <span class="no-print" data-select-col="${selectKey}" style="display:none;" onclick="event.stopPropagation();">
                 <input type="checkbox" data-select-key="${selectKey}" data-select-id="${id}" onchange="toggleRowSelection('${selectKey}', ${id}, this.checked)">
             </span>` : '';
+        const moreHtml = detailHtml ? `
+            <span class="no-print" id="txnMoreBtn_${key}" onclick="event.stopPropagation(); toggleTxnCardDetail('${key}')" style="display:inline-block; margin-top:6px; margin-right:14px; font-size:0.7rem; color:var(--accent); cursor:pointer;">More details &#9662;</span>` : '';
+        const editHtml = editFn ? `
+            <span class="no-print" onclick="event.stopPropagation(); ${editFn}(${id})" style="display:inline-block; margin-top:6px; margin-right:14px; font-size:0.7rem; color:var(--text-main); text-decoration:underline; cursor:pointer;">Edit</span>` : '';
         const deleteHtml = deleteFn ? `
-            <span class="no-print" onclick="event.stopPropagation(); ${deleteFn}(${id})" style="display:inline-block; margin-top:6px; font-size:0.68rem; color:var(--danger); text-decoration:underline; cursor:pointer;">Delete</span>` : '';
+            <span class="no-print" onclick="event.stopPropagation(); ${deleteFn}(${id})" style="display:inline-block; margin-top:6px; font-size:0.7rem; color:var(--danger); text-decoration:underline; cursor:pointer;">Delete</span>` : '';
+        const detailBlock = detailHtml ? `
+            <div id="txnDetail_${key}" style="display:none; margin-top:6px; padding-top:6px; border-top:1px solid var(--border);">${detailHtml}</div>` : '';
         return `
-            <div class="recent-txn-row" style="cursor:pointer; align-items:flex-start;" onclick="${onClick}">
+            <div class="recent-txn-row" style="${onClick ? 'cursor:pointer;' : ''} align-items:flex-start;" ${onClick ? `onclick="${onClick}"` : ''}>
                 ${selectHtml}
                 <div class="recent-txn-main">
                     <div class="recent-txn-party">${title}</div>
                     <div class="recent-txn-meta">${meta}</div>
-                    ${detailHtml ? `<div style="margin-top:6px; padding-top:6px; border-top:1px solid var(--border);">${detailHtml}</div>` : ''}
-                    ${deleteHtml}
+                    <div>${moreHtml}${editHtml}${deleteHtml}</div>
+                    ${detailBlock}
                 </div>
                 <div class="recent-txn-amt" style="color:${amountColor || 'var(--text-main)'};">${amount}</div>
             </div>
         `;
+    }
+
+    // Expands/collapses one card's detail block — only that card, so
+    // browsing a long list stays compact and tapping one item's "More
+    // details" doesn't open every other card in the list too.
+    function toggleTxnCardDetail(key) {
+        const el = document.getElementById('txnDetail_' + key);
+        const btn = document.getElementById('txnMoreBtn_' + key);
+        if (!el || !btn) return;
+        const opening = el.style.display === 'none';
+        el.style.display = opening ? 'block' : 'none';
+        btn.innerHTML = opening ? 'Hide details &#9652;' : 'More details &#9662;';
     }
 
     // ================================================================
@@ -8681,6 +8722,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         rows = sortByDate(rows, 'gstLiability');
 
         const body = document.getElementById('gstLiabilityBody');
+        const cardsEl = document.getElementById('gstLiabilityCards');
         body.innerHTML = '';
         let outputTax = 0, inputTax = 0, outputTaxable = 0, inputTaxable = 0;
 
@@ -8689,7 +8731,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                             : view === 'taxed' ? 'No taxed GST transactions in this period.'
                             : 'No GST-contributing transactions in this period.';
             body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">${emptyMsg}</td></tr>`;
+            cardsEl.innerHTML = `<div class="recent-txn-empty">${emptyMsg}</div>`;
         } else {
+            let cardsHtml = '';
             rows.forEach(t => {
                 const isSale = (t.type === 'Sales');
                 if (isSale) { outputTax += t.totalTax; outputTaxable += t.taxable; }
@@ -8709,7 +8753,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td onclick="printInvoice(${t.id})" style="color:${taxColor}; font-weight:bold;">${taxCellText}</td>
                     </tr>
                 `;
+                cardsHtml += txnCardHtml({
+                    id: t.id, listKey: 'gstLiability',
+                    title: escapeHtml(t.partyName),
+                    meta: `<b>${t.date}</b> &middot; <b>${escapeHtml(t.type)}</b> &middot; ${escapeHtml(t.invNo)}`,
+                    detailHtml: `<span class="txn-detail-stat">Taxable <b>\u20B9${t.taxable.toFixed(2)}</b></span>`,
+                    amount: t.taxType === 'EXEMPT' ? 'Nil GST' : `\u20B9${t.totalTax.toFixed(2)} <span style="font-size:0.62rem; font-weight:normal;">(${taxLabel})</span>`,
+                    amountColor: t.taxType === 'EXEMPT' ? 'var(--text-muted)' : taxColor,
+                    onClick: `printInvoice(${t.id})`
+                });
             });
+            cardsEl.innerHTML = cardsHtml;
         }
 
         const card1 = document.getElementById('gstCard1Label');
@@ -10080,8 +10134,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
         const tbody = document.getElementById('partyLedgerBody');
         const tfoot = document.getElementById('partyLedgerFoot');
+        const cardsEl = document.getElementById('ledgerStatementCards');
         tbody.innerHTML = '';
         tfoot.innerHTML = '';
+        let cardsHtml = '';
 
         ledgerTxns = sortByDate(ledgerTxns, 'ledgerStatement');
 
@@ -10124,6 +10180,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <td style="vertical-align:top;">-</td>
                 </tr>
             `;
+            cardsHtml += txnCardHtml({
+                id: 'opening', listKey: 'ledgerStatement',
+                title: 'Opening Balance', meta: '',
+                amount: opening === 0 ? '\u20B90.00' : `\u20B9${Math.abs(opening).toFixed(2)} ${opening > 0 ? 'Dr' : 'Cr'}`,
+                amountColor: opening > 0 ? 'var(--accent)' : (opening < 0 ? 'var(--danger)' : 'var(--text-muted)')
+            });
         } else if (!isAggregate) {
             const party = parties.find(p => p.id == id);
             const asOf = party.openingAsOf || '2000-01-01';
@@ -10151,10 +10213,17 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <td style="vertical-align:top;">-</td>
                 </tr>
             `;
+            cardsHtml += txnCardHtml({
+                id: 'opening', listKey: 'ledgerStatement',
+                title: 'Opening Balance', meta: '',
+                amount: opening === 0 ? '\u20B90.00' : `\u20B9${Math.abs(opening).toFixed(2)} ${opening > 0 ? 'Dr' : 'Cr'}`,
+                amountColor: opening > 0 ? 'var(--accent)' : (opening < 0 ? 'var(--danger)' : 'var(--text-muted)')
+            });
         }
 
         if (ledgerTxns.length === 0) {
             tbody.innerHTML += `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No transactions found for this ledger.</td></tr>`;
+            cardsEl.innerHTML = cardsHtml + '<div class="recent-txn-empty">No transactions found for this ledger.</div>';
         } else {
             ledgerCurrentRowOrder = ledgerTxns.map(t => t.id); // full set, for Print Selected — independent of which page is showing
 
@@ -10257,7 +10326,24 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         </td>
                     </tr>
                 `;
+                // Date and voucher type are bold here specifically, as
+                // requested — everywhere else in this app's mobile cards
+                // the meta line is plain muted text, but a ledger mixes
+                // many voucher types together and the date/type are what
+                // someone scanning this list needs to pick out fastest.
+                cardsHtml += txnCardHtml({
+                    id: txn.id, listKey: 'ledgerStatement',
+                    title: particularsTitle,
+                    meta: `<b>${txn.date}</b> &middot; <b>${typeColLabel}</b>${txn.invNo ? ' &middot; ' + escapeHtml(txn.invNo) : ''}`,
+                    detailHtml: invDetails || '<span style="color:var(--text-muted);">&mdash;</span>',
+                    amount: debit > 0 ? `\u20B9${debit.toFixed(2)} Dr` : (credit > 0 ? `\u20B9${credit.toFixed(2)} Cr` : '\u20B90.00'),
+                    amountColor: debit > 0 ? debitColor : (credit > 0 ? creditColor : 'var(--text-muted)'),
+                    onClick: `openTransactionDetail(${txn.id})`,
+                    selectKey: 'ledgerStatement',
+                    deleteFn: 'deleteVoucherSmart'
+                });
             });
+            cardsEl.innerHTML = cardsHtml;
         }
 
         // Closing Balance Logic
