@@ -30,13 +30,13 @@
     /* Surfaces — flat parchment, not glass. This app is used at a shop
        counter in direct daylight, where blurred translucent panels wash
        out; flat, high-contrast paper surfaces stay legible in sun. */
-    --bg-main: #F4EFE0;
-    --bg-card: #FBF7EC;
+    --bg-main: #F0F0EE;
+    --bg-card: #FFFFFF;
     --bg-input: #FFFFFF;
-    --bg-tint: #EFE7D3;
+    --bg-tint: #E8E8E5;
     --bg-header: #1C2318;
-    --statement-bg: #FBF7EC;
-    --statement-row-alt: #F1EADA;
+    --statement-bg: #FFFFFF;
+    --statement-row-alt: #F1F1EF;
     --glass-blur: none;
     --glass-highlight: none;
 
@@ -49,7 +49,7 @@
     /* Text */
     --text-main: #241F14;
     --text-muted: #6B5F45;
-    --text-invert: #F4EFE0;
+    --text-invert: #F0F0EE;
 
     /* Semantic — traditional ledger red (debit) / green (credit) ink */
     --success: #4B6B3A;
@@ -907,16 +907,16 @@ table button {
     justify-content: space-between;
     gap: 14px;
     padding: 12px 16px;
-    background: #FBF3E1;
-    border: 1px solid #E8D9B0;
+    background: var(--bg-tint);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     margin-bottom: 18px;
     font-size: 0.85rem;
-    color: #6E4A18;
+    color: var(--text-main);
     flex-wrap: wrap;
 }
-.backup-banner strong { color: #4C310C; }
-.backup-banner .backup-sub { font-size: 0.78rem; color: #8A6931; margin-top: 2px; }
+.backup-banner strong { color: var(--text-main); }
+.backup-banner .backup-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
 .backup-banner .backup-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .backup-banner .backup-actions button { min-height: 36px; }
 
@@ -992,8 +992,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     color: var(--accent) !important;
 }
 [style*="rgba(251,191,36"] {
-    background: #FBF3E1 !important;
-    border-color: #E8D9B0 !important;
+    background: var(--bg-tint) !important;
+    border-color: var(--border-strong) !important;
     color: var(--warning) !important;
 }
 [style*="rgba(52,211,153"] {
