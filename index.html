@@ -67,9 +67,9 @@
     --card-shadow: 0 1px 0 0 rgba(43,53,36,0.06);
     --grad-accent: linear-gradient(135deg, #2B3524 0%, #435339 100%);
     --grad-warm: linear-gradient(135deg, #A5581E 0%, #A5721E 100%);
-    --radius-sm: 6px;
-    --radius: 10px;
-    --radius-lg: 14px;
+    --radius-sm: 14px;
+    --radius: 20px;
+    --radius-lg: 26px;
 }
 
 * { box-sizing: border-box; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -746,11 +746,11 @@ table button {
 #vPartyWrap { z-index: 30; }
 
 /* ---------- Invoice modal ---------- */
-#invoiceModal, #editModal, #globalSearchModal {
+#invoiceModal, #editModal, #globalSearchModal, #appNoticeModal, #appConfirmModal {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(20, 32, 26, 0.55);
+    background: rgba(28, 35, 24, 0.55);
     z-index: 100;
     padding: 30px 16px;
     overflow-y: auto;
@@ -758,6 +758,12 @@ table button {
     align-items: flex-start;
 }
 #invoiceModal.open, #editModal.open, #globalSearchModal.open { display: flex; }
+#appNoticeModal, #appConfirmModal {
+    /* Always above any other open modal — a confirm can be triggered
+       from inside the edit modal (e.g. "Remove this item?"). */
+    z-index: 260;
+    align-items: center;
+}
 
 .invoice-box {
     background: #ffffff;
@@ -2940,7 +2946,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <option value="EXEMPT">Nil GST (no tax charged)</option>
                 </select>
             </div>
-            <div class="col-2" id="rpTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 12px; border:1px solid var(--border);">
+            <div class="col-2" id="rpTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 16px; border:1px solid var(--border);">
                 <span style="color:var(--text-muted); font-size:0.85rem;">Total:</span>
                 <span id="rpTotalDisplay" style="font-weight:bold; font-size:1.1rem; color:var(--accent); margin-left:6px;">&#8377;0.00</span>
             </div>
@@ -3434,7 +3440,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </table>
             </div>
 
-            <div class="col-2" id="totalsBox" style="background: var(--bg-input); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+            <div class="col-2" id="totalsBox" style="background: var(--bg-input); padding: 14px; border-radius: 16px; border: 1px solid var(--border);">
                 <div style="font-size:0.85rem; color:var(--text-muted);">
                     Taxable: <span id="lblTaxable" style="color:var(--accent); font-weight:600;">&#8377;0.00</span> |
                     Total Tax: <span id="lblTax" style="color:var(--accent); font-weight:600;">&#8377;0.00</span>
@@ -3655,7 +3661,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </div>
                 <button onclick="closeActiveLedger()" style="width:auto; padding:10px 18px; background:#64748b; color:#fff;">&#8592; Choose a different ledger</button>
             </div>
-            <div id="ledgerPrintArea" class="table-responsive" style="background: var(--bg-card); padding: 20px; border-radius: 8px;">
+            <div id="ledgerPrintArea" class="table-responsive" style="background: var(--bg-card); padding: 20px; border-radius: 16px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
                     <div>
                         <h3 style="margin:0; color:var(--accent); border:none; padding:0;" id="ledgerAccountLabel">Ledger Account</h3>
@@ -3696,6 +3702,27 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         </div>
     </div>
 
+</div>
+
+<!-- App-styled replacements for the browser's native alert()/confirm().
+     Both are wired through the same back-button history stack as the
+     other modals (see navPushState in the script below), so the
+     hardware/gesture back button dismisses them like any other screen. -->
+<div id="appNoticeModal">
+    <div class="edit-box" style="max-width:400px;">
+        <p id="appNoticeText" style="margin:0 0 18px; font-size:0.92rem; line-height:1.55; white-space:pre-line;"></p>
+        <button type="button" onclick="closeAppNotice()">OK</button>
+    </div>
+</div>
+
+<div id="appConfirmModal">
+    <div class="edit-box" style="max-width:400px;">
+        <p id="appConfirmText" style="margin:0 0 18px; font-size:0.92rem; line-height:1.55; white-space:pre-line;"></p>
+        <div style="display:flex; gap:10px;">
+            <button type="button" class="btn-inline" style="flex:1;" onclick="resolveAppConfirm(false)" id="appConfirmCancelBtn">Cancel</button>
+            <button type="button" style="flex:1;" onclick="resolveAppConfirm(true)" id="appConfirmOkBtn">OK</button>
+        </div>
+    </div>
 </div>
 
 <!-- Printable Tax Invoice Modal -->
@@ -3792,8 +3819,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                     <option value="formal">Formal</option>
                 </select>
             </div>
-            <button onclick="document.getElementById('invoiceModal').style.display='none'; openEditModal(currentPrintTxnId);">Edit</button>
-            <button onclick="document.getElementById('invoiceModal').style.display='none'" style="background:#64748b; color:white;">Close</button>
+            <button onclick="navPendingAfterBack = () => openEditModal(currentPrintTxnId); closeInvoiceModal();">Edit</button>
+            <button onclick="closeInvoiceModal()" style="background:#64748b; color:white;">Close</button>
         </div>
     </div>
 </div>
@@ -3924,7 +3951,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </div>
             </div>
 
-            <div class="col-2" id="editTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 12px; border:1px solid var(--border);">
+            <div class="col-2" id="editTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 16px; border:1px solid var(--border);">
                 <span style="color:var(--text-muted); font-size:0.85rem;">New Total:</span>
                 <span id="editTotal" style="font-weight:bold; font-size:1.1rem; color:var(--accent); margin-left:6px;">&#8377;0.00</span>
             </div>
@@ -5347,9 +5374,83 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     };
     let currentGroup = null;
 
+    // ---------- Back-button navigation ----------
+    // Every "open a screen" action below pushes one browser-history entry
+    // paired with the function that restores the screen underneath it.
+    // The hardware/gesture back button and the in-app "\u2190 Back" buttons
+    // both end up popping that same stack, so either one steps back a
+    // single screen instead of the back button exiting the whole app.
+    const navBackStack = [];
+    let navPendingAfterBack = null;
+    function navPushState(uiBackFn) {
+        navBackStack.push(uiBackFn);
+        history.pushState({ nb: navBackStack.length }, document.title);
+    }
+    window.addEventListener('popstate', function () {
+        const fn = navBackStack.pop();
+        if (fn) { try { fn(); } catch (e) {} }
+        // A caller that needs to close the current screen and then open a
+        // different one (e.g. the invoice modal's "Edit" button) defers the
+        // "open" half until the close has actually finished, instead of
+        // firing both in the same click — see closeInvoiceModal() call sites.
+        if (navPendingAfterBack) {
+            const next = navPendingAfterBack;
+            navPendingAfterBack = null;
+            try { next(); } catch (e) {}
+        }
+    });
+
     // Elements that belong to the home dashboard only — hidden the moment
     // any group/panel is opened, so that content appears right at the top
     // instead of below the whole dashboard, and restored only when back home.
+    // ---------- Styled alert()/confirm() replacements ----------
+    // Native alert()/confirm() block the whole page, can't be restyled, and
+    // (for confirm) guard destructive actions with a dialog that's easy to
+    // reflexively tap through. These swap in the app's own themed modals,
+    // wired through the same back-button history stack as everything else.
+    // alert() call sites throughout the file are untouched — window.alert
+    // is simply redefined here. confirm() calls are converted individually
+    // to `await confirmAsync(...)` since a synchronous return value can't
+    // be faked with an async modal.
+    function closeAppNotice() {
+        document.getElementById('appNoticeModal').style.display = 'none';
+        history.back();
+    }
+    function closeAppNoticeUI() {
+        document.getElementById('appNoticeModal').style.display = 'none';
+    }
+    window.alert = function (message) {
+        document.getElementById('appNoticeText').textContent = message;
+        document.getElementById('appNoticeModal').style.display = 'flex';
+        navPushState(closeAppNoticeUI);
+    };
+
+    let appConfirmResolve = null;
+    function closeAppConfirmUI() {
+        document.getElementById('appConfirmModal').style.display = 'none';
+        if (appConfirmResolve) { const r = appConfirmResolve; appConfirmResolve = null; r(false); }
+    }
+    // Fired by the Cancel/OK buttons. Hides + resolves immediately (no
+    // waiting on the async popstate round-trip) and also steps history
+    // back so the pushed entry doesn't linger; the resulting popstate
+    // still runs closeAppConfirmUI, but by then appConfirmResolve is
+    // already null so it's a harmless no-op.
+    function resolveAppConfirm(result) {
+        document.getElementById('appConfirmModal').style.display = 'none';
+        const r = appConfirmResolve;
+        appConfirmResolve = null;
+        history.back();
+        if (r) r(result);
+    }
+    function confirmAsync(message) {
+        return new Promise(resolve => {
+            appConfirmResolve = resolve;
+            document.getElementById('appConfirmText').textContent = message;
+            document.getElementById('appConfirmModal').style.display = 'flex';
+            navPushState(closeAppConfirmUI);
+        });
+    }
+
     function setHomeDashboardVisible(visible) {
         const ids = ['homeDashboardSummary', 'extrasBar', 'backupBanner', 'recentTxnCard'];
         ids.forEach(id => {
@@ -5370,11 +5471,16 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         hideAllMenus();
         currentGroup = groupId;
         document.getElementById(groupId).classList.add('active');
+        navPushState(backToGroupsUI);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Back from a sub-menu to the three top groups.
-    function backToGroups() {
+    // Back from a sub-menu to the three top groups — called by the in-app
+    // Back button. Just steps the browser back one entry; the actual UI
+    // restore happens in backToGroupsUI() via the popstate handler above,
+    // so hardware/gesture back and the in-app button behave identically.
+    function backToGroups() { history.back(); }
+    function backToGroupsUI() {
         hideAllMenus();
         currentGroup = null;
         document.getElementById('tileMenu').style.display = 'block';
@@ -5393,6 +5499,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         currentGroup = PANEL_GROUP[id] || null;
         const panel = document.getElementById(id);
         panel.classList.add('active');
+        // Pushed here (not at the end) so that a branch below which itself
+        // calls closePanel() — e.g. the Users permission check — pops
+        // exactly this one entry instead of the one underneath it.
+        navPushState(closePanelUI);
         if (id === 'panelVoucher') toggleVoucherMode();
         if (id === 'panelPayments') renderCashList('Payment');
         if (id === 'panelReceipts') renderCashList('Receipt');
@@ -5421,10 +5531,29 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             renderManageStaff();
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        autofocusFirstField(panel);
+    }
+
+    // Focuses the first sensible field in a just-opened panel, so someone
+    // can start typing right away instead of tapping into the form first —
+    // most useful on Post Voucher and the various Add/Edit master forms.
+    // Skips date fields (focusing one can pop a native date picker the
+    // person didn't ask for) and anything hidden/disabled/readonly; falls
+    // through to whatever the next real field is, so e.g. Post Voucher
+    // lands on Voucher Type rather than Date.
+    function autofocusFirstField(panel) {
+        const field = panel.querySelector(
+            'input:not([type="hidden"]):not([type="date"]):not([disabled]):not([readonly]), select:not([disabled]), textarea:not([disabled])'
+        );
+        if (!field) return;
+        // A short delay lets the panel's own layout/scroll settle first —
+        // focusing mid-transition can jump the page in an odd direction.
+        setTimeout(() => field.focus(), 60);
     }
 
     // Back from a panel → return to its sub-menu (or top if unknown).
-    function closePanel() {
+    function closePanel() { history.back(); }
+    function closePanelUI() {
         hideAllMenus();
         if (currentGroup) {
             document.getElementById(currentGroup).classList.add('active');
@@ -5436,7 +5565,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
   
-    document.getElementById('partyForm').addEventListener('submit', (e) => {  
+    document.getElementById('partyForm').addEventListener('submit', async (e) => {  
         e.preventDefault();  
         const groupId = document.getElementById('pGroup').value;
         if (!groupId) return alert("Please select a Ledger Group (or create one with + New).");
@@ -5445,7 +5574,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const normalizedNewParty = normalizeNameForDupCheck(newPartyName);
         const similarParty = parties.find(p => normalizeNameForDupCheck(p.name) === normalizedNewParty);
         if (similarParty) {
-            const proceed = confirm(`A party named "${similarParty.name}" already exists.\n\nAdd "${newPartyName}" anyway as a separate party?`);
+            const proceed = await confirmAsync(`A party named "${similarParty.name}" already exists.\n\nAdd "${newPartyName}" anyway as a separate party?`);
             if (!proceed) return;
         }
 
@@ -5526,7 +5655,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // same safety pattern used for deleting an account/item/group. This
     // prevents Ledger/Statement history from ever pointing at a party that
     // no longer exists.
-    function deleteParty(partyId) {
+    async function deleteParty(partyId) {
         if (!isAdmin() && !hasPermission('deleteParty')) return alert("Only an admin, or a user with 'Delete a party' turned on, can delete a party.");
         const p = parties.find(x => x.id == partyId);
         if (!p) return;
@@ -5545,7 +5674,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const bal = partyBalance(partyId);
         if (Math.abs(bal) > 0.005) return alert(`Cannot delete "${p.name}" — it still has an outstanding balance of \u20B9${Math.abs(bal).toFixed(2)} ${bal >= 0 ? 'Dr' : 'Cr'}. Clear the balance first.`);
 
-        if (!confirm(`Delete party "${p.name}"? This cannot be undone.`)) return;
+        if (!(await confirmAsync(`Delete party "${p.name}"? This cannot be undone.`))) return;
         parties = parties.filter(x => x.id != partyId);
         localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
         syncCloud();
@@ -5617,7 +5746,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         alert(`${p.name} updated.`);
     });
 
-    document.getElementById('itemForm').addEventListener('submit', (e) => {  
+    document.getElementById('itemForm').addEventListener('submit', async (e) => {  
         e.preventDefault();  
         let uom = document.getElementById('itemUom').value;
         if (uom === '__CUSTOM__') {
@@ -5655,7 +5784,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             const normalizedNewItem = normalizeNameForDupCheck(data.name);
             const similarItem = stockItems.find(s => normalizeNameForDupCheck(s.name) === normalizedNewItem);
             if (similarItem) {
-                const proceed = confirm(`A stock item named "${similarItem.name}" already exists.\n\nAdd "${data.name}" anyway as a separate item?`);
+                const proceed = await confirmAsync(`A stock item named "${similarItem.name}" already exists.\n\nAdd "${data.name}" anyway as a separate item?`);
                 if (!proceed) return;
             }
             stockItems.push({ id: newId(stockItems), ...data });
@@ -5816,12 +5945,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('stockGroupCancelBtn').style.display = 'none';
     }
 
-    function deleteStockGroup(groupId) {
+    async function deleteStockGroup(groupId) {
         if (!isAdmin() && !hasPermission('deleteGroup')) return alert("Only an admin, or a user with 'Delete a ledger/stock group' turned on, can delete a group.");
         const used = stockItems.some(i => i.groupId == groupId);
         if (used) return alert("Cannot delete a group that has stock items in it. Move those items to another group first.");
         const g = stockGroups.find(s => s.id == groupId);
-        if (g && confirm(`Delete stock group "${g.name}"?`)) {
+        if (g && await confirmAsync(`Delete stock group "${g.name}"?`)) {
             stockGroups = stockGroups.filter(s => s.id != groupId);
             localStorage.setItem('tally_mob_stockgroups', JSON.stringify(stockGroups));
             syncCloud();
@@ -6067,13 +6196,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // it always was; this only moves where the running-balance count
     // starts from, same as closing a financial year in any accounting
     // system.
-    function startNewFinancialYear() {
+    async function startNewFinancialYear() {
         if (!isAdmin() && !hasPermission('newFinancialYear')) return alert("Only an admin, or a user with 'Start a new financial year' turned on, can do this.");
         const asOfDate = document.getElementById('fyCarryForwardDate').value;
         if (!asOfDate) return alert("Please choose the date the new financial year starts on.");
 
         const confirmMsg = `This will set every party's and account's current closing balance, AND every stock item's current "In Stock" figure, as their new Opening Balance/Opening Qty, effective ${asOfDate}.\n\nPast vouchers are NOT deleted or locked — they stay fully visible and editable.\n\nProceed?`;
-        if (!confirm(confirmMsg)) return;
+        if (!(await confirmAsync(confirmMsg))) return;
 
         parties.forEach(p => {
             p.opening = partyBalance(p.id);
@@ -6261,9 +6390,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         renderManageStaff();
     }
 
-    function removeStaffRole(email) {
+    async function removeStaffRole(email) {
         if (email === currentUserEmail()) return alert("You can't remove your own access this way.");
-        if (!confirm(`Remove ${email}'s access role? They will default back to a User with everything off if they sign in again (their Firebase login itself is unaffected — remove that separately in the Firebase Console if needed).`)) return;
+        if (!(await confirmAsync(`Remove ${email}'s access role? They will default back to a User with everything off if they sign in again (their Firebase login itself is unaffected — remove that separately in the Firebase Console if needed).`))) return;
         delete userRoles[email];
         localStorage.setItem('tally_mob_userroles', JSON.stringify(userRoles));
         syncCloud();
@@ -6352,7 +6481,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('acctCancelBtn').style.display = 'none';
     }
 
-    function deleteAccount(accId) {
+    async function deleteAccount(accId) {
         if (!isAdmin() && !hasPermission('deleteAccount')) return alert("Only an admin, or a user with 'Delete a cash/bank account' turned on, can delete an account.");
         // Same Journal blind spot as deleteParty above — journals link to an
         // account through journalDebit/journalCredit rather than accountId.
@@ -6363,7 +6492,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         );
         if (used) return alert("Cannot delete an account that has transactions linked to it.");
         const acc = accounts.find(a => a.id == accId);
-        if (acc && confirm(`Delete account "${acc.name}"?`)) {
+        if (acc && await confirmAsync(`Delete account "${acc.name}"?`)) {
             accounts = accounts.filter(a => a.id != accId);
             localStorage.setItem('tally_mob_accounts', JSON.stringify(accounts));
             syncCloud();
@@ -6409,12 +6538,12 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('ledgerGroupCancelBtn').style.display = 'none';
     }
 
-    function deleteLedgerGroup(groupId) {
+    async function deleteLedgerGroup(groupId) {
         if (!isAdmin() && !hasPermission('deleteGroup')) return alert("Only an admin, or a user with 'Delete a ledger/stock group' turned on, can delete a group.");
         const used = accounts.some(a => a.groupId == groupId) || parties.some(p => p.groupId == groupId);
         if (used) return alert("Cannot delete a group that has ledgers in it. Move those ledgers to another group first.");
         const g = ledgerGroups.find(l => l.id == groupId);
-        if (g && confirm(`Delete ledger group "${g.name}"?`)) {
+        if (g && await confirmAsync(`Delete ledger group "${g.name}"?`)) {
             ledgerGroups = ledgerGroups.filter(l => l.id != groupId);
             localStorage.setItem('tally_mob_ledgergroups', JSON.stringify(ledgerGroups));
             syncCloud();
@@ -6898,7 +7027,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         list.style.display = 'none';
     });
 
-    function submitVoucher() {
+    async function submitVoucher() {
         if (!isAdmin() && !hasPermission('postVouchers')) return alert("Only an admin, or a user with 'Post new vouchers' turned on, can post a voucher.");
         const type = document.getElementById('vType').value;
         const customTypeDef = customVoucherTypes.find(v => v.id === type);
@@ -7229,7 +7358,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 if (available < line.qty) shortages.push(`${line.name}: only ${available} in stock, selling ${line.qty}`);
             }
             if (shortages.length > 0) {
-                const proceed = confirm(
+                const proceed = await confirmAsync(
                     `This sale goes below available stock:\n\n${shortages.join('\n')}\n\nPost it anyway? Stock will show negative until you purchase more.`
                 );
                 if (!proceed) return;
@@ -7426,21 +7555,21 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // trading history, not fix anything. Still allowed if an admin
     // deliberately wants that, but the warning has to say so honestly
     // instead of describing it as a fix.
-    function resetItemOpeningQty(itemId) {
+    async function resetItemOpeningQty(itemId) {
         if (!isAdmin() && !hasPermission('editItem')) return alert("Only an admin, or a user with 'Edit a stock item' turned on, can reset an item's opening quantity.");
         const item = stockItems.find(s => s.id == itemId);
         if (!item) return;
         if ((item.openingQty || 0) === 0) return alert("Opening Qty is already 0 for this item.");
 
         if (item.openingAsOf) {
-            const ok = confirm(
+            const ok = await confirmAsync(
                 `"${item.name}"'s Opening Qty of ${item.openingQty} ${item.uom} isn't a leftover bug — it's this item's real carried-forward stock as of ${item.openingAsOf}, set when a financial year was closed.\n\n`
                 + `Clearing it to 0 will erase that opening balance, not fix anything. Only proceed if you're deliberately correcting it (in which case Edit Stock Item, entering the right count directly, is usually what you want instead).\n\n`
                 + `Clear it to 0 anyway?`
             );
             if (!ok) return;
         } else {
-            if (!confirm(`Reset "${item.name}"'s Opening Qty from ${item.openingQty} to 0? In Stock will then be purely what its Purchase/Sale entries add up to.`)) return;
+            if (!(await confirmAsync(`Reset "${item.name}"'s Opening Qty from ${item.openingQty} to 0? In Stock will then be purely what its Purchase/Sale entries add up to.`))) return;
         }
 
         item.openingQty = 0;
@@ -7462,7 +7591,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // those, if it's ever genuinely wrong, is a deliberate one-item
     // decision via resetItemOpeningQty or Edit Stock Item, never a bulk
     // sweep.
-    function resetAllOpeningQuantities() {
+    async function resetAllOpeningQuantities() {
         if (!isAdmin()) return alert("Only an admin can reset opening quantities for every item at once.");
         const affected = stockItems.filter(s => (s.openingQty || 0) !== 0 && !s.openingAsOf);
         const protectedCount = stockItems.filter(s => (s.openingQty || 0) !== 0 && s.openingAsOf).length;
@@ -7477,7 +7606,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             .map(s => `\u2022 ${s.name}: ${s.openingQty} ${s.uom} \u2192 0`)
             .join('\n') + (affected.length > 15 ? `\n\u2026 and ${affected.length - 15} more` : '');
 
-        const ok = confirm(
+        const ok = await confirmAsync(
             `Reset Opening Qty to 0 for ${affected.length} item(s), so In Stock becomes purely what Purchase/Sale/etc. entries add up to:\n\n${preview}\n\n`
             + `If any of these genuinely has real stock that was never entered as a Purchase in this app, re-enter that amount afterward via Edit Stock Item.`
             + (protectedCount > 0 ? `\n\n(${protectedCount} other item(s) with a real financial-year opening balance are left untouched.)` : '')
@@ -7622,8 +7751,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     let editOriginalTotalSnapshot = 0;
     function editOriginalBaseTotal() { return editOriginalTotalSnapshot; }
 
-    function clearEditTotalAdjust() {
-        if (!confirm('Reset every line back to its original rate, undoing any discount or total override made this session?')) return;
+    async function clearEditTotalAdjust() {
+        if (!(await confirmAsync('Reset every line back to its original rate, undoing any discount or total override made this session?'))) return;
         editWorkingItems.forEach(it => {
             const orig = editWorkingItemsOriginal.find(o => o.rowId === it.rowId);
             if (orig) it.inclRate = orig.inclRate;
@@ -7648,9 +7777,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         recomputeEditTotal();
     }
 
-    function removeEditRow(rowId) {
+    async function removeEditRow(rowId) {
         if (editWorkingItems.length <= 1) return alert("A voucher needs at least one item \u2014 add a replacement first, or delete the whole voucher instead of emptying it.");
-        if (!confirm("Remove this item from the voucher?")) return;
+        if (!(await confirmAsync("Remove this item from the voucher?"))) return;
         editWorkingItems = editWorkingItems.filter(r => r.rowId !== rowId);
         renderEditItemsList();
         recomputeEditTotal();
@@ -7700,6 +7829,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             alert("Journal entries can't be edited directly yet — delete this one and post a new one instead.");
             return;
         }
+        navPushState(closeEditModalUI);
         document.getElementById('editTxnId').value = txn.id;
         document.getElementById('editTitle').innerText = `Edit ${txn.invNo}`;
         document.getElementById('editDate').value = txn.date;
@@ -7803,7 +7933,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('editModal').style.display = 'flex';
     }
 
-    function closeEditModal() {
+    function closeEditModal() { history.back(); }
+    function closeEditModalUI() {
         document.getElementById('editModal').style.display = 'none';
     }
 
@@ -7819,7 +7950,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('editTotal').innerText = `\u20B9${total.toFixed(2)}`;
     }
 
-    function saveEditedVoucher() {
+    async function saveEditedVoucher() {
         const txn = transactions.find(t => t.id == document.getElementById('editTxnId').value);
         if (!txn) return;
 
@@ -7945,7 +8076,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             if (shortages.length > 0) {
                 if (isSalesEdit) {
                     const msg = shortages.map(s => `${s.line.name}: only ${s.available} in stock, this line needs ${s.line.qty}`).join('\n');
-                    const proceed = confirm(`This edit goes below available stock:\n\n${msg}\n\nSave anyway? Stock will show negative until you purchase more.`);
+                    const proceed = await confirmAsync(`This edit goes below available stock:\n\n${msg}\n\nSave anyway? Stock will show negative until you purchase more.`);
                     if (!proceed) {
                         stockItems = JSON.parse(localStorage.getItem('tally_mob_stock')); // rollback the reversal done above
                         return;
@@ -8014,7 +8145,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         alert(`${txn.invNo} updated.`);
     }
 
-    function deleteTransaction(txnId) {
+    async function deleteTransaction(txnId) {
         if (!isAdmin() && !hasPermission('deleteVoucher')) return alert("Only an admin, or a user with 'Delete a voucher' turned on, can delete a voucher.");
         const txnIndex = transactions.findIndex(t => t.id == txnId);
         if (txnIndex === -1) return;
@@ -8026,7 +8157,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
             if (linked) return alert(`Cannot delete ${txn.invNo}: there are Payment/Receipt entries linked to it. Delete those first.`);
         }
 
-        if (!confirm(`Are you sure you want to delete ${txn.invNo}? Stock will be updated accordingly.`)) return;
+        if (!(await confirmAsync(`Are you sure you want to delete ${txn.invNo}? Stock will be updated accordingly.`))) return;
 
         (txn.items || []).forEach(line => {
             const item = stockItems.find(s => s.id == line.itemId);
@@ -8051,14 +8182,14 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('ledgerPrintArea').style.display = 'none';
     }
 
-    function deleteItem(itemId) {
+    async function deleteItem(itemId) {
         if (!isAdmin() && !hasPermission('deleteItem')) return alert("Only an admin, or a user with 'Delete a stock item' turned on, can delete a stock item.");
         const item = stockItems.find(s => s.id == itemId);
         if (!item) return;
 
         if (item.qty !== 0) return alert("Cannot delete item with active stock balance!");
 
-        if (confirm(`Delete stock item "${item.name}"?`)) {
+        if (await confirmAsync(`Delete stock item "${item.name}"?`)) {
             stockItems = stockItems.filter(s => s.id != itemId);
             localStorage.setItem('tally_mob_stock', JSON.stringify(stockItems));
             syncCloud();
@@ -8666,11 +8797,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('dnCount').innerText = rows.length;
     }
 
-    function deleteDeliveryNote(txnId) {
+    async function deleteDeliveryNote(txnId) {
         if (!isAdmin() && !hasPermission('deleteVoucher')) return alert("Only an admin, or a user with 'Delete a voucher' turned on, can delete a voucher.");
         const t = transactions.find(x => x.id == txnId);
         if (!t) return;
-        if (!confirm(`Delete delivery note ${t.invNo}?`)) return;
+        if (!(await confirmAsync(`Delete delivery note ${t.invNo}?`))) return;
         transactions = transactions.filter(x => x.id != txnId);
         renumberSeriesAfterDelete(t);
         localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
@@ -8683,18 +8814,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // voucher type actually needs (each one reverses its own stock/ledger
     // effect correctly), then refreshes any ledger statement or report
     // that happens to be open so nothing shows stale figures afterward.
-    function deleteVoucherSmart(txnId) {
+    async function deleteVoucherSmart(txnId) {
         const txn = transactions.find(t => t.id == txnId);
         if (!txn) return;
 
         if (txn.deliveryNote) {
-            deleteDeliveryNote(txnId);
+            await deleteDeliveryNote(txnId);
         } else if (txn.conversion) {
-            deleteConversion(txnId);
+            await deleteConversion(txnId);
         } else if (txn.optional) {
-            deleteOptional(txnId);
+            await deleteOptional(txnId);
         } else {
-            deleteTransaction(txnId);
+            await deleteTransaction(txnId);
         }
 
         // deleteTransaction() blanks the ledger view as a safety default.
@@ -8746,7 +8877,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         recomputeRawPurchaseTotal();
     }
 
-    function quickAddRawItem() {
+    async function quickAddRawItem() {
         const name = document.getElementById('rpItemQuickName').value.trim();
         if (!name) return alert("Enter the raw item's name first.");
         const hsn = document.getElementById('rpItemQuickHsn').value.trim();
@@ -8754,7 +8885,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const normalizedNewRawItem = normalizeNameForDupCheck(name);
         const similarRawItem = stockItems.find(s => normalizeNameForDupCheck(s.name) === normalizedNewRawItem);
         if (similarRawItem) {
-            const proceed = confirm(`A stock item named "${similarRawItem.name}" already exists.\n\nAdd "${name}" anyway as a separate item?`);
+            const proceed = await confirmAsync(`A stock item named "${similarRawItem.name}" already exists.\n\nAdd "${name}" anyway as a separate item?`);
             if (!proceed) return;
         }
 
@@ -8997,11 +9128,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         alert(`Conversion posted: ${rawQty} ${rawItem.uom} of ${rawItem.name} \u2192 ${outQty} ${procItem.uom} of ${procItem.name}.`);
     });
 
-    function deleteConversion(convId) {
+    async function deleteConversion(convId) {
         if (!isAdmin() && !hasPermission('deleteVoucher')) return alert("Only an admin, or a user with 'Delete a voucher' turned on, can delete a voucher.");
         const conv = transactions.find(t => t.id == convId);
         if (!conv) return;
-        if (!confirm(`Delete conversion ${conv.invNo}? This will reverse the stock movement (raw stock restored, processed stock reduced).`)) return;
+        if (!(await confirmAsync(`Delete conversion ${conv.invNo}? This will reverse the stock movement (raw stock restored, processed stock reduced).`))) return;
 
         const rawItem = stockItems.find(s => s.id == conv.rawItemId);
         const procItem = stockItems.find(s => s.id == conv.processedItemId);
@@ -9243,11 +9374,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         document.getElementById('vtCancelBtn').style.display = 'none';
     }
 
-    function deleteVoucherType(id) {
+    async function deleteVoucherType(id) {
         const used = transactions.some(t => t.customVoucherTypeId === id);
         if (used) return alert("Cannot delete a voucher type that already has entries posted under it.");
         const vt = customVoucherTypes.find(v => v.id === id);
-        if (vt && confirm(`Delete voucher type "${vt.name}"?`)) {
+        if (vt && await confirmAsync(`Delete voucher type "${vt.name}"?`)) {
             customVoucherTypes = customVoucherTypes.filter(v => v.id !== id);
             localStorage.setItem('tally_mob_vouchertypes', JSON.stringify(customVoucherTypes));
             syncCloud();
@@ -9423,11 +9554,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (row) row.style.display = (row.style.display === 'none') ? 'table-row' : 'none';
     }
 
-    function deleteOptional(txnId) {
+    async function deleteOptional(txnId) {
         if (!isAdmin() && !hasPermission('deleteVoucher')) return alert("Only an admin, or a user with 'Delete a voucher' turned on, can delete a voucher.");
         const txn = transactions.find(t => t.id == txnId);
         if (!txn) return;
-        if (!confirm(`Delete optional voucher ${txn.invNo}?`)) return;
+        if (!(await confirmAsync(`Delete optional voucher ${txn.invNo}?`))) return;
         transactions = transactions.filter(t => t.id != txnId);
         renumberSeriesAfterDelete(txn);
         localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
@@ -9445,7 +9576,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     function buildInvoiceHtml(txnId) {
         const txn = transactions.find(t => t.id == txnId);
         if (!txn) return null;
+        suppressInvoiceModalHistory = true;
         printInvoice(txnId); // populates the existing modal's DOM as usual
+        suppressInvoiceModalHistory = false;
         const box = document.querySelector('#invoiceModal .invoice-box');
         if (!box) return null;
         const html = box.outerHTML;
@@ -9454,6 +9587,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     }
 
     let currentPrintTxnId = null;
+    // Batch PDF/print export (buildInvoiceHtml above) reuses this function
+    // to render each invoice off-screen, without ever showing the modal to
+    // the person — that pass shouldn't push a history entry, or the back
+    // button would have to be pressed once per invoice in the batch.
+    let suppressInvoiceModalHistory = false;
+    function closeInvoiceModal() { history.back(); }
+    function closeInvoiceModalUI() {
+        document.getElementById('invoiceModal').style.display = 'none';
+    }
     function printInvoice(txnId) {  
         const txn = transactions.find(t => t.id == txnId);  
         if (!txn) return;  
@@ -9607,6 +9749,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         }
 
         document.getElementById('invoiceModal').style.display = 'flex';  
+        if (!suppressInvoiceModalHistory) navPushState(closeInvoiceModalUI);
     }  
 
     // ------------- SECTION 7: LEDGER LOGIC -------------
@@ -9710,13 +9853,15 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     // amount, or narration text across the whole app — so a person
     // doesn't need to already know which report a voucher lives in.
     function openGlobalSearch() {
+        navPushState(closeGlobalSearchUI);
         document.getElementById('globalSearchModal').style.display = 'flex';
         const input = document.getElementById('globalSearchInput');
         input.value = '';
         renderGlobalSearchResults();
         setTimeout(() => input.focus(), 50);
     }
-    function closeGlobalSearch() {
+    function closeGlobalSearch() { history.back(); }
+    function closeGlobalSearchUI() {
         document.getElementById('globalSearchModal').style.display = 'none';
     }
     function renderGlobalSearchResults() {
@@ -9753,7 +9898,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (partyMatches.length) {
             html += '<div class="section-label" style="margin-top:0;">Parties</div>';
             partyMatches.forEach(p => {
-                html += `<div class="party-ac-item" onclick="closeGlobalSearch(); openPartyLedgerFromReport(${p.id})">
+                html += `<div class="party-ac-item" onclick="navPendingAfterBack = () => openPartyLedgerFromReport(${p.id}); closeGlobalSearch();">
                     ${escapeHtml(p.name)} <span style="color:var(--text-muted); font-size:0.8em;">(${escapeHtml(p.type)})</span>
                 </div>`;
             });
@@ -9761,7 +9906,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (itemMatches.length) {
             html += '<div class="section-label">Items</div>';
             itemMatches.forEach(s => {
-                html += `<div class="party-ac-item" onclick="closeGlobalSearch(); openPanel('panelItem'); editItem(${s.id})">
+                html += `<div class="party-ac-item" onclick="navPendingAfterBack = () => { openPanel('panelItem'); editItem(${s.id}); }; closeGlobalSearch();">
                     ${escapeHtml(s.name)} <span style="color:var(--text-muted); font-size:0.8em;">Qty: ${s.qty}</span>
                 </div>`;
             });
@@ -9769,7 +9914,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         if (txnMatches.length) {
             html += '<div class="section-label">Vouchers</div>';
             txnMatches.forEach(t => {
-                html += `<div class="party-ac-item" onclick="closeGlobalSearch(); printInvoice(${t.id})">
+                html += `<div class="party-ac-item" onclick="navPendingAfterBack = () => printInvoice(${t.id}); closeGlobalSearch();">
                     <div style="display:flex; justify-content:space-between; gap:10px;">
                         <span><strong>${escapeHtml(t.invNo || t.type || '')}</strong> &mdash; ${escapeHtml(t.partyName || t.type || '')}</span>
                         <span style="font-family:'JetBrains Mono', monospace; white-space:nowrap;">&#8377;${(t.grandTotal || 0).toFixed(2)}</span>
@@ -11063,13 +11208,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     // Delete a party from within the group view. Blocked if the party has
     // any transactions (protects the ledger's integrity).
-    function deletePartyFromGroup(partyId) {
+    async function deletePartyFromGroup(partyId) {
         if (!isAdmin() && !hasPermission('deleteParty')) return alert("Only an admin, or a user with 'Delete a party' turned on, can delete a party.");
         const p = parties.find(x => x.id == partyId);
         if (!p) return;
         const hasTxns = transactions.some(t => t.partyId == partyId);
         if (hasTxns) return alert(`Cannot delete "${p.name}": there are transactions linked to this party. Delete those vouchers first.`);
-        if (!confirm(`Delete party "${p.name}"? This cannot be undone.`)) return;
+        if (!(await confirmAsync(`Delete party "${p.name}"? This cannot be undone.`))) return;
         parties = parties.filter(x => x.id != partyId);
         localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
         syncCloud();
@@ -11889,8 +12034,8 @@ function enterApp(fy) {
     if (typeof applyRolePermissions === 'function') applyRolePermissions();
 }
 
-function logoutAdmin() {
-    if (!confirm('Log out of the admin panel?')) return;
+async function logoutAdmin() {
+    if (!(await confirmAsync('Log out of the admin panel?'))) return;
     cloudAuth.signOut().finally(() => location.reload());
 }
 
