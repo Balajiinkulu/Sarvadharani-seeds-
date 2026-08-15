@@ -362,6 +362,19 @@ h3 {
 .recent-txn-amt { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.9rem; color: var(--text-main); white-space: nowrap; }
 .recent-txn-empty { color: var(--text-muted); font-size: 0.85rem; padding: 8px 2px; }
 
+/* Small compact cards for statement/report screens on mobile — same
+   title/meta/amount density as the Recent Transactions widget above, not
+   a label/value dump of every column (that was tried and didn't fit what
+   was wanted). Desktop keeps the full table untouched; only one of the
+   two is visible at a time, so pagination controls live outside both. */
+.mobile-txn-cards { display: none; }
+.txn-detail-stat { display: inline-block; margin-right: 14px; font-size: 0.72rem; color: var(--text-muted); }
+.txn-detail-stat b { color: var(--text-main); font-weight: 600; }
+@media (max-width: 700px) {
+    .table-responsive.has-mobile-cards { display: none; }
+    .mobile-txn-cards { display: block; }
+}
+
 /* Sub-menu and panels are hidden by default; JS toggles .active */
 .submenu, .panel {
     display: none;
@@ -2727,7 +2740,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <button type="button" data-sort-toggle="salesStatement" onclick="toggleSortDir('salesStatement', renderSalesStatement)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive has-mobile-cards">
             <table>
                 <thead>
                     <tr>
@@ -2745,8 +2758,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="salesStatementBody"></tbody>
             </table>
-            <div class="no-print" data-page-controls="salesStatement" data-page-anchor="salesStatement"></div>
         </div>
+        <div class="mobile-txn-cards" id="salesStatementCards"></div>
+        <div class="no-print" data-page-controls="salesStatement" data-page-anchor="salesStatement"></div>
     </div>
 
     <!-- GST Liability (drill-down from dashboard tile) -->
@@ -2842,7 +2856,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <button type="button" data-sort-toggle="purchaseReport" onclick="toggleSortDir('purchaseReport', renderPurchaseReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive has-mobile-cards">
             <table>
                 <thead>
                     <tr>
@@ -2861,8 +2875,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="purchaseReportBody"></tbody>
             </table>
-            <div class="no-print" data-page-controls="purchaseReport" data-page-anchor="purchaseReport"></div>
         </div>
+        <div class="mobile-txn-cards" id="purchaseReportCards"></div>
+        <div class="no-print" data-page-controls="purchaseReport" data-page-anchor="purchaseReport"></div>
     </div>
 
     <!-- Delivery Notes -->
@@ -3579,7 +3594,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <button type="button" data-sort-toggle="payments" onclick="toggleSortDir('payments', () => renderCashList('Payment'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive has-mobile-cards">
             <table>
                 <thead>
                     <tr>
@@ -3595,8 +3610,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="paymentsBody"></tbody>
             </table>
-            <div class="no-print" data-page-controls="payments" data-page-anchor="payments"></div>
         </div>
+        <div class="mobile-txn-cards" id="paymentsCards"></div>
+        <div class="no-print" data-page-controls="payments" data-page-anchor="payments"></div>
     </div>
 
     <!-- Receipts list -->
@@ -3632,7 +3648,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <button type="button" data-sort-toggle="receipts" onclick="toggleSortDir('receipts', () => renderCashList('Receipt'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
             </div>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive has-mobile-cards">
             <table>
                 <thead>
                     <tr>
@@ -3648,8 +3664,9 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 </thead>
                 <tbody id="receiptsBody"></tbody>
             </table>
-            <div class="no-print" data-page-controls="receipts" data-page-anchor="receipts"></div>
         </div>
+        <div class="mobile-txn-cards" id="receiptsCards"></div>
+        <div class="no-print" data-page-controls="receipts" data-page-anchor="receipts"></div>
     </div>
 
     <!-- Ledger view -->
@@ -4967,6 +4984,43 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     function escapeHtml(str) {
         return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // One row in a mobile statement/report's compact card list — same
+    // visual style as the Recent Transactions widget (bold title line,
+    // muted meta line, amount on the right), used instead of dumping
+    // every table column as a mechanical label/value dump — the caller
+    // decides what "full details" means for that screen (item lines, tax
+    // breakdown, whichever fields matter) and passes it as detailHtml,
+    // kept visually distinct from the title/meta so the card still reads
+    // top-to-bottom instead of turning into a wall of text.
+    //   id           — the transaction id (for select/delete wiring)
+    //   title, meta  — already-HTML-safe strings (caller must escapeHtml)
+    //   detailHtml   — optional extra HTML block (item lines, tax split, etc.)
+    //   amount       — already-formatted amount string, e.g. "\u20B91,234.00"
+    //   amountColor  — optional CSS color, defaults to normal text color
+    //   onClick      — JS expression string, e.g. `printInvoice(${t.id})`
+    //   selectKey    — listKey for bulk-select mode, or omit if not needed
+    //   deleteFn     — name of a global delete function taking (id), or omit
+    function txnCardHtml({ id, title, meta, detailHtml, amount, amountColor, onClick, selectKey, deleteFn }) {
+        const selectHtml = selectKey ? `
+            <span class="no-print" data-select-col="${selectKey}" style="display:none;" onclick="event.stopPropagation();">
+                <input type="checkbox" data-select-key="${selectKey}" data-select-id="${id}" onchange="toggleRowSelection('${selectKey}', ${id}, this.checked)">
+            </span>` : '';
+        const deleteHtml = deleteFn ? `
+            <span class="no-print" onclick="event.stopPropagation(); ${deleteFn}(${id})" style="display:inline-block; margin-top:6px; font-size:0.68rem; color:var(--danger); text-decoration:underline; cursor:pointer;">Delete</span>` : '';
+        return `
+            <div class="recent-txn-row" style="cursor:pointer; align-items:flex-start;" onclick="${onClick}">
+                ${selectHtml}
+                <div class="recent-txn-main">
+                    <div class="recent-txn-party">${title}</div>
+                    <div class="recent-txn-meta">${meta}</div>
+                    ${detailHtml ? `<div style="margin-top:6px; padding-top:6px; border-top:1px solid var(--border);">${detailHtml}</div>` : ''}
+                    ${deleteHtml}
+                </div>
+                <div class="recent-txn-amt" style="color:${amountColor || 'var(--text-main)'};">${amount}</div>
+            </div>
+        `;
     }
 
     // ================================================================
@@ -8174,15 +8228,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         );
 
         const body = document.getElementById(isPay ? 'paymentsBody' : 'receiptsBody');
+        const cardsEl = document.getElementById(isPay ? 'paymentsCards' : 'receiptsCards');
         body.innerHTML = '';
         let total = 0;
 
         if (rows.length === 0) {
             body.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No ${kind.toLowerCase()}s in this period.</td></tr>`;
+            cardsEl.innerHTML = `<div class="recent-txn-empty">No ${kind.toLowerCase()}s in this period.</div>`;
         } else {
             if (isPay) paymentsRowOrder = rows.map(t => t.id); else receiptsRowOrder = rows.map(t => t.id);
             rows.forEach(t => { total += t.grandTotal; }); // full-set total, independent of which page is showing
             const pageRows = paginateRows(listKey, rows);
+            let cardsHtml = '';
             pageRows.forEach(t => {
                 const ref = t.refInvoiceNo
                     ? `<span style="color:var(--accent);">${escapeHtml(t.refInvoiceNo)}</span>`
@@ -8206,7 +8263,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         <td style="display:flex; gap:6px;"><button onclick="event.stopPropagation(); deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
                     </tr>
                 `;
+                cardsHtml += txnCardHtml({
+                    id: t.id,
+                    title: escapeHtml(t.partyName),
+                    meta: `${escapeHtml(t.invNo)} &middot; ${escapeHtml(t.accountName || 'Cash')} &middot; ${t.date}`,
+                    detailHtml: `<span class="txn-detail-stat">Against: <span onclick="event.stopPropagation(); printInvoice(${invOpenId})" style="cursor:pointer; text-decoration:underline; color:${t.refInvoiceNo ? 'var(--accent)' : 'var(--text-muted)'};">${t.refInvoiceNo ? escapeHtml(t.refInvoiceNo) : 'On Account'}</span></span>`,
+                    amount: `\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`,
+                    onClick: `printInvoice(${openId})`,
+                    selectKey: listKey,
+                    deleteFn: 'deleteTransaction'
+                });
             });
+            cardsEl.innerHTML = cardsHtml;
         }
 
         renderPaginationControls(listKey, rows.length, () => renderCashList(kind));
@@ -8458,15 +8526,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         );
 
         const body = document.getElementById('salesStatementBody');
+        const cardsEl = document.getElementById('salesStatementCards');
         body.innerHTML = '';
         let total = 0;
 
         if (rows.length === 0) {
             body.innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--text-muted);">No sales in this period.</td></tr>';
+            cardsEl.innerHTML = '<div class="recent-txn-empty">No sales in this period.</div>';
         } else {
             salesStatementRowOrder = rows.map(t => t.id);
             rows.forEach(t => { total += t.grandTotal; }); // full-set total, independent of which page is showing
             const pageRows = paginateRows('salesStatement', rows);
+            let cardsHtml = '';
             pageRows.forEach(t => {
                 const cat = t.subLedger
                     ? `<span style="color:var(--violet); text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openCategoryDetail('${escapeHtml(t.subLedger)}')" title="Open category detail">${escapeHtml(t.subLedger)}</span>`
@@ -8492,7 +8563,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         </td>
                     </tr>
                 `;
+                cardsHtml += txnCardHtml({
+                    id: t.id,
+                    title: escapeHtml(t.partyName),
+                    meta: `${escapeHtml(t.invNo)} &middot; ${t.subLedger ? escapeHtml(t.subLedger) + ' &middot; ' : ''}${t.date}`,
+                    detailHtml: `${itemsDetail}<div style="margin-top:6px;"><span class="txn-detail-stat">Taxable <b>\u20B9${t.taxable.toFixed(2)}</b></span><span class="txn-detail-stat">Tax <b>\u20B9${t.totalTax.toFixed(2)}</b></span></div>`,
+                    amount: `\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`,
+                    onClick: `printInvoice(${t.id})`,
+                    selectKey: 'salesStatement',
+                    deleteFn: 'deleteVoucherSmart'
+                });
             });
+            cardsEl.innerHTML = cardsHtml;
         }
         renderPaginationControls('salesStatement', rows.length, renderSalesStatement);
         document.getElementById('salesPeriodTotal').innerText =
@@ -8518,15 +8600,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         );
 
         const body = document.getElementById('purchaseReportBody');
+        const cardsEl = document.getElementById('purchaseReportCards');
         body.innerHTML = '';
         let total = 0;
 
         if (rows.length === 0) {
             body.innerHTML = '<tr><td colspan="11" style="text-align:center; color:var(--text-muted);">No purchases in this period.</td></tr>';
+            cardsEl.innerHTML = '<div class="recent-txn-empty">No purchases in this period.</div>';
         } else {
             purchaseReportRowOrder = rows.map(t => t.id);
             rows.forEach(t => { total += t.grandTotal; }); // full-set total, independent of which page is showing
             const pageRows = paginateRows('purchaseReport', rows);
+            let cardsHtml = '';
             pageRows.forEach(t => {
                 const cat = t.subLedger
                     ? `<span style="color:var(--violet); text-decoration:underline; cursor:pointer;" onclick="event.stopPropagation(); openCategoryDetail('${escapeHtml(t.subLedger)}')" title="Open category detail">${escapeHtml(t.subLedger)}</span>`
@@ -8553,7 +8638,21 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                         </td>
                     </tr>
                 `;
+                const purchItemsDetail = (t.items && t.items.length)
+                    ? t.items.map(it => `<div class="item-detail-line">${escapeHtml(it.name)}: ${it.qty}${it.uom ? ' ' + escapeHtml(it.uom) : ''} @ \u20B9${(it.inclRate || 0).toFixed(2)}</div>`).join('')
+                    : '<span style="color:var(--text-muted);">&mdash;</span>';
+                cardsHtml += txnCardHtml({
+                    id: t.id,
+                    title: escapeHtml(t.partyName),
+                    meta: `${escapeHtml(t.invNo)} &middot; ${t.type === 'RawPurchase' ? 'Raw Purchase' : 'Purchase'}${t.subLedger ? ' &middot; ' + escapeHtml(t.subLedger) : ''} &middot; ${t.date}`,
+                    detailHtml: `${purchItemsDetail}<div style="margin-top:6px;"><span class="txn-detail-stat">Taxable <b>\u20B9${t.taxable.toFixed(2)}</b></span><span class="txn-detail-stat">Tax <b>\u20B9${t.totalTax.toFixed(2)}</b></span></div>`,
+                    amount: `\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`,
+                    onClick: `printInvoice(${t.id})`,
+                    selectKey: 'purchaseReport',
+                    deleteFn: 'deleteVoucherSmart'
+                });
             });
+            cardsEl.innerHTML = cardsHtml;
         }
         renderPaginationControls('purchaseReport', rows.length, renderPurchaseReport);
         document.getElementById('purchPeriodTotal').innerText =
