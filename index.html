@@ -140,6 +140,43 @@ body.dark-mode .party-ac-list { box-shadow: 0 12px 32px -8px rgba(0,0,0,0.6); }
    rectangle with no separation between backdrop and card. */
 body.dark-mode #loginGate { background: #17181A; }
 
+/* Printed vouchers/invoices always open in light mode, even when the app
+   itself is in dark mode — this is a document meant to be printed on
+   white paper or shared as a PDF, not a themed screen, so it should
+   never inherit the dark palette. Re-declaring the light-mode token
+   values scoped to the modal overrides the dark-mode values body.dark-mode
+   set above (CSS custom properties resolve to the nearest ancestor that
+   defines them), so every button, dropdown, and table inside — not just
+   the invoice paper itself — stays light regardless of app theme. */
+#invoiceModal {
+    --bg-main: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-input: #FFFFFF;
+    --bg-tint: #F2F3F5;
+    --statement-bg: #FFFFFF;
+    --statement-row-alt: #F6F7F8;
+    --accent: #2563EB;
+    --accent-2: #9CA3AF;
+    --accent-hover: #1D4ED8;
+    --accent-soft: rgba(37, 99, 235, 0.12);
+    --text-main: #1A1A1A;
+    --text-muted: #666666;
+    --success: #16A34A;
+    --danger: #DC2626;
+    --warning: #D97706;
+    --border: rgba(0, 0, 0, 0.12);
+    --border-strong: rgba(0, 0, 0, 0.22);
+    --card-shadow: 0 1px 0 0 rgba(0,0,0,0.04);
+    --grad-accent: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    --grad-success: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
+    --grad-danger: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+    --danger-bg: #FBE9E7;
+    --danger-border: #F0BDB6;
+    --success-bg: #E6F4EA;
+    --success-border: #A8D8B5;
+    --success-text: #1E4620;
+}
+
 * { box-sizing: border-box; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
 
 html, body {
@@ -463,8 +500,7 @@ h3 {
     background: var(--bg-tint);
 }
 .tile-name {
-    font-family: 'Fraunces', serif;
-    font-optical-sizing: auto;
+    font-family: 'IBM Plex Sans', sans-serif;
     font-weight: 600;
     font-size: 1rem;
     color: var(--text-main);
