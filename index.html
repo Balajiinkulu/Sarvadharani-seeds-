@@ -5033,7 +5033,10 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
         const moreHtml = detailHtml ? `
             <span class="no-print" id="txnMoreBtn_${key}" onclick="event.stopPropagation(); toggleTxnCardDetail('${key}')" style="display:inline-block; margin-top:6px; margin-right:14px; font-size:0.7rem; color:var(--accent); cursor:pointer;">More details &#9662;</span>` : '';
         const editHtml = editFn ? `
-            <span class="no-print" onclick="event.stopPropagation(); ${editFn}(${id})" style="display:inline-block; margin-top:6px; margin-right:14px; font-size:0.7rem; color:var(--text-main); text-decoration:underline; cursor:pointer;">Edit</span>` : '';
+            <span class="no-print" onclick="event.stopPropagation(); ${editFn}(${id})" style="display:inline-block; margin-top:6px; font-size:0.7rem; color:var(--text-main); text-decoration:underline; cursor:pointer;">Edit</span>` : '';
+        // Delete sits under the amount on the right, separate from
+        // More details/Edit on the left — keeps it away from the toggle
+        // so a tap meant to expand details can't land on Delete instead.
         const deleteHtml = deleteFn ? `
             <span class="no-print" onclick="event.stopPropagation(); ${deleteFn}(${id})" style="display:inline-block; margin-top:6px; font-size:0.7rem; color:var(--danger); text-decoration:underline; cursor:pointer;">Delete</span>` : '';
         const detailBlock = detailHtml ? `
@@ -5044,10 +5047,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
                 <div class="recent-txn-main">
                     <div class="recent-txn-party">${title}</div>
                     <div class="recent-txn-meta">${meta}</div>
-                    <div>${moreHtml}${editHtml}${deleteHtml}</div>
+                    ${(moreHtml || editHtml) ? `<div>${moreHtml}${editHtml}</div>` : ''}
                     ${detailBlock}
                 </div>
-                <div class="recent-txn-amt" style="color:${amountColor || 'var(--text-main)'};">${amount}</div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                    <div class="recent-txn-amt" style="color:${amountColor || 'var(--text-main)'};">${amount}</div>
+                    ${deleteHtml}
+                </div>
             </div>
         `;
     }
