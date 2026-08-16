@@ -263,6 +263,42 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div class="tile-name">Users</div>
                 <div class="tile-sub">Who can sign in, and exactly what they can do</div>
             </div>
+            <div class="tile" onclick="openPanel('panelAuditTrail')">
+                <div class="tile-name">Audit Trail</div>
+                <div class="tile-sub">Who created, edited or deleted each voucher, and when</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Trail -->
+    <div class="panel" id="panelAuditTrail">
+        <div class="panel-head"><h3>Audit Trail</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div class="form-grid" style="margin-bottom:14px;">
+            <div>
+                <label>Action</label>
+                <select id="auditActionFilter" onchange="renderAuditTrail()">
+                    <option value="">All actions</option>
+                    <option value="Created">Created</option>
+                    <option value="Edited">Edited</option>
+                    <option value="Deleted">Deleted</option>
+                </select>
+            </div>
+            <div>
+                <label>Search</label>
+                <input type="text" id="auditSearch" placeholder="Voucher no., party, or user..." oninput="renderAuditTrail()" autocomplete="off">
+            </div>
+        </div>
+        <div id="auditCount" class="section-label" style="margin-bottom:10px;"></div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>When</th><th>Action</th><th>Voucher</th>
+                        <th>Party</th><th>Amount</th><th>User</th>
+                    </tr>
+                </thead>
+                <tbody id="auditBody"></tbody>
+            </table>
         </div>
     </div>
 

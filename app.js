@@ -38,6 +38,44 @@
     //    single voucher change only ever moves that one small record.
     const CLOUD_DOC = cloudDb.collection('sarvadharaniSeeds').doc('appData');
     const TXN_COL = cloudDb.collection('sarvadharaniSeeds_transactions');
+    // Append-only audit trail: one document per action, never edited or
+    // deleted. Kept in its own collection (not inside the voucher) so the
+    // record survives the voucher itself being deleted — which is exactly
+    // the case you most need a trail for.
+    const AUDIT_COL = cloudDb.collection('sarvadharaniSeeds_audit');
+    let auditLog = JSON.parse(localStorage.getItem('tally_mob_audit')) || [];
+
+    // Records who did what, to which voucher, and when. Called at the point
+    // a change is actually committed, so a cancelled or failed action leaves
+    // no entry. Writes straight to Firestore rather than going through the
+    // debounced sync, because an audit entry must not be lost if the tab is
+    // closed a moment later.
+    function logAudit(action, txn, extra) {
+        try {
+            const entry = {
+                id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+                action: action,                       // Created | Edited | Deleted
+                invNo: (txn && txn.invNo) || '',
+                type: (txn && (txn.customVoucherTypeName || txn.type)) || '',
+                party: (txn && txn.partyName) || '',
+                amount: (txn && txn.grandTotal) || 0,
+                user: currentUserEmail() || 'unknown',
+                at: Date.now(),
+                note: extra || ''
+            };
+            auditLog.unshift(entry);
+            // Keep the local cache bounded; the full history stays in the cloud.
+            if (auditLog.length > 500) auditLog = auditLog.slice(0, 500);
+            localStorage.setItem('tally_mob_audit', JSON.stringify(auditLog));
+            if (typeof renderAuditTrail === 'function'
+                && document.getElementById('panelAuditTrail')
+                && document.getElementById('panelAuditTrail').classList.contains('active')) {
+                renderAuditTrail();
+            }
+            AUDIT_COL.doc(entry.id).set(entry).catch(err => console.error('Audit write failed:', err));
+        } catch (e) { console.error('Audit log error:', e); }
+    }
+
 
     // ---- Master records: one document each, same as transactions ----
     // Parties, stock items, accounts and the groups used to travel as whole
@@ -373,6 +411,17 @@
             }, err => console.error('Cloud listener error:', err));
 
             startMasterListeners();
+
+            // Audit entries from every device. Ordered newest-first and
+            // capped, since this collection only ever grows.
+            AUDIT_COL.orderBy('at', 'desc').limit(500).onSnapshot(snap => {
+                auditLog = snap.docs.map(d => d.data());
+                localStorage.setItem('tally_mob_audit', JSON.stringify(auditLog));
+                const p = document.getElementById('panelAuditTrail');
+                if (p && p.classList.contains('active') && typeof renderAuditTrail === 'function') {
+                    renderAuditTrail();
+                }
+            }, err => console.error('Audit listener error:', err));
 
             TXN_COL.onSnapshot(snap => {
                 if (snap.metadata.hasPendingWrites) { txnBootstrapped = true; return; }
@@ -1491,6 +1540,51 @@
     }
     updateThemeToggleIcon(); // reflect whatever the inline head script already applied
 
+    function renderAuditTrail() {
+        const body = document.getElementById('auditBody');
+        if (!body) return;
+        const actionFilter = (document.getElementById('auditActionFilter') || {}).value || '';
+        const q = ((document.getElementById('auditSearch') || {}).value || '').trim().toLowerCase();
+
+        const rows = auditLog.filter(e => {
+            if (actionFilter && e.action !== actionFilter) return false;
+            if (!q) return true;
+            return [e.invNo, e.party, e.user, e.type].some(v => (v || '').toLowerCase().includes(q));
+        });
+
+        const countEl = document.getElementById('auditCount');
+        if (countEl) {
+            countEl.innerText = rows.length === auditLog.length
+                ? `${rows.length} entries`
+                : `${rows.length} of ${auditLog.length} entries`;
+        }
+
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No matching activity yet.</td></tr>';
+            return;
+        }
+
+        const colour = a => a === 'Deleted' ? 'var(--danger)'
+                        : a === 'Edited'  ? 'var(--warning)'
+                        : 'var(--success)';
+
+        body.innerHTML = rows.map(e => {
+            const d = new Date(e.at);
+            const when = isNaN(d) ? '-' : d.toLocaleString('en-IN', {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: true
+            });
+            return `<tr>
+                <td style="white-space:nowrap;">${escapeHtml(when)}</td>
+                <td><strong style="color:${colour(e.action)};">${escapeHtml(e.action)}</strong></td>
+                <td><strong>${escapeHtml(e.invNo || '-')}</strong>${e.type ? `<div style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(e.type)}</div>` : ''}</td>
+                <td>${escapeHtml(e.party || '-')}</td>
+                <td style="font-family:'JetBrains Mono',monospace;">\u20B9${(e.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                <td style="font-size:0.8rem;">${escapeHtml(e.user || 'unknown')}</td>
+            </tr>`;
+        }).join('');
+    }
+
     function setHomeDashboardVisible(visible) {
         const ids = ['homeDashboardSummary', 'extrasBar', 'backupBanner', 'recentTxnCard', 'dataLoadingBanner'];
         ids.forEach(id => {
@@ -1577,6 +1671,7 @@
         if (id === 'panelRawPurchaseReport') renderRawPurchaseReport();
         if (id === 'panelTrialBalance') renderTrialBalance();
         if (id === 'panelInvoiceGapCheck') renderInvoiceGapCheck();
+        if (id === 'panelAuditTrail') renderAuditTrail();
         if (id === 'panelManageStaff') {
             if (!isAdmin() && !hasPermission('manageUsers')) { alert("Only an admin, or a user with 'Manage other users' access' turned on, can open Users."); closePanel(); return; }
             renderManageStaff();
@@ -3165,6 +3260,7 @@
             document.getElementById('vJournalNarration').value = '';
             document.getElementById('vDate').valueAsDate = new Date();
             render();
+            logAudit('Created', journalTxn);
             showSyncToast('ok', `Journal posted \u2022 ${journalTxn.invNo}`);
             return;
         }
@@ -3236,6 +3332,7 @@
             document.getElementById('vDate').valueAsDate = new Date();
             render();
             if (!customNoPartyDef) populateRefInvoices();
+            logAudit('Created', cashTxn);
             showSyncToast('ok', `${customNoPartyDef ? (customTypeDef.name || 'Expense') : type} posted \u2022 ${cashTxn.invNo}`);
 
             if (lastLedger && lastLedger.kind === 'party' && lastLedger.id == partyId
@@ -3292,6 +3389,7 @@
             document.getElementById('dnVehicleType').value = '';
             document.getElementById('vDate').valueAsDate = new Date();
             render();
+            logAudit('Created', dnTxn);
             showSyncToast('ok', `Delivery Note created (dispatch record only) \u2022 ${dnTxn.invNo}`);
             return;
         }
@@ -3368,6 +3466,7 @@
             document.getElementById('vNarrationMain').value = '';
             document.getElementById('vDate').valueAsDate = new Date();
             render();
+            logAudit('Created', ctTxn);
             showSyncToast('ok', `${customType.name} created \u2022 ${ctTxn.invNo}`);
             return;
         }
@@ -3507,6 +3606,7 @@
         document.getElementById('vNarrationMain').value = '';
         document.getElementById('vDate').valueAsDate = new Date();
         render();
+        logAudit('Created', txn);
         showSyncToast('ok', `${type === 'Sales' ? 'Sale' : isRawPurchase ? 'Raw purchase' : 'Purchase'} posted \u2022 ${txn.invNo}`);
         
         // Refresh Ledger if open
@@ -4201,7 +4301,10 @@
     }
 
     // After any successful edit, refresh whatever views are open.
+    // Every edit path funnels through here, so it's the one place that
+    // reliably catches an edit having been committed.
     function finishEdit(txn) {
+        logAudit('Edited', txn);
         closeEditModal();
         render();
         if (typeof renderOptional === 'function' && txn.optional) renderOptional();
@@ -4238,6 +4341,7 @@
         }
 
         if (!(await confirmAsync(`Are you sure you want to delete ${txn.invNo}? Stock will be updated accordingly.`))) return;
+        logAudit('Deleted', txn);
 
         (txn.items || []).forEach(line => {
             const item = stockItems.find(s => s.id == line.itemId);
@@ -4882,6 +4986,7 @@
         const t = transactions.find(x => x.id == txnId);
         if (!t) return;
         if (!(await confirmAsync(`Delete delivery note ${t.invNo}?`))) return;
+        logAudit('Deleted', t);
         transactions = transactions.filter(x => x.id != txnId);
         renumberSeriesAfterDelete(t);
         localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
@@ -5213,6 +5318,7 @@
         const conv = transactions.find(t => t.id == convId);
         if (!conv) return;
         if (!(await confirmAsync(`Delete conversion ${conv.invNo}? This will reverse the stock movement (raw stock restored, processed stock reduced).`))) return;
+        logAudit('Deleted', conv);
 
         const rawItem = stockItems.find(s => s.id == conv.rawItemId);
         const procItem = stockItems.find(s => s.id == conv.processedItemId);
@@ -5639,6 +5745,7 @@
         const txn = transactions.find(t => t.id == txnId);
         if (!txn) return;
         if (!(await confirmAsync(`Delete optional voucher ${txn.invNo}?`))) return;
+        logAudit('Deleted', txn);
         transactions = transactions.filter(t => t.id != txnId);
         renumberSeriesAfterDelete(txn);
         localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
