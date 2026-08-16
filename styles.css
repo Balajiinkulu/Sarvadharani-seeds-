@@ -212,7 +212,13 @@ header {
     background: var(--bg-header);
     color: var(--text-invert);
     margin: 0 -24px 28px;
-    padding: 22px 40px 20px;
+    /* Installed as a PWA the page is drawn UNDER the iOS status bar
+       (apple-mobile-web-app-status-bar-style is black-translucent), so
+       reserve its height on top of the normal padding — otherwise the
+       brand title sits behind the clock/battery and iOS blurs it out.
+       env() resolves to 0 in a normal browser tab, where nothing
+       overlaps, so this costs nothing there. */
+    padding: calc(22px + env(safe-area-inset-top, 0px)) 40px 20px;
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -223,7 +229,7 @@ header {
 header::before {
     content: "SEEDS \00b7 BOOKS \00b7 GST LEDGER";
     position: absolute;
-    top: 9px;
+    top: calc(9px + env(safe-area-inset-top, 0px));
     left: 40px;
     font-size: 0.6rem;
     letter-spacing: 0.32em;
