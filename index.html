@@ -11892,15 +11892,15 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 hsnCode: parseInt((stkItem.hsn || '0').toString().replace(/\D/g, ''), 10) || 0,
                 quantity: Number(it.qty || 0),
                 qtyUnit: unitCodeFor(stkItem.uom),
-                taxableAmount: Number((it.taxable || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})),
+                taxableAmount: Number((it.taxable || 0).toFixed(2)),
                 cgstRate, sgstRate, igstRate, cessRate: 0
             };
         });
 
         const totTaxable = items.reduce((a, c) => a + c.taxableAmount, 0);
-        const cgstValue = isInterState ? 0 : Number(((t.totalTax || 0) / 2).toLocaleString('en-IN', {minimumFractionDigits: 2}));
-        const sgstValue = isInterState ? 0 : Number(((t.totalTax || 0) / 2).toLocaleString('en-IN', {minimumFractionDigits: 2}));
-        const igstValue = isInterState ? Number((t.totalTax || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})) : 0;
+        const cgstValue = isInterState ? 0 : Number(((t.totalTax || 0) / 2).toFixed(2));
+        const sgstValue = isInterState ? 0 : Number(((t.totalTax || 0) / 2).toFixed(2));
+        const igstValue = isInterState ? Number((t.totalTax || 0).toFixed(2)) : 0;
 
         const ewb = {
             version: '1.0.0421',
@@ -11928,9 +11928,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 toStateCode: isSale ? partyState : ownState,
                 actToStateCode: isSale ? partyState : ownState,
                 itemList: items,
-                totalValue: Number(totTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2})),
+                totalValue: Number(totTaxable.toFixed(2)),
                 cgstValue, sgstValue, igstValue, cessValue: 0,
-                totInvValue: Number((t.grandTotal || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})),
+                totInvValue: Number((t.grandTotal || 0).toFixed(2)),
                 transMode: '1',
                 transDistance: '10',
                 transporterName: t.driverName || '',
@@ -12189,12 +12189,60 @@ function enterApp(fy) {
         badge.style.display = 'inline-block';
     }
     if (typeof applyRolePermissions === 'function') applyRolePermissions();
+    // Marks this browsing session (this specific launch of the app) as
+    // one where the person actually is signed in. sessionStorage — unlike
+    // localStorage — is wiped whenever the OS fully terminates the app
+    // (a force-close/swipe-away), but survives simply backgrounding it
+    // (home button, switching apps) since the process stays alive. That
+    // difference is exactly what lets initAutoLogout() below tell "was
+    // force-closed" apart from "was just in the background for a while".
+    sessionStorage.setItem('sds_session_alive', '1');
+    localStorage.removeItem('sds_bg_since');
 }
 
 async function logoutAdmin() {
     if (!(await confirmAsync('Log out of the admin panel?'))) return;
     cloudAuth.signOut().finally(() => location.reload());
 }
+
+// ---------- Auto-logout ----------
+// Two rules, deliberately different from each other:
+//  1. Backgrounded (not force-closed) for 30+ minutes \u2192 signed out.
+//     While the app stays on screen and active, no timer runs at all —
+//     this is purely about how long it sat unattended in the background,
+//     never about idle time while someone's actually looking at it.
+//  2. Force-closed (swiped away in the app switcher), however briefly
+//     \u2192 signed out immediately on the next open, never silently resumed.
+// Neither prompts for confirmation; both just land back on the login
+// screen, same as a manual logout minus the "are you sure?" dialog.
+const AUTO_LOGOUT_MS = 30 * 60 * 1000;
+
+function autoLogout() {
+    sessionStorage.removeItem('sds_session_alive');
+    localStorage.removeItem('sds_bg_since');
+    cloudAuth.signOut().finally(() => location.reload());
+}
+
+function initAutoLogout() {
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // Only worth recording if someone is actually signed in —
+            // otherwise this would fire while the login screen itself is
+            // merely backgrounded, which shouldn't log anyone out of
+            // anything since there's no session yet to time out.
+            if (document.getElementById('loginGate').style.display === 'none') {
+                localStorage.setItem('sds_bg_since', String(Date.now()));
+            }
+        } else {
+            const since = Number(localStorage.getItem('sds_bg_since') || 0);
+            localStorage.removeItem('sds_bg_since');
+            if (since && (Date.now() - since) >= AUTO_LOGOUT_MS) {
+                autoLogout();
+            }
+        }
+    });
+}
+initAutoLogout();
 
 // ---- Change Password (updates the client-side login gate only) ----
 function openChangePasswordModal() {
@@ -12400,13 +12448,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Restores the session automatically on reload — Firebase Auth keeps
 // people signed in on this device/browser until they log out, so a
-// returning user skips straight past the login screen.
+// returning user normally skips straight past the login screen.
+// Exception: if this is a genuinely new browsing session (see the
+// sessionStorage comment in enterApp() above) — i.e. the app was
+// force-closed and just relaunched — sign out instead of silently
+// resuming, even though Firebase itself would happily let it resume.
 cloudAuth.onAuthStateChanged(user => {
     if (user) {
-        enterApp(localStorage.getItem(ACTIVE_FY_KEY));
+        if (sessionStorage.getItem('sds_session_alive')) {
+            enterApp(localStorage.getItem(ACTIVE_FY_KEY));
+        } else {
+            cloudAuth.signOut();
+        }
     }
 });
 
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a22d31767a307eea',t:'MTc4NTMzOTMyMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
