@@ -12453,12 +12453,23 @@ document.addEventListener('DOMContentLoaded', () => {
 // sessionStorage comment in enterApp() above) — i.e. the app was
 // force-closed and just relaunched — sign out instead of silently
 // resuming, even though Firebase itself would happily let it resume.
+//
+// This must go through autoLogout() (reload included), not a bare
+// signOut(): the Firestore listeners further up this file are wired to
+// start at most once per page load via a "cloudListenerStarted" guard,
+// and they'd already have started for this same stale user by the time
+// this fires. Signing out without reloading leaves those listeners
+// stuck running on now-invalid credentials (surfacing as spurious
+// "permission-denied" sync errors) and, worse, permanently blocks them
+// from ever re-registering for the fresh login that follows — which is
+// what was showing "User" instead of "Admin" after logging back in:
+// the role data those listeners deliver never made it back.
 cloudAuth.onAuthStateChanged(user => {
     if (user) {
         if (sessionStorage.getItem('sds_session_alive')) {
             enterApp(localStorage.getItem(ACTIVE_FY_KEY));
         } else {
-            cloudAuth.signOut();
+            autoLogout();
         }
     }
 });
