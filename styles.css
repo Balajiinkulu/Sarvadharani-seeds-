@@ -273,11 +273,11 @@ header::before {
     font-size: 0.6rem;
 }
 
-/* Headings — Fraunces, a catalogue/ledger-plate serif used with
-   restraint (only for headings, never body copy). */
+/* Headings use the same sans-serif as the tiles and body copy so a panel
+   title and the tiles beneath it read as one family. The brand title in
+   the header keeps the Fraunces serif as the single accent. */
 h1, h2, h3 {
-    font-family: 'Fraunces', serif;
-    font-optical-sizing: auto;
+    font-family: 'IBM Plex Sans', sans-serif;
     color: var(--text-main);
     letter-spacing: -0.01em;
     font-weight: 600;
@@ -523,7 +523,7 @@ form, .form-grid {
    that already carry their own styling. */
 .form-grid > div:has(> label), form > div:has(> label) {
     background: var(--bg-tint);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 12px 14px;
 }
@@ -567,13 +567,13 @@ input, select, textarea {
     width: 100%;
     background: var(--bg-input);
     color: var(--text-main);
-    border: 1px solid var(--border-strong);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 9px 11px;
     font-size: 0.9rem;
     font-family: 'IBM Plex Sans', sans-serif;
     outline: none;
-    transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+    transition: box-shadow 120ms ease, background-color 120ms ease;
 }
 
 /* iOS renders <input type="date"> as an oversized picker control by
@@ -588,9 +588,8 @@ input[type="number"] {
     text-align: right;
 }
 input:focus, select:focus, textarea:focus {
-    border-color: var(--accent-2);
     background: var(--bg-input);
-    box-shadow: 0 0 0 3px var(--accent-soft);
+    box-shadow: 0 0 0 2px var(--accent);
 }
 input::placeholder, textarea::placeholder { color: #9CA0A6; }
 
