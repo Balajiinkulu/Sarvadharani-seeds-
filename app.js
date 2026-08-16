@@ -6382,19 +6382,22 @@
             balanceColor = 'var(--success)';
         }
 
-        tfoot.innerHTML = `
-            <tr>
-                <td colspan="4" style="text-align:right;"><strong>Total Turnover:</strong></td>
-                <td style="color:var(--accent);">\u20B9${totalDebit.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                <td style="color:var(--danger);">\u20B9${totalCredit.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td colspan="7" style="text-align:right; font-size:1.1rem; padding-top:16px; color: ${balanceColor};">
-                    <strong>${balanceText}</strong>
-                </td>
-            </tr>
-        `;
+        // Totals are shown in the summary cards above the table and in the
+        // print header, so the footer stays empty rather than repeating them.
+        tfoot.innerHTML = '';
+
+        // Print header totals (these are what appear on a saved PDF).
+        const hdrTotals = document.getElementById('ledgerHeaderTotals');
+        if (hdrTotals) {
+            hdrTotals.style.display = 'flex';
+            document.getElementById('ledgerHdrDebit').innerText =
+                '\u20B9' + totalDebit.toLocaleString('en-IN', {minimumFractionDigits: 2});
+            document.getElementById('ledgerHdrCredit').innerText =
+                '\u20B9' + totalCredit.toLocaleString('en-IN', {minimumFractionDigits: 2});
+            const hdrBal = document.getElementById('ledgerHdrBalance');
+            hdrBal.innerText = balanceText;
+            hdrBal.style.color = balanceColor;
+        }
 
         // Mirror the footer totals into the summary bar at the top of the
         // panel, so a long ledger doesn't have to be scrolled to the bottom

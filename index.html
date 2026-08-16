@@ -2283,15 +2283,15 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div id="ledgerTopSummary" class="no-print" style="display:none; gap:10px; flex-wrap:wrap; align-items:stretch; margin-bottom:14px;">
                 <div style="flex:1; min-width:120px; background:var(--bg-tint); border-radius:var(--radius-sm); padding:12px 14px;">
                     <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.09em; color:var(--text-muted); font-weight:600;">Total Debit</div>
-                    <div id="ledgerTopDebit" style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:var(--accent); margin-top:2px;">&#8377;0.00</div>
+                    <div id="ledgerTopDebit" style="font-family:'JetBrains Mono',monospace; font-size:0.95rem; font-weight:700; color:var(--accent); margin-top:2px; overflow-wrap:anywhere;">&#8377;0.00</div>
                 </div>
                 <div style="flex:1; min-width:120px; background:var(--bg-tint); border-radius:var(--radius-sm); padding:12px 14px;">
                     <div style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.09em; color:var(--text-muted); font-weight:600;">Total Credit</div>
-                    <div id="ledgerTopCredit" style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; color:var(--danger); margin-top:2px;">&#8377;0.00</div>
+                    <div id="ledgerTopCredit" style="font-family:'JetBrains Mono',monospace; font-size:0.95rem; font-weight:700; color:var(--danger); margin-top:2px; overflow-wrap:anywhere;">&#8377;0.00</div>
                 </div>
                 <div style="flex:1.4; min-width:170px; background:var(--bg-tint); border-radius:var(--radius-sm); padding:12px 14px;">
                     <div id="ledgerTopBalanceLabel" style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.09em; color:var(--text-muted); font-weight:600;">Closing Balance</div>
-                    <div id="ledgerTopBalance" style="font-family:'JetBrains Mono',monospace; font-size:1.05rem; font-weight:700; margin-top:2px;">&#8377;0.00</div>
+                    <div id="ledgerTopBalance" style="font-family:'JetBrains Mono',monospace; font-size:0.95rem; font-weight:700; margin-top:2px; overflow-wrap:anywhere;">&#8377;0.00</div>
                 </div>
             </div>
             <div id="ledgerPrintArea" class="table-responsive" style="background: var(--bg-card); padding: 20px; border-radius: 16px;">
@@ -2301,6 +2301,17 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <div id="ledgerHeaderDetails" style="font-size:1rem; font-weight:bold; margin-top:4px;"></div>
                         <div id="ledgerPeriodLabel" style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;"></div>
                         <div id="ledgerFilterLabel" style="font-size:0.78rem; color:var(--accent); margin-top:2px;"></div>
+                    </div>
+                    <!-- Totals live here rather than in a footer row: the ledger
+                         can run to hundreds of lines, so repeating them at the
+                         bottom meant scrolling to the end to read the balance.
+                         This block prints too, so the PDF still carries them. -->
+                    <div id="ledgerHeaderTotals" style="display:none; flex-direction:column; gap:2px; align-items:flex-end; text-align:right; font-size:0.8rem; white-space:nowrap;">
+                        <div><span style="color:var(--text-muted);">Total Debit:</span>
+                            <strong id="ledgerHdrDebit" style="font-family:'JetBrains Mono',monospace; color:var(--accent);">&#8377;0.00</strong></div>
+                        <div><span style="color:var(--text-muted);">Total Credit:</span>
+                            <strong id="ledgerHdrCredit" style="font-family:'JetBrains Mono',monospace; color:var(--danger);">&#8377;0.00</strong></div>
+                        <div style="margin-top:2px; font-size:0.88rem;"><strong id="ledgerHdrBalance">&#8377;0.00</strong></div>
                     </div>
                     <div style="text-align: right;">
                         <div style="font-weight:bold; color:var(--text-muted); font-size:0.85rem;">Sarvadharani seeds</div>

@@ -825,6 +825,16 @@ table button {
    --bg-tint, etc.), so this never touches an element's own explicit
    inline color (debit/credit red, green, etc. stay exactly as
    authored — only the inherited/default text and backgrounds change). */
+/* The ledger's header totals exist for the printed/PDF copy only. On
+   screen the summary cards above the table already show the same figures,
+   and squeezing a third column into the header collides with the company
+   name on a phone — so keep it out of the on-screen layout and reveal it
+   just for the capture and the print sheet. */
+#ledgerHeaderTotals { display: none !important; }
+.pdf-capture-mode #ledgerHeaderTotals,
+body.printing-region #ledgerHeaderTotals,
+body.printing-ledger #ledgerHeaderTotals { display: flex !important; }
+
 .pdf-capture-mode {
     --bg-card: #ffffff;
     --bg-tint: #E9EFF7;
