@@ -220,8 +220,20 @@ header {
     gap: 14px;
     position: relative;
 }
+/* Installed to the Home Screen, iOS still draws the very top of the page
+   beneath the status bar, which was leaving the small "SEEDS · BOOKS ·
+   GST LEDGER" line washed out underneath the clock. env(safe-area-inset-*)
+   reports 0 here (the viewport isn't set to cover the notch, deliberately —
+   letting it cover put the whole header under the overlay), so reserve a
+   fixed status-bar height instead. Scoped to display-mode: standalone so
+   an ordinary browser tab, which has no such overlay, is untouched. */
+@media all and (display-mode: standalone) {
+    header { padding-top: 70px; }
+    header::before { top: 56px; }
+}
+
 header::before {
-    content: "SEEDS \00b7 BOOKS \00b7 GST LEDGER \00b7 v3";
+    content: "SEEDS \00b7 BOOKS \00b7 GST LEDGER \00b7 v4";
     position: absolute;
     top: 9px;
     left: 40px;
