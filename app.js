@@ -6451,6 +6451,23 @@
         node.style.overflow = 'visible';
 
         try {
+            // The logo (and any other <img>) is now a real file rather than
+            // an inline data URI, so it isn't guaranteed to be decoded at
+            // the instant we snapshot — html2canvas draws whatever is ready
+            // and would silently leave a blank space where the logo should
+            // be on the PDF. Wait for every image in the node to finish
+            // first. Failures resolve rather than reject, so one broken
+            // image can't block the whole export.
+            await Promise.all(
+                Array.from(node.querySelectorAll('img')).map(img => {
+                    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+                    return new Promise(resolve => {
+                        img.addEventListener('load', resolve, { once: true });
+                        img.addEventListener('error', resolve, { once: true });
+                    });
+                })
+            );
+
             // Explicit width/height (and matching windowWidth/windowHeight)
             // tell html2canvas to render the node's FULL scrollable content,
             // not just whatever fits in one screen's height — without this,
