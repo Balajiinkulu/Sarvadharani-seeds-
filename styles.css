@@ -221,7 +221,7 @@ header {
     position: relative;
 }
 header::before {
-    content: "SEEDS \00b7 BOOKS \00b7 GST LEDGER";
+    content: "SEEDS \00b7 BOOKS \00b7 GST LEDGER \00b7 v3";
     position: absolute;
     top: 9px;
     left: 40px;
