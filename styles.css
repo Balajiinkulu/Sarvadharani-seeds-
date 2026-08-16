@@ -700,7 +700,7 @@ button.back-btn:hover {
 /* Item builder card (voucher panel) */
 .item-builder {
     background: var(--bg-tint);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius);
     padding: 14px;
 }
@@ -709,7 +709,7 @@ button.back-btn:hover {
 .table-responsive {
     overflow-x: auto;
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius);
 }
 table {
@@ -729,6 +729,26 @@ thead th {
     border-bottom: 1px solid var(--border-strong);
     white-space: nowrap;
 }
+/* Action cells are generated with an inline `display:flex` so their
+   Edit/Delete buttons sit side by side. But making a <td> a flex
+   container takes it OUT of the table's row layout — it stops sharing
+   the row's height and baseline, which is why those buttons drifted out
+   of line with the data columns in Stock Summary, the statements and the
+   reports. Put the cell back to table-cell (so it aligns like every
+   other column) and lay the buttons out inline instead. */
+table tbody td[style*="display:flex"] {
+    display: table-cell !important;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+table tbody td[style*="display:flex"] > button {
+    display: inline-block;
+    vertical-align: middle;
+    width: auto;
+    margin-right: 6px;
+}
+table tbody td[style*="display:flex"] > button:last-child { margin-right: 0; }
+
 tbody td {
     padding: 9px 12px;
     border-bottom: 1px solid var(--border);
@@ -883,7 +903,7 @@ table button {
     max-width: 920px;
     width: 100%;
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
+    border: none;
     box-shadow: 0 20px 50px -12px rgba(36,31,20,0.28);
 }
 
@@ -894,7 +914,7 @@ table button {
     align-items: end;
     padding: 8px;
     background: var(--bg-tint);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius-sm);
     margin-bottom: 8px;
 }
@@ -915,7 +935,7 @@ table button {
     color: var(--text-invert);
     padding: 10px 14px;
     border-radius: var(--radius);
-    border: 1px solid rgba(246,247,243,0.12);
+    border: none;
     display: none;
     align-items: center;
     gap: 10px;
@@ -954,7 +974,7 @@ table button {
 /* ---------- Helpers ---------- */
 .card {
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius);
     padding: 16px;
 }
@@ -1326,7 +1346,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     width: 100%;
     max-width: 420px;
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius-lg);
     box-shadow: 0 20px 50px -15px rgba(10,10,8,0.5);
     padding: 34px 30px 30px;
@@ -1400,7 +1420,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 .fy-current {
     flex: 1;
     text-align: center;
-    border: 1px solid var(--border-strong);
+    background: var(--bg-tint);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 8px 10px;
     cursor: pointer;
