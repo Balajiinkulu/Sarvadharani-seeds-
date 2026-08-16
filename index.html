@@ -64,7 +64,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <div class="edit-box" style="max-width:420px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <h3 style="margin:0;">Change Password</h3>
-            <button type="button" onclick="closeChangePasswordModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+            <button type="button" onclick="closeChangePasswordModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:none; border-radius:8px;">&times;</button>
         </div>
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
             This changes the password for whichever account you're currently signed in as.
@@ -97,7 +97,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <div class="edit-box" style="max-width:420px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <h3 style="margin:0;">Company Address</h3>
-            <button type="button" onclick="closeCompanyAddressModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+            <button type="button" onclick="closeCompanyAddressModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:none; border-radius:8px;">&times;</button>
         </div>
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
             Shown under your company name on printed invoices and used as the "from" address on e-Way bills. Leave blank to show nothing.
@@ -120,7 +120,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <div class="edit-box" style="max-width:420px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <h3 style="margin:0;">Company Mobile Number</h3>
-            <button type="button" onclick="closeCompanyMobileModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+            <button type="button" onclick="closeCompanyMobileModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:none; border-radius:8px;">&times;</button>
         </div>
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
             Shown under your company name on printed invoices. Leave blank to show nothing.
@@ -147,7 +147,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <div class="edit-box" style="max-width:420px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <h3 style="margin:0;">Bank &amp; TIN Details</h3>
-            <button type="button" onclick="closeCompanyBankModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+            <button type="button" onclick="closeCompanyBankModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:none; border-radius:8px;">&times;</button>
         </div>
         <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
             Shown on the "Formal" print style for Sales, Payments, and Receipts. Your existing GSTIN is used automatically &mdash; this is only for the extra details that style needs. Leave any field blank to hide that line.
@@ -305,7 +305,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         <div class="edit-box" style="max-width:520px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                 <h3 style="margin:0;">Permissions for <span id="permUserEmail" style="color:var(--accent);"></span></h3>
-                <button type="button" onclick="closeUserPermissionsModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); border-radius:8px;">&times;</button>
+                <button type="button" onclick="closeUserPermissionsModal()" style="width:auto; padding:4px 10px; background:var(--bg-tint); color:var(--text-main); border:none; border-radius:8px;">&times;</button>
             </div>
             <p style="font-size:0.85rem; color:var(--text-muted, #6b7a70); margin-top:0;">
                 Turn on exactly what this person should be able to do. Everything starts off &mdash; nothing here is assumed.
@@ -853,7 +853,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelCashReport','Payments &amp; Receipts Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
-                <button type="button" data-sort-toggle="cashReport" onclick="toggleSortDir('cashReport', renderCashReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+                <button type="button" data-sort-toggle="cashReport" onclick="toggleSortDir('cashReport', renderCashReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
@@ -1167,11 +1167,11 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </div>
             </div>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button type="button" data-select-togglebtn="customVoucherList" onclick="toggleSelectMode('customVoucherList')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <button type="button" data-select-togglebtn="customVoucherList" onclick="toggleSelectMode('customVoucherList')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="customVoucherList" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="customVoucherList" onclick="printSelected('customVoucherList', customVoucherListRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelCustomVoucherList','Voucher Entries')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
-                <button type="button" data-sort-toggle="customVoucherList" onclick="toggleSortDir('customVoucherList', renderCustomVoucherList)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+                <button type="button" data-sort-toggle="customVoucherList" onclick="toggleSortDir('customVoucherList', renderCustomVoucherList)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -1196,10 +1196,10 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <div class="panel" id="panelCategoryDetail">
         <div class="panel-head"><h3 id="catDetailTitle">Category Detail</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
         <div style="display:flex; justify-content:flex-end; margin-bottom:12px; gap:6px; align-items:center; flex-wrap:wrap;">
-            <button type="button" data-select-togglebtn="categoryDetail" onclick="toggleSelectMode('categoryDetail')" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+            <button type="button" data-select-togglebtn="categoryDetail" onclick="toggleSelectMode('categoryDetail')" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
             <span data-select-count="categoryDetail" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
             <button type="button" data-select-printbtn="categoryDetail" onclick="printSelected('categoryDetail', categoryDetailRowOrder)" disabled style="display:none; width:auto; padding:8px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
-            <button type="button" data-sort-toggle="categoryDetail" onclick="toggleSortDir('categoryDetail', () => openCategoryDetail(currentCategoryDetail))" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+            <button type="button" data-sort-toggle="categoryDetail" onclick="toggleSortDir('categoryDetail', () => openCategoryDetail(currentCategoryDetail))" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
             <div class="summary-card"><div>Sales in Category</div><div id="catSalesTotal" style="color:var(--success);">&#8377;0.00</div></div>
@@ -1303,11 +1303,11 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div id="salesPeriodTotal" style="font-size:1.2rem; font-weight:bold; color:var(--success);">&#8377;0.00</div>
             </div>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button type="button" data-select-togglebtn="salesStatement" onclick="toggleSelectMode('salesStatement')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <button type="button" data-select-togglebtn="salesStatement" onclick="toggleSelectMode('salesStatement')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="salesStatement" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="salesStatement" onclick="printSelected('salesStatement', salesStatementRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelSalesStatement','Sales Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
-                <button type="button" data-sort-toggle="salesStatement" onclick="toggleSortDir('salesStatement', renderSalesStatement)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+                <button type="button" data-sort-toggle="salesStatement" onclick="toggleSortDir('salesStatement', renderSalesStatement)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -1366,7 +1366,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelGstLiability','GST Liability')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
-                <button type="button" data-sort-toggle="gstLiability" onclick="toggleSortDir('gstLiability', renderGstLiability)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+                <button type="button" data-sort-toggle="gstLiability" onclick="toggleSortDir('gstLiability', renderGstLiability)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
@@ -1418,11 +1418,11 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div id="purchPeriodTotal" style="font-size:1.2rem; font-weight:bold; color:var(--text-main);">&#8377;0.00</div>
             </div>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button type="button" data-select-togglebtn="purchaseReport" onclick="toggleSelectMode('purchaseReport')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <button type="button" data-select-togglebtn="purchaseReport" onclick="toggleSelectMode('purchaseReport')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="purchaseReport" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="purchaseReport" onclick="printSelected('purchaseReport', purchaseReportRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelPurchaseReport','Purchase Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
-                <button type="button" data-sort-toggle="purchaseReport" onclick="toggleSortDir('purchaseReport', renderPurchaseReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+                <button type="button" data-sort-toggle="purchaseReport" onclick="toggleSortDir('purchaseReport', renderPurchaseReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -1477,11 +1477,11 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div id="dnCount" style="font-size:1.2rem; font-weight:bold; color:var(--cyan);">0</div>
             </div>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button type="button" data-select-togglebtn="deliveryNotes" onclick="toggleSelectMode('deliveryNotes')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <button type="button" data-select-togglebtn="deliveryNotes" onclick="toggleSelectMode('deliveryNotes')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="deliveryNotes" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="deliveryNotes" onclick="printSelected('deliveryNotes', deliveryNotesRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelDeliveryNotes','Delivery Notes')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
-                <button type="button" data-sort-toggle="deliveryNotes" onclick="toggleSortDir('deliveryNotes', renderDeliveryNotes)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+                <button type="button" data-sort-toggle="deliveryNotes" onclick="toggleSortDir('deliveryNotes', renderDeliveryNotes)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -1557,7 +1557,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <option value="EXEMPT">Nil GST (no tax charged)</option>
                 </select>
             </div>
-            <div class="col-2" id="rpTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 16px; border:1px solid var(--border);">
+            <div class="col-2" id="rpTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 16px; border:none;">
                 <span style="color:var(--text-muted); font-size:0.85rem;">Total:</span>
                 <span id="rpTotalDisplay" style="font-weight:bold; font-size:1.1rem; color:var(--accent); margin-left:6px;">&#8377;0.00</span>
             </div>
@@ -1641,7 +1641,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
             <div style="display:flex; gap:6px;">
                 <button onclick="printRegion('panelProcessedReport','Processed Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
-                <button type="button" data-sort-toggle="processedReport" onclick="toggleSortDir('processedReport', renderProcessedReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+                <button type="button" data-sort-toggle="processedReport" onclick="toggleSortDir('processedReport', renderProcessedReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
@@ -1711,11 +1711,11 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </div>
             </div>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button type="button" data-select-togglebtn="rawPurchaseReport" onclick="toggleSelectMode('rawPurchaseReport')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <button type="button" data-select-togglebtn="rawPurchaseReport" onclick="toggleSelectMode('rawPurchaseReport')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="rawPurchaseReport" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="rawPurchaseReport" onclick="printSelected('rawPurchaseReport', rawPurchaseReportRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelRawPurchaseReport','Raw Purchase Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
-                <button type="button" data-sort-toggle="rawPurchaseReport" onclick="toggleSortDir('rawPurchaseReport', renderRawPurchaseReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+                <button type="button" data-sort-toggle="rawPurchaseReport" onclick="toggleSortDir('rawPurchaseReport', renderRawPurchaseReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
         <div class="dashboard-summary" style="margin-bottom:18px;">
@@ -1836,10 +1836,10 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="summary-card"><div>Optional Vouchers</div><div id="optCount" style="color:var(--accent);">0</div></div>
         </div>
         <div style="display:flex; justify-content:flex-end; margin-bottom:12px; gap:6px; align-items:center; flex-wrap:wrap;">
-            <button type="button" data-select-togglebtn="optionalVouchers" onclick="toggleSelectMode('optionalVouchers')" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+            <button type="button" data-select-togglebtn="optionalVouchers" onclick="toggleSelectMode('optionalVouchers')" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
             <span data-select-count="optionalVouchers" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
             <button type="button" data-select-printbtn="optionalVouchers" onclick="printSelected('optionalVouchers', optionalVouchersRowOrder)" disabled style="display:none; width:auto; padding:8px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
-            <button type="button" data-sort-toggle="optionalVouchers" onclick="toggleSortDir('optionalVouchers', renderOptional)" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+            <button type="button" data-sort-toggle="optionalVouchers" onclick="toggleSortDir('optionalVouchers', renderOptional)" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
         </div>
         <div class="table-responsive">
             <table>
@@ -2056,7 +2056,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </table>
             </div>
 
-            <div class="col-2" id="totalsBox" style="background: var(--bg-input); padding: 14px; border-radius: 16px; border: 1px solid var(--border);">
+            <div class="col-2" id="totalsBox" style="background: var(--bg-input); padding: 14px; border-radius: 16px; border: none;">
                 <div style="font-size:0.85rem; color:var(--text-muted);">
                     Taxable: <span id="lblTaxable" style="color:var(--accent); font-weight:600;">&#8377;0.00</span> |
                     Total Tax: <span id="lblTax" style="color:var(--accent); font-weight:600;">&#8377;0.00</span>
@@ -2110,10 +2110,10 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <div class="panel" id="panelDaybook">
         <div class="panel-head"><h3>Daybook Transactions</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
         <div style="display:flex; justify-content:flex-end; margin-bottom:12px; gap:6px; align-items:center; flex-wrap:wrap;">
-            <button type="button" data-select-togglebtn="daybook" onclick="toggleSelectMode('daybook')" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+            <button type="button" data-select-togglebtn="daybook" onclick="toggleSelectMode('daybook')" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
             <span data-select-count="daybook" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
             <button type="button" data-select-printbtn="daybook" onclick="printSelected('daybook', daybookRowOrder)" disabled style="display:none; width:auto; padding:8px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
-            <button type="button" data-sort-toggle="daybook" onclick="toggleSortDir('daybook', render)" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+            <button type="button" data-sort-toggle="daybook" onclick="toggleSortDir('daybook', render)" style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
         </div>
         <p style="font-size:0.78rem; color:var(--text-muted); margin-top:-6px;">Only Sales, Purchase, and similar invoice-style vouchers can be selected for printing &mdash; Payments, Receipts, Journals, and Expense-style entries don't have a printable invoice.</p>
         <div class="table-responsive">
@@ -2160,11 +2160,11 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div id="payPeriodTotal" style="font-size:1.2rem; font-weight:bold; color:var(--danger);">&#8377;0.00</div>
             </div>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button type="button" data-select-togglebtn="payments" onclick="toggleSelectMode('payments')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <button type="button" data-select-togglebtn="payments" onclick="toggleSelectMode('payments')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="payments" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="payments" onclick="printSelected('payments', paymentsRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelPayments','Payments Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
-                <button type="button" data-sort-toggle="payments" onclick="toggleSortDir('payments', () => renderCashList('Payment'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+                <button type="button" data-sort-toggle="payments" onclick="toggleSortDir('payments', () => renderCashList('Payment'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -2213,11 +2213,11 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div id="rcptPeriodTotal" style="font-size:1.2rem; font-weight:bold; color:var(--success);">&#8377;0.00</div>
             </div>
             <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                <button type="button" data-select-togglebtn="receipts" onclick="toggleSelectMode('receipts')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                <button type="button" data-select-togglebtn="receipts" onclick="toggleSelectMode('receipts')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="receipts" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="receipts" onclick="printSelected('receipts', receiptsRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                 <button onclick="printRegion('panelReceipts','Receipts Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
-                <button type="button" data-sort-toggle="receipts" onclick="toggleSortDir('receipts', () => renderCashList('Receipt'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">&#8681; Newest first</button>
+                <button type="button" data-sort-toggle="receipts" onclick="toggleSortDir('receipts', () => renderCashList('Receipt'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -2273,7 +2273,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </div>
                 <div style="display:flex; flex-direction:column; justify-content:flex-end;">
                     <label>&nbsp;</label>
-                    <button type="button" data-sort-toggle="ledgerStatement" onclick="toggleSortDir('ledgerStatement', refreshLedgerView)" style="width:auto; padding:10px 14px; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border); white-space:nowrap;">&#8681; Newest first</button>
+                    <button type="button" data-sort-toggle="ledgerStatement" onclick="toggleSortDir('ledgerStatement', refreshLedgerView)" style="width:auto; padding:10px 14px; background:var(--bg-tint); color:var(--text-main); border:none; white-space:nowrap;">&#8681; Newest first</button>
                 </div>
                 <button onclick="closeActiveLedger()" style="width:auto; padding:10px 18px; background:#64748b; color:#fff;">&#8592; Choose a different ledger</button>
             </div>
@@ -2290,7 +2290,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <div id="ledgerCompanyAddress" style="display:none; color:var(--text-muted); font-size:0.75rem; margin-top:2px;"></div>
                         <div id="ledgerCompanyMobile" style="display:none; color:var(--text-muted); font-size:0.75rem;"></div>
                         <div class="no-print" style="display:flex; gap:6px; margin-top:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap;">
-                            <button type="button" data-select-togglebtn="ledgerStatement" onclick="toggleSelectMode('ledgerStatement')" style="width:auto; padding:6px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:1px solid var(--border);">Select</button>
+                            <button type="button" data-select-togglebtn="ledgerStatement" onclick="toggleSelectMode('ledgerStatement')" style="width:auto; padding:6px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                             <span data-select-count="ledgerStatement" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                             <button type="button" data-select-printbtn="ledgerStatement" onclick="printSelected('ledgerStatement', ledgerCurrentRowOrder)" disabled style="display:none; width:auto; padding:6px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
                             <button onclick="printLedger()" class="btn-success" style="width:auto; padding:6px 14px; font-size:0.8rem;">Save as PDF</button>
@@ -2480,7 +2480,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="col-2" id="editItemsWrap">
                 <label>Line Items (add, edit, or remove)</label>
                 <div id="editItemsList"></div>
-                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:8px; border:none;">
                     <div style="flex:2; min-width:160px;">
                         <label style="font-size:0.7rem;">Add Item</label>
                         <select id="editAddItemSelect" onchange="onEditAddItemChange()">
@@ -2502,7 +2502,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                      line's rate proportionally so tax stays calculated
                      correctly; using one clears the other since they'd
                      otherwise fight over the same result. -->
-                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:8px; border:1px solid var(--border);">
+                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:8px; border:none;">
                     <div style="flex:1; min-width:140px;">
                         <label style="font-size:0.7rem;">Discount (&#8377;, optional)</label>
                         <input type="number" id="editDiscount" min="0" step="any" placeholder="0.00" oninput="onEditDiscountInput()">
@@ -2567,7 +2567,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </div>
             </div>
 
-            <div class="col-2" id="editTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 16px; border:1px solid var(--border);">
+            <div class="col-2" id="editTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 16px; border:none;">
                 <span style="color:var(--text-muted); font-size:0.85rem;">New Total:</span>
                 <span id="editTotal" style="font-weight:bold; font-size:1.1rem; color:var(--accent); margin-left:6px;">&#8377;0.00</span>
             </div>
