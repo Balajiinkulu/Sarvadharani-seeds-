@@ -20,6 +20,7 @@
     --bg-input: #FFFFFF;
     --bg-tint: #F2F3F5;
     --bg-hover: #E6E8EC;
+    --bg-menu: #FFFFFF;
     --bg-header: #1C2318;
     --statement-bg: #FFFFFF;
     --statement-row-alt: #F6F7F8;
@@ -82,6 +83,7 @@ body.dark-mode {
     --bg-tint: #262626;
     --bg-header: #0D0D0D;
     --bg-hover: #333333;
+    --bg-menu: #2C2C2E;
     --statement-bg: #1E1E1E;
     --statement-row-alt: #242424;
 
@@ -765,27 +767,34 @@ table button {
 }
 
 /* ---------- Party autocomplete ---------- */
+/* Styled to read like the native iOS select menu: a floating rounded
+   card, no outline, generous rows, and no divider lines between items —
+   separation comes from row spacing and the highlight instead. */
 .party-ac-list {
     position: absolute;
+    left: 0;
+    right: 0;
     z-index: 400;
-    background: var(--bg-card);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    box-shadow: 0 12px 32px -8px rgba(36,31,20,0.28);
-    max-height: 240px;
+    background: var(--bg-menu);
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px -6px rgba(0,0,0,0.35), 0 2px 8px -2px rgba(0,0,0,0.2);
+    max-height: 260px;
     overflow-y: auto;
-    width: 100%;
-    margin-top: 2px;
+    width: auto;
+    margin-top: 6px;
+    padding: 6px;
 }
 .party-ac-item {
-    padding: 10px 12px;
+    padding: 12px 14px;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     background: transparent;
-    border-bottom: 1px solid var(--border);
+    border: none;
+    border-radius: 10px;
 }
 .party-ac-item:hover, .party-ac-item.active { background: var(--accent-soft); color: var(--accent-hover); }
-.party-ac-empty { padding: 10px 12px; color: var(--text-muted); font-size: 0.82rem; }
+.party-ac-empty { padding: 12px 14px; color: var(--text-muted); font-size: 0.9rem; }
 
 /* PDF-export capture mode (used only for the instant a node is
    screenshotted for a shared PDF — see smartPrint() in the script

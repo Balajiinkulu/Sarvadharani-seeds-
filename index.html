@@ -1916,9 +1916,14 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                            oninput="filterPartyDropdown()" onfocus="filterPartyDropdown()" onkeydown="handlePartyKeydown(event)">
                     <button type="button" id="vPartyClearBtn" onclick="clearPartySelection()" aria-label="Clear party"
                             style="display:none; position:absolute; right:8px; top:50%; transform:translateY(-50%); width:18px; height:18px; padding:0; border-radius:50%; background:transparent; border:none; color:var(--danger); font-size:0.8rem; font-weight:700; line-height:1; box-shadow:none;">&#10005;</button>
+                    <!-- Must live INSIDE this wrapper, not the outer field card:
+                         an absolutely positioned element sizes itself against its
+                         nearest positioned ancestor's PADDING box, so anchoring it
+                         to the card made the menu 14px wider than the input on each
+                         side. This wrapper hugs the input exactly. -->
+                    <div id="vPartyList" class="party-ac-list" style="display:none;"></div>
                 </div>
                 <input type="hidden" id="vParty">
-                <div id="vPartyList" class="party-ac-list" style="display:none;"></div>
             </div>
             <div id="taxTypeWrap">
                 <label>Tax Type</label>
