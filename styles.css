@@ -19,6 +19,7 @@
     --bg-card: #FFFFFF;
     --bg-input: #FFFFFF;
     --bg-tint: #F2F3F5;
+    --bg-hover: #E6E8EC;
     --bg-header: #1C2318;
     --statement-bg: #FFFFFF;
     --statement-row-alt: #F6F7F8;
@@ -80,6 +81,7 @@ body.dark-mode {
     --bg-input: #2A2A2A;
     --bg-tint: #262626;
     --bg-header: #0D0D0D;
+    --bg-hover: #333333;
     --statement-bg: #1E1E1E;
     --statement-row-alt: #242424;
 
@@ -242,8 +244,8 @@ header::before {
     font-style: italic;
 }
 .gst-badge {
-    background: transparent;
-    border: 1px solid rgba(244,239,224,0.4);
+    background: rgba(246,247,243,0.14);
+    border: none;
     color: var(--text-invert);
     padding: 6px 13px;
     border-radius: 999px;
@@ -294,18 +296,16 @@ h3 {
     margin-bottom: 24px;
 }
 .summary-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--bg-tint);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 16px 18px;
-    box-shadow: var(--card-shadow);
-    transition: border-color 160ms ease, background-color 160ms ease;
+    transition: background-color 160ms ease;
     position: relative;
     overflow: hidden;
 }
 .summary-card:hover {
-    background: var(--bg-tint);
-    border-color: var(--border-strong);
+    background: var(--bg-hover);
 }
 .summary-card > div:first-child {
     font-size: 0.7rem;
@@ -325,11 +325,10 @@ h3 {
 /* ---------- Tile menu grid ---------- */
 #tileMenu {
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius-lg);
     padding: 22px;
     margin-bottom: 20px;
-    box-shadow: var(--card-shadow);
 }
 
 /* Post Voucher button + Menu row inside the dashboard card — same
@@ -341,7 +340,7 @@ h3 {
     width: auto;
     background: var(--grad-accent);
     color: var(--text-invert);
-    border: 1px solid var(--accent);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 12px 20px;
     font-size: 0.92rem;
@@ -364,9 +363,9 @@ h3 {
     align-items: center;
     gap: 6px;
     width: auto;
-    background: var(--bg-card);
+    background: var(--bg-tint);
     color: var(--text-main);
-    border: 1px solid var(--border-strong);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 12px 20px;
     font-size: 0.92rem;
@@ -375,7 +374,7 @@ h3 {
     cursor: pointer;
     transition: border-color 160ms ease, transform 160ms ease;
 }
-.dash-search-btn:hover { border-color: var(--accent-2); transform: translateY(-1px); }
+.dash-search-btn:hover { background: var(--bg-hover); }
 
 .dash-menu-row {
     display: grid;
@@ -392,7 +391,7 @@ h3 {
     min-height: 54px;
     line-height: 1.25;
     background: var(--bg-tint);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 10px;
     font-family: 'IBM Plex Sans', sans-serif;
@@ -400,18 +399,17 @@ h3 {
     font-size: 0.88rem;
     color: var(--text-main);
     cursor: pointer;
-    transition: border-color 160ms ease, background-color 160ms ease;
+    transition: background-color 160ms ease;
 }
 .dash-menu-item:hover {
-    border-color: var(--accent-2);
-    background: var(--bg-card);
+    background: var(--bg-hover);
 }
 
 /* Recent Transactions — fills the empty space below the Menu card
    with the last few posted vouchers. */
 #recentTxnCard {
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius-lg);
     padding: 22px;
     margin-bottom: 20px;
@@ -423,8 +421,8 @@ h3 {
     gap: 12px;
     padding: 12px 14px;
     margin-bottom: 8px;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
+    background: var(--bg-tint);
+    border: none;
     border-radius: var(--radius-sm);
 }
 .recent-txn-row:last-child { margin-bottom: 0; }
@@ -438,11 +436,10 @@ h3 {
 .submenu, .panel {
     display: none;
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius-lg);
     padding: 22px;
     margin-bottom: 20px;
-    box-shadow: var(--card-shadow);
     animation: panelIn 0.18s ease;
 }
 .submenu.active, .panel.active { display: block; }
@@ -467,21 +464,23 @@ h3 {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 12px;
 }
+/* Tiles are separated from the panel behind them by their own lighter
+   surface rather than an outline — the panel uses --bg-card, tiles use
+   the slightly raised --bg-tint, so the edges read clearly in both light
+   and dark mode without drawing a border around every card. */
 .tile {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: var(--bg-tint);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 16px 16px 16px 14px;
     text-align: left;
     cursor: pointer;
-    transition: border-color 140ms ease, background-color 140ms ease;
+    transition: background-color 140ms ease;
     position: relative;
     overflow: hidden;
-    box-shadow: var(--card-shadow);
 }
 .tile:hover {
-    border-color: var(--accent-2);
-    background: var(--bg-tint);
+    background: var(--bg-hover);
 }
 .tile-name {
     font-family: 'IBM Plex Sans', sans-serif;
@@ -588,7 +587,7 @@ input::placeholder, textarea::placeholder { color: #9CA0A6; }
 button {
     background: var(--grad-accent);
     color: var(--text-invert);
-    border: 1px solid var(--accent);
+    border: none;
     border-radius: var(--radius-sm);
     padding: 10px 18px;
     font-size: 0.88rem;
@@ -628,19 +627,17 @@ label[style*="display:flex"] > button {
 
 button.btn-success {
     background: var(--grad-success);
-    border-color: #15803D;
 }
 
 button.btn-danger {
     background: var(--grad-danger);
-    border-color: #B91C1C;
 }
 button.btn-danger:hover { filter: brightness(1.12); }
 
 button.btn-inline {
     background: var(--bg-tint);
     color: var(--accent);
-    border: 1px solid var(--border-strong);
+    border: none;
     padding: 8px 14px;
     font-size: 0.8rem;
     font-weight: 600;
@@ -649,17 +646,16 @@ button.btn-inline {
     box-shadow: none;
 }
 button.btn-inline:hover {
-    background: var(--bg-card);
-    border-color: var(--accent);
+    background: var(--bg-hover);
     color: var(--accent-hover);
     filter: none;
     transform: none;
 }
 
 button.back-btn {
-    background: transparent;
+    background: var(--bg-tint);
     color: var(--text-muted);
-    border: 1px solid var(--border);
+    border: none;
     padding: 7px 14px;
     font-size: 0.78rem;
     width: auto;
@@ -667,7 +663,7 @@ button.back-btn {
     box-shadow: none;
 }
 button.back-btn:hover {
-    background: var(--bg-tint);
+    background: var(--bg-hover);
     color: var(--text-main);
     border-color: var(--border-strong);
 }
@@ -953,9 +949,8 @@ table button {
     padding: 10px 12px;
     margin: 0 0 16px;
     background: var(--bg-card);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: var(--radius);
-    box-shadow: var(--card-shadow);
 }
 .extras-bar .extras-btn { font-size: 0.78rem; }
 .extras-bar .extras-paper {
@@ -989,8 +984,8 @@ table button {
     justify-content: space-between;
     gap: 14px;
     padding: 12px 16px;
-    background: var(--bg-tint);
-    border: 1px solid var(--border-strong);
+    background: var(--bg-card);
+    border: none;
     border-radius: var(--radius);
     margin-bottom: 18px;
     font-size: 0.85rem;
@@ -1424,8 +1419,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 .login-card button[type="submit"] { margin-top: 22px; }
 .fy-active-badge {
     display: none;
-    background: rgba(246,247,243,0.08);
-    border: 1px solid rgba(246,247,243,0.18);
+    background: rgba(246,247,243,0.14);
+    border: none;
     color: var(--text-invert);
     padding: 7px 14px;
     border-radius: 999px;

@@ -8115,16 +8115,6 @@ function handleAdminLogin(e) {
     btn.disabled = true;
     btn.textContent = 'Signing in\u2026';
 
-    // Set BEFORE signing in, not after — Firebase fires
-    // onAuthStateChanged (which the force-close detector further down
-    // this file listens to) as soon as the sign-in lands internally,
-    // which can race ahead of this function's own .then() below. If the
-    // marker weren't already set by the time that fires, a fresh,
-    // legitimate login could get read as "resumed with no marker" —
-    // i.e. mistaken for a force-close — and immediately signed back out
-    // again mid-login.
-    sessionStorage.setItem('sds_session_alive', '1');
-
     cloudAuth.signInWithEmailAndPassword(email, p)
         .then(() => {
             const fy = selectedFY();
@@ -8132,10 +8122,6 @@ function handleAdminLogin(e) {
             enterApp(fy);
         })
         .catch(err => {
-            // The attempt didn't actually establish a session — clear the
-            // marker back out so a stale one can't wrongly bless some
-            // later unrelated sign-in as "already alive".
-            sessionStorage.removeItem('sds_session_alive');
             document.getElementById('loginErrorText').textContent = 'Invalid email or password!';
             document.getElementById('loginError').style.display = 'flex';
         })
@@ -8154,14 +8140,6 @@ function enterApp(fy) {
         badge.style.display = 'inline-block';
     }
     if (typeof applyRolePermissions === 'function') applyRolePermissions();
-    // Marks this browsing session (this specific launch of the app) as
-    // one where the person actually is signed in. sessionStorage — unlike
-    // localStorage — is wiped whenever the OS fully terminates the app
-    // (a force-close/swipe-away), but survives simply backgrounding it
-    // (home button, switching apps) since the process stays alive. That
-    // difference is exactly what lets initAutoLogout() below tell "was
-    // force-closed" apart from "was just in the background for a while".
-    sessionStorage.setItem('sds_session_alive', '1');
     localStorage.removeItem('sds_bg_since');
 }
 
@@ -8171,19 +8149,16 @@ async function logoutAdmin() {
 }
 
 // ---------- Auto-logout ----------
-// Two rules, deliberately different from each other:
-//  1. Backgrounded (not force-closed) for 30+ minutes \u2192 signed out.
-//     While the app stays on screen and active, no timer runs at all —
-//     this is purely about how long it sat unattended in the background,
-//     never about idle time while someone's actually looking at it.
-//  2. Force-closed (swiped away in the app switcher), however briefly
-//     \u2192 signed out immediately on the next open, never silently resumed.
-// Neither prompts for confirmation; both just land back on the login
-// screen, same as a manual logout minus the "are you sure?" dialog.
+// One rule only: backgrounded for 30+ minutes \u2192 signed out on return.
+// While the app is on screen and active, no timer runs at all — this is
+// purely about how long it sat unattended in the background, never about
+// idle time while someone's actually looking at it. Force-closing the app
+// (swiping it away from recents) deliberately does NOT log anyone out:
+// Firebase keeps the session, so relaunching resumes straight into the
+// app, exactly like any other reopen.
 const AUTO_LOGOUT_MS = 30 * 60 * 1000;
 
 function autoLogout() {
-    sessionStorage.removeItem('sds_session_alive');
     localStorage.removeItem('sds_bg_since');
     cloudAuth.signOut().finally(() => location.reload());
 }
@@ -8413,29 +8388,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Restores the session automatically on reload — Firebase Auth keeps
 // people signed in on this device/browser until they log out, so a
-// returning user normally skips straight past the login screen.
-// Exception: if this is a genuinely new browsing session (see the
-// sessionStorage comment in enterApp() above) — i.e. the app was
-// force-closed and just relaunched — sign out instead of silently
-// resuming, even though Firebase itself would happily let it resume.
-//
-// This must go through autoLogout() (reload included), not a bare
-// signOut(): the Firestore listeners further up this file are wired to
-// start at most once per page load via a "cloudListenerStarted" guard,
-// and they'd already have started for this same stale user by the time
-// this fires. Signing out without reloading leaves those listeners
-// stuck running on now-invalid credentials (surfacing as spurious
-// "permission-denied" sync errors) and, worse, permanently blocks them
-// from ever re-registering for the fresh login that follows — which is
-// what was showing "User" instead of "Admin" after logging back in:
-// the role data those listeners deliver never made it back.
+// returning user skips straight past the login screen. This applies
+// equally after a force-close: swiping the app away from recents is
+// treated as an ordinary close, not a logout.
 cloudAuth.onAuthStateChanged(user => {
     if (user) {
-        if (sessionStorage.getItem('sds_session_alive')) {
-            enterApp(localStorage.getItem(ACTIVE_FY_KEY));
-        } else {
-            autoLogout();
-        }
+        enterApp(localStorage.getItem(ACTIVE_FY_KEY));
     }
 });
 
