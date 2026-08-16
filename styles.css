@@ -1,0 +1,1469 @@
+
+/* =========================================================
+   SARVADHARANI SEEDS — Ledger & Grain theme
+   Warm parchment surfaces, ink-olive ink, mustard-brass accent,
+   flat stamp-marked cards instead of glass. Grounded in the
+   physical vocabulary of a seed trading counter: ledger paper,
+   grading stamps on sacks, brass scale weights, red/green
+   accounting ink for debit/credit.
+   Only the CSS is changed; all HTML/JS/Firebase code untouched.
+========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+    /* Surfaces — plain white, no tint. This app is used at a shop
+       counter in direct daylight, so flat, high-contrast surfaces stay
+       legible in sun; --bg-tint is used sparingly for very light
+       differentiation (hover states, input cards), never as a color. */
+    --bg-main: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-input: #FFFFFF;
+    --bg-tint: #F2F3F5;
+    --bg-header: #1C2318;
+    --statement-bg: #FFFFFF;
+    --statement-row-alt: #F6F7F8;
+    --glass-blur: none;
+    --glass-highlight: none;
+
+    /* Primary accent — blue (default/primary buttons, links, borders) */
+    --accent: #2563EB;
+    --accent-2: #9CA3AF;      /* neutral grey secondary */
+    --accent-hover: #1D4ED8;
+    --accent-soft: rgba(37, 99, 235, 0.12);
+
+    /* Text */
+    --text-main: #1A1A1A;
+    --text-muted: #666666;
+    --text-invert: #FFFFFF;
+
+    /* Semantic — green (success/save/credit) / red (danger/delete/debit) */
+    --success: #16A34A;
+    --danger: #DC2626;
+    --warning: #D97706;
+    --pink: #DC2626;
+    --violet: #7C3AED;
+    --cyan: #0891B2;
+    --lime: #16A34A;
+    --orange: #D97706;
+
+    /* Structure */
+    --border: rgba(0, 0, 0, 0.12);
+    --border-strong: rgba(0, 0, 0, 0.22);
+    --card-shadow: 0 1px 0 0 rgba(0,0,0,0.04);
+    --grad-accent: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    --grad-success: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
+    --grad-danger: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+    --danger-bg: #FBE9E7;
+    --danger-border: #F0BDB6;
+    --success-bg: #E6F4EA;
+    --success-border: #A8D8B5;
+    --success-text: #1E4620;
+    --info-bg: #F8FAFC;
+    --info-border: #E2E8F0;
+    --radius-sm: 14px;
+    --radius: 20px;
+    --radius-lg: 26px;
+}
+
+/* ---------- Dark mode ----------
+   Toggled via a class on <body> (see toggleTheme() in the script below),
+   not prefers-color-scheme — the person's choice should stick regardless
+   of their OS setting, since this runs full-screen as an installed app.
+   Only the token values change; every component below already reads
+   colors through var(), so this one block re-themes the whole app.
+   Printable surfaces (invoice-box, pdf-capture-mode, the formal print
+   overlay) are deliberately left out — a printed page should always be
+   black ink on white paper regardless of which mode the screen is in. */
+body.dark-mode {
+    --bg-main: #121212;
+    --bg-card: #1E1E1E;
+    --bg-input: #2A2A2A;
+    --bg-tint: #262626;
+    --bg-header: #0D0D0D;
+    --statement-bg: #1E1E1E;
+    --statement-row-alt: #242424;
+
+    --accent: #3B82F6;
+    --accent-2: #8B93A0;
+    --accent-hover: #60A5FA;
+    --accent-soft: rgba(59, 130, 246, 0.18);
+
+    --text-main: #EDEDED;
+    --text-muted: #A0A0A0;
+    --text-invert: #FFFFFF;
+
+    --success: #22C55E;
+    --danger: #EF4444;
+    --warning: #F59E0B;
+    --pink: #EF4444;
+    --violet: #A78BFA;
+    --cyan: #22D3EE;
+    --lime: #22C55E;
+    --orange: #F59E0B;
+
+    --border: rgba(255, 255, 255, 0.14);
+    --border-strong: rgba(255, 255, 255, 0.26);
+    --card-shadow: 0 1px 0 0 rgba(0,0,0,0.3);
+    --grad-accent: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    --grad-success: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
+    --grad-danger: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+
+    --danger-bg: #3A1F1E;
+    --danger-border: #5C2E2B;
+    --success-bg: #1B3324;
+    --success-border: #2E5B3E;
+    --success-text: #86EFAC;
+}
+/* Autocomplete dropdown shadow reads as a light-mode assumption
+   (dark shadow meant for a white surface) — flip it in dark mode so it
+   doesn't just look like a dim halo around an already-dark panel. */
+body.dark-mode .party-ac-list { box-shadow: 0 12px 32px -8px rgba(0,0,0,0.6); }
+/* Login screen's dark backdrop gradient behind the card — kept
+   independent of --bg-header since dark mode makes the header nearly
+   black, which would flatten the login screen into a single black
+   rectangle with no separation between backdrop and card. */
+body.dark-mode #loginGate { background: #17181A; }
+
+/* Printed vouchers/invoices always open in light mode, even when the app
+   itself is in dark mode — this is a document meant to be printed on
+   white paper or shared as a PDF, not a themed screen, so it should
+   never inherit the dark palette. Re-declaring the light-mode token
+   values scoped to the modal overrides the dark-mode values body.dark-mode
+   set above (CSS custom properties resolve to the nearest ancestor that
+   defines them), so every button, dropdown, and table inside — not just
+   the invoice paper itself — stays light regardless of app theme. */
+#invoiceModal {
+    --bg-main: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-input: #FFFFFF;
+    --bg-tint: #F2F3F5;
+    --statement-bg: #FFFFFF;
+    --statement-row-alt: #F6F7F8;
+    --accent: #2563EB;
+    --accent-2: #9CA3AF;
+    --accent-hover: #1D4ED8;
+    --accent-soft: rgba(37, 99, 235, 0.12);
+    --text-main: #1A1A1A;
+    --text-muted: #666666;
+    --success: #16A34A;
+    --danger: #DC2626;
+    --warning: #D97706;
+    --border: rgba(0, 0, 0, 0.12);
+    --border-strong: rgba(0, 0, 0, 0.22);
+    --card-shadow: 0 1px 0 0 rgba(0,0,0,0.04);
+    --grad-accent: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    --grad-success: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
+    --grad-danger: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
+    --danger-bg: #FBE9E7;
+    --danger-border: #F0BDB6;
+    --success-bg: #E6F4EA;
+    --success-border: #A8D8B5;
+    --success-text: #1E4620;
+}
+
+* { box-sizing: border-box; font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif; }
+
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: var(--bg-main);
+    font-feature-settings: "ss01", "cv01";
+    line-height: 1.45;
+}
+
+/* Numbers — every ₹ value / balance / qty renders in JetBrains Mono via inline
+   spans in markup (id="statReceivable" etc.) so we target common patterns. */
+[id^="stat"],
+.summary-card > div:nth-child(2),
+#lblTaxable, #lblTax, #lblTotal, #editTotal, #rpTotalDisplay,
+#invGrandTotal, #payPeriodTotal, #rcptPeriodTotal,
+#crReceiptsTotal, #crPaymentsTotal, #slTotalSales, #slTotalPurch,
+#ivStock, #ivPurch, #ivRawPurch, #ivSold, #ivValue,
+#optSalesTotal, #optPurchTotal, #optCount,
+#prRawTotal, #prOutTotal, #prCount,
+#rprQtyTotal, #rprValueTotal, #rprCount {
+    font-family: 'JetBrains Mono', ui-monospace, monospace !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+table td, table th {
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Container / shell ---------- */
+.container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+}
+
+/* ---------- Header ---------- */
+header {
+    background: var(--bg-header);
+    color: var(--text-invert);
+    margin: 0 -24px 28px;
+    padding: 22px 40px 20px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    position: relative;
+}
+header::before {
+    content: "SEEDS \00b7 BOOKS \00b7 GST LEDGER";
+    position: absolute;
+    top: 9px;
+    left: 40px;
+    font-size: 0.6rem;
+    letter-spacing: 0.32em;
+    color: rgba(244,239,224,0.5);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+}
+.brand-title {
+    margin: 8px 0 0;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    font-size: 2rem;
+    letter-spacing: -0.01em;
+    color: var(--text-invert);
+    line-height: 1.1;
+    text-transform: none;
+    font-style: italic;
+}
+.gst-badge {
+    background: transparent;
+    border: 1px solid rgba(244,239,224,0.4);
+    color: var(--text-invert);
+    padding: 6px 13px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    position: relative;
+}
+.gst-badge::before {
+    content: "\25CF";
+    color: var(--accent-2);
+    margin-right: 6px;
+    font-size: 0.6rem;
+}
+
+/* Headings — Fraunces, a catalogue/ledger-plate serif used with
+   restraint (only for headings, never body copy). */
+h1, h2, h3 {
+    font-family: 'Fraunces', serif;
+    font-optical-sizing: auto;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
+    font-weight: 600;
+}
+h3 {
+    font-size: 1.08rem;
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+.section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin: 8px 0 12px;
+    padding-left: 10px;
+    border-left: 3px solid var(--accent-2);
+}
+
+/* ---------- Dashboard KPI cards ---------- */
+.dashboard-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+}
+.summary-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 18px;
+    box-shadow: var(--card-shadow);
+    transition: border-color 160ms ease, background-color 160ms ease;
+    position: relative;
+    overflow: hidden;
+}
+.summary-card:hover {
+    background: var(--bg-tint);
+    border-color: var(--border-strong);
+}
+.summary-card > div:first-child {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+.summary-card > div:nth-child(2) {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.15;
+}
+
+/* ---------- Tile menu grid ---------- */
+#tileMenu {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+/* Post Voucher button + Menu row inside the dashboard card — same
+   color tokens as the rest of the app (--grad-accent, --bg-card,
+   --border), just laid out as a compact button followed by separate
+   rounded boxes instead of full icon tiles. */
+.dash-voucher-btn {
+    display: inline-block;
+    width: auto;
+    background: var(--grad-accent);
+    color: var(--text-invert);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 20px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor: pointer;
+    box-shadow: none;
+}
+/* Global Search button — sits beside the existing Post Voucher
+   button; same sizing, an outline treatment instead of the solid
+   accent fill so Post Voucher stays the visually primary action. */
+.dash-top-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.dash-search-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 12px 20px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor: pointer;
+    transition: border-color 160ms ease, transform 160ms ease;
+}
+.dash-search-btn:hover { border-color: var(--accent-2); transform: translateY(-1px); }
+
+.dash-menu-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 10px;
+}
+.dash-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 54px;
+    line-height: 1.25;
+    background: var(--bg-tint);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: border-color 160ms ease, background-color 160ms ease;
+}
+.dash-menu-item:hover {
+    border-color: var(--accent-2);
+    background: var(--bg-card);
+}
+
+/* Recent Transactions — fills the empty space below the Menu card
+   with the last few posted vouchers. */
+#recentTxnCard {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    margin-bottom: 20px;
+}
+.recent-txn-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+.recent-txn-row:last-child { margin-bottom: 0; }
+.recent-txn-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.recent-txn-party { font-weight: 600; font-size: 0.88rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-txn-meta { font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.02em; }
+.recent-txn-amt { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.9rem; color: var(--text-main); white-space: nowrap; }
+.recent-txn-empty { color: var(--text-muted); font-size: 0.85rem; padding: 8px 2px; }
+
+/* Sub-menu and panels are hidden by default; JS toggles .active */
+.submenu, .panel {
+    display: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+    animation: panelIn 0.18s ease;
+}
+.submenu.active, .panel.active { display: block; }
+
+@keyframes panelIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+}
+.tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+.tile {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px 16px 16px 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 140ms ease, background-color 140ms ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+}
+.tile:hover {
+    border-color: var(--accent-2);
+    background: var(--bg-tint);
+}
+.tile-name {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-main);
+    letter-spacing: -0.005em;
+}
+.tile-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+    line-height: 1.4;
+}
+
+/* ---------- Forms ---------- */
+form, .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+.col-2 { grid-column: span 2; }
+
+/* Give each labeled field its own separated, rounded card — same
+   glass tokens as the rest of the app — instead of sitting bare on
+   the panel background. Scoped to :has(> label) so it doesn't touch
+   custom notice boxes (e.g. the amber "optional voucher" banner)
+   that already carry their own styling. */
+.form-grid > div:has(> label), form > div:has(> label) {
+    background: var(--bg-tint);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+}
+
+/* Date field — skip the big card treatment above; just a small
+   inline label + compact date box. Applies to both Post Voucher
+   (#vDate) and the Edit Voucher modal (#editDate), which share the
+   same markup pattern. */
+.form-grid > div:has(> #vDate),
+.form-grid > div:has(> #editDate) {
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.form-grid > div:has(> #vDate) label,
+.form-grid > div:has(> #editDate) label {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+#vDate, #editDate {
+    width: auto;
+    max-width: 150px;
+}
+
+label {
+    display: block;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+input, select, textarea {
+    width: 100%;
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 9px 11px;
+    font-size: 0.9rem;
+    font-family: 'IBM Plex Sans', sans-serif;
+    outline: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+/* iOS renders <input type="date"> as an oversized picker control by
+   default — pin it down to a normal field height/size. */
+input[type="date"] {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    height: 38px;
+}
+input[type="number"] {
+    font-family: 'JetBrains Mono', monospace;
+    text-align: right;
+}
+input:focus, select:focus, textarea:focus {
+    border-color: var(--accent-2);
+    background: var(--bg-input);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+input::placeholder, textarea::placeholder { color: #9CA0A6; }
+
+/* Buttons — flat, stamp-edged rectangles rather than glossy pills;
+   the tone this app runs on is a ledger book, not a consumer app. */
+button {
+    background: var(--grad-accent);
+    color: var(--text-invert);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 10px 18px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    position: relative;
+    box-shadow: none;
+    transition: transform 120ms ease, filter 120ms ease;
+    width: 100%;
+}
+button:hover { filter: brightness(1.12); }
+button:active { transform: translateY(1px); filter: brightness(0.94); }
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    filter: none;
+    transform: none;
+}
+button:disabled:hover { filter: none; }
+
+/* A lone button in its own block (e.g. a form's single Submit button)
+   is meant to stretch full-width — that's what the default `width:100%`
+   above is for. But wherever a button shares a row with other controls
+   (toolbars, modal footers, per-row action buttons in a table), every
+   button in that row should size to its own label instead, or one
+   button randomly claiming 100% width throws the whole row's spacing
+   off. Nearly every such row in this app is a <div>/<td> with an inline
+   `display:flex` style, so this catches all of them in one place rather
+   than needing width:auto repeated on every single button by hand. */
+div[style*="display:flex"] > button,
+td[style*="display:flex"] > button,
+label[style*="display:flex"] > button {
+    width: auto;
+}
+
+button.btn-success {
+    background: var(--grad-success);
+    border-color: #15803D;
+}
+
+button.btn-danger {
+    background: var(--grad-danger);
+    border-color: #B91C1C;
+}
+button.btn-danger:hover { filter: brightness(1.12); }
+
+button.btn-inline {
+    background: var(--bg-tint);
+    color: var(--accent);
+    border: 1px solid var(--border-strong);
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    width: auto;
+    white-space: nowrap;
+    box-shadow: none;
+}
+button.btn-inline:hover {
+    background: var(--bg-card);
+    border-color: var(--accent);
+    color: var(--accent-hover);
+    filter: none;
+    transform: none;
+}
+
+button.back-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    width: auto;
+    font-weight: 500;
+    box-shadow: none;
+}
+button.back-btn:hover {
+    background: var(--bg-tint);
+    color: var(--text-main);
+    border-color: var(--border-strong);
+}
+
+/* Group / quick-add rows */
+.group-field {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+}
+.group-field select { flex: 1; }
+.quick-add-row {
+    display: none;
+    gap: 6px;
+    margin-top: 8px;
+    align-items: stretch;
+}
+.quick-add-row.active { display: flex; }
+.quick-add-row input, .quick-add-row select { flex: 1; }
+
+/* Item builder card (voucher panel) */
+.item-builder {
+    background: var(--bg-tint);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+}
+
+/* ---------- Tables ---------- */
+.table-responsive {
+    overflow-x: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+}
+thead th {
+    background: var(--bg-tint);
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-strong);
+    white-space: nowrap;
+}
+tbody td {
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--text-main);
+}
+tbody tr:nth-child(even) td { background: var(--statement-row-alt); }
+tbody tr:hover td { background: var(--accent-soft); }
+tbody tr:last-child td { border-bottom: none; }
+tfoot td {
+    font-weight: 700;
+    background: var(--bg-tint) !important;
+    border-top: 2px solid var(--border-strong);
+    padding: 10px 12px;
+}
+
+/* Table buttons made compact */
+table button {
+    padding: 5px 10px;
+    font-size: 0.74rem;
+    width: auto;
+}
+
+/* Item detail lines inside a cell — these used to be nowrap, which clipped
+   the end of a price ("₹500.0") whenever the column was narrower than the
+   text, with no scrollbar and no way to see the missing digits. */
+.item-detail-line {
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+    line-height: 1.45;
+    /* Without a floor, this column gets squeezed to nothing on a phone and
+       a single item breaks across four lines, making every row very tall.
+       A minimum width keeps each item to one or two lines; the surrounding
+       .table-responsive scrolls sideways to accommodate it. */
+    min-width: 215px;
+}
+
+/* ---------- Party autocomplete ---------- */
+.party-ac-list {
+    position: absolute;
+    z-index: 400;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 12px 32px -8px rgba(36,31,20,0.28);
+    max-height: 240px;
+    overflow-y: auto;
+    width: 100%;
+    margin-top: 2px;
+}
+.party-ac-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    background: transparent;
+    border-bottom: 1px solid var(--border);
+}
+.party-ac-item:hover, .party-ac-item.active { background: var(--accent-soft); color: var(--accent-hover); }
+.party-ac-empty { padding: 10px 12px; color: var(--text-muted); font-size: 0.82rem; }
+
+/* PDF-export capture mode (used only for the instant a node is
+   screenshotted for a shared PDF — see smartPrint() in the script
+   below). Redefines the theme's color tokens to crisp, high-contrast
+   print values instead of the app's on-screen muted glass palette,
+   and gives table rows a visible alternating stripe. Uses the same
+   CSS variables the rest of the app already reads (--text-main,
+   --bg-tint, etc.), so this never touches an element's own explicit
+   inline color (debit/credit red, green, etc. stay exactly as
+   authored — only the inherited/default text and backgrounds change). */
+.pdf-capture-mode {
+    --bg-card: #ffffff;
+    --bg-tint: #E9EFF7;
+    --text-main: #0F172A;
+    --text-muted: #475569;
+    --border: #C3D0E0;
+    --border-strong: #64748B;
+    --statement-row-alt: #EEF2F7;
+    --accent-soft: #ffffff;
+    background: #ffffff !important;
+    overflow: visible !important;
+}
+.pdf-capture-mode table { border: 1px solid #C3D0E0; }
+.pdf-capture-mode thead th { border-bottom: 2px solid #64748B; }
+.pdf-capture-mode tfoot td { border-top: 2px solid #64748B; }
+
+/* The Select Party field card gets a backdrop-filter (see the
+   ".form-grid > div:has(> label)" rule above), and backdrop-filter
+   creates its own stacking context. That traps the dropdown's
+   z-index: 400 inside the card — it can no longer out-rank the Tax
+   Type / Sub-Ledger cards that follow, which get the exact same
+   frosted background and paint on top of it in DOM order. Raising
+   the whole card above its siblings lets the open dropdown (and
+   everything in it) float above the fields underneath instead of
+   being sliced up by them. */
+#vPartyWrap { z-index: 30; }
+
+/* ---------- Invoice modal ---------- */
+#invoiceModal, #editModal, #globalSearchModal, #appNoticeModal, #appConfirmModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(28, 35, 24, 0.55);
+    z-index: 100;
+    padding: 30px 16px;
+    overflow-y: auto;
+    justify-content: center;
+    align-items: flex-start;
+}
+#invoiceModal.open, #editModal.open, #globalSearchModal.open { display: flex; }
+#appNoticeModal, #appConfirmModal {
+    /* Always above any other open modal — a confirm can be triggered
+       from inside the edit modal (e.g. "Remove this item?"). */
+    z-index: 260;
+    align-items: center;
+}
+
+.invoice-box {
+    background: #ffffff;
+    color: #0f1a12;
+    padding: 32px;
+    max-width: 820px;
+    width: 100%;
+    border-radius: var(--radius);
+    box-shadow: 0 20px 50px -12px rgba(20,32,26,0.35);
+    font-family: 'IBM Plex Sans', sans-serif;
+}
+.invoice-box h3 { color: #0f1a12 !important; }
+.invoice-box table th, .invoice-box table td { color: #0f1a12; }
+.invoice-box table thead tr { background: #E9EFF7 !important; }
+/* The app-wide `thead th` rule below follows the light/dark theme (it's
+   meant for the app's own on-screen report tables), but this table is a
+   printable document that must always render as dark ink on light paper,
+   regardless of which mode the screen is in — so its header cells need
+   their own light-background/dark-text pinned with !important, not just
+   inherited from the row. */
+.invoice-box table thead th {
+    background: #E9EFF7 !important;
+    color: #0f1a12 !important;
+}
+
+.edit-box {
+    background: var(--bg-card);
+    color: var(--text-main);
+    padding: 28px;
+    max-width: 920px;
+    width: 100%;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 50px -12px rgba(36,31,20,0.28);
+}
+
+.edit-line-row {
+    display: grid;
+    grid-template-columns: 2.4fr 1fr 1.4fr 1fr auto;
+    gap: 8px;
+    align-items: end;
+    padding: 8px;
+    background: var(--bg-tint);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+}
+.edit-line-row .ln-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 6px 0;
+    color: var(--text-main);
+}
+
+/* ---------- Sync toast (keep functional look, re-skin) ---------- */
+#syncToast {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    background: var(--bg-header);
+    color: var(--text-invert);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(246,247,243,0.12);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.82rem;
+    box-shadow: 0 10px 24px -8px rgba(0,0,0,0.35);
+    z-index: 200;
+    animation: syncToastIn 180ms ease-out;
+    max-width: 90vw;
+}
+#syncToast.show { display: inline-flex; }
+.syncToastDot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--warning);
+    box-shadow: 0 0 0 3px rgba(200,127,43,0.22);
+}
+#syncToast.sync-ok .syncToastDot { background: var(--success); box-shadow: 0 0 0 3px rgba(21,143,83,0.22); }
+#syncToast.sync-error .syncToastDot { background: var(--danger); box-shadow: 0 0 0 3px rgba(192,57,43,0.22); }
+#syncToast.sync-recovered .syncToastDot { background: var(--success); }
+#syncToast .syncToastClose {
+    margin-left: 6px;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 0 0 6px;
+    width: auto;
+    line-height: 1;
+}
+#syncToast .syncToastClose:hover { color: var(--warning); background: transparent; }
+@keyframes syncToastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ---------- Helpers ---------- */
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+}
+.text-muted-print { color: var(--text-muted); }
+
+/* ---------- Extras: install / backup banner / paper-size selector ---------- */
+.extras-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    margin: 0 0 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+}
+.extras-bar .extras-btn { font-size: 0.78rem; }
+.extras-bar .extras-paper {
+    margin-left: auto;
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    font-weight: 600;
+}
+.extras-bar .extras-paper select {
+    width: auto;
+    padding: 6px 8px;
+    min-height: 34px;
+    font-size: 0.82rem;
+    font-family: 'IBM Plex Sans', sans-serif;
+    text-transform: none;
+    letter-spacing: 0;
+}
+@media (max-width: 700px) {
+    .extras-bar { padding: 10px; }
+    .extras-bar .extras-paper { margin-left: 0; width: 100%; justify-content: space-between; }
+}
+
+.backup-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 16px;
+    background: var(--bg-tint);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    margin-bottom: 18px;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    flex-wrap: wrap;
+}
+.backup-banner strong { color: var(--text-main); }
+.backup-banner .backup-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.backup-banner .backup-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.backup-banner .backup-actions button { min-height: 36px; }
+
+/* Paper-size preview classes — thermal printer looks narrower on screen too */
+body.paper-58mm #invoiceModal .invoice-box,
+body.paper-80mm #invoiceModal .invoice-box {
+    max-width: 360px;
+    font-size: 0.78rem;
+}
+body.paper-58mm #invoiceModal .invoice-box table,
+body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
+
+/* Print-time paper size (uses browser @page from injected style tag) */
+@media print {
+    body.paper-58mm #invoiceModal .invoice-box,
+    body.paper-80mm #invoiceModal .invoice-box {
+        max-width: none !important;
+        width: 100% !important;
+        padding: 2mm !important;
+        font-size: 8pt !important;
+    }
+    body.paper-58mm #invoiceModal .invoice-box h3,
+    body.paper-80mm #invoiceModal .invoice-box h3 { font-size: 10pt !important; }
+    body.paper-58mm #invoiceModal .invoice-box table,
+    body.paper-80mm #invoiceModal .invoice-box table { font-size: 7pt !important; }
+    body.paper-58mm #invoiceModal .invoice-box th,
+    body.paper-58mm #invoiceModal .invoice-box td,
+    body.paper-80mm #invoiceModal .invoice-box th,
+    body.paper-80mm #invoiceModal .invoice-box td { padding: 2px 3px !important; }
+    body.paper-a5 #invoiceModal .invoice-box { font-size: 9pt !important; }
+    body.paper-a5 #invoiceModal .invoice-box h3 { font-size: 12pt !important; }
+    /* Hide extras UI from print */
+    .extras-bar, .backup-banner, .extras-invoice-toolbar { display: none !important; }
+}
+
+/* Invoice modal — extras toolbar (paper size + e-Way) */
+.extras-invoice-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    margin-bottom: 14px;
+    background: var(--accent-soft);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+}
+.extras-invoice-toolbar .extras-paper {
+    margin-left: auto;
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 0.72rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+}
+.extras-invoice-toolbar select {
+    width: auto;
+    padding: 5px 8px;
+    min-height: 32px;
+    font-size: 0.8rem;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* Inline hard-coded banners (rgba() from purple/amber/green in markup) —
+   soften them to earthy so the UI stays coherent even where markup is inline */
+[style*="rgba(139,124,255"] {
+    background: var(--accent-soft) !important;
+    border-color: var(--border-strong) !important;
+    color: var(--accent) !important;
+}
+[style*="rgba(251,191,36"] {
+    background: var(--bg-tint) !important;
+    border-color: var(--border-strong) !important;
+    color: var(--warning) !important;
+}
+[style*="rgba(52,211,153"] {
+    background: #E2F1E7 !important;
+    border-color: #C0DDC7 !important;
+    color: var(--success) !important;
+}
+
+/* Force any inline dark greys used for cancel buttons back into palette */
+[style*="background:#64748b"], [style*="background: #64748b"] {
+    background: var(--bg-tint) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-strong) !important;
+}
+
+/* Any inline "background:#0f172a" (dark tfoot) — parchment */
+[style*="background:#0f172a"], [style*="background: #0f172a"] {
+    background: var(--bg-tint) !important;
+    color: var(--text-main) !important;
+}
+
+/* ---------- Responsive (mobile + tablet) ---------- */
+@media (max-width: 900px) {
+    .container { padding: 0 12px 100px; }
+    header {
+        margin: 0 -12px 18px;
+        padding: 18px 18px 16px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    header::before { left: 18px; top: 6px; font-size: 0.58rem; }
+    .brand-title { font-size: 1.35rem; margin-top: 8px; }
+    .gst-badge { align-self: stretch; text-align: center; font-size: 0.7rem; padding: 6px 10px; }
+
+    .dashboard-summary { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 18px; }
+    .summary-card { padding: 14px 14px; }
+    .summary-card > div:nth-child(2) { font-size: 1.35rem; }
+
+    #tileMenu, .submenu, .panel { padding: 16px; }
+    .tile-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .tile { padding: 14px 12px; }
+    .tile-name { font-size: 0.92rem; }
+    .tile-sub { font-size: 0.72rem; }
+
+    form, .form-grid { grid-template-columns: 1fr; gap: 12px; }
+    .col-2 { grid-column: span 1; }
+    .edit-line-row { grid-template-columns: 1fr 1fr; gap: 6px; }
+
+    /* Tap-friendly sizes on mobile */
+    input, select, textarea { padding: 11px 12px; font-size: 0.95rem; min-height: 44px; }
+    button { padding: 12px 16px; min-height: 44px; font-size: 0.92rem; }
+    button.back-btn, button.btn-inline { min-height: 44px; padding: 10px 14px; }
+    table button { min-height: 34px; padding: 6px 10px; }
+
+    /* Tables scroll but with hint */
+    .table-responsive { -webkit-overflow-scrolling: touch; }
+    table { font-size: 0.82rem; min-width: 560px; }
+    thead th, tbody td { padding: 8px 10px; }
+
+    /* Modals become bottom sheet-ish on mobile */
+    #invoiceModal, #editModal { padding: 12px 8px; }
+    .invoice-box, .edit-box { padding: 18px 14px; border-radius: var(--radius); }
+    .invoice-box { font-size: 0.85rem; }
+    .invoice-box h3 { font-size: 1.05rem !important; }
+    .invoice-box table { min-width: 100%; font-size: 0.75rem; }
+    .invoice-box table th, .invoice-box table td { padding: 5px 6px !important; }
+
+    /* Party autocomplete list scrollable */
+    .party-ac-list { max-height: 220px; }
+}
+
+@media (max-width: 480px) {
+    .brand-title { font-size: 1.2rem; }
+    .tile-grid { grid-template-columns: 1fr 1fr; }
+    .section-label { font-size: 0.62rem; }
+    .invoice-box { padding: 14px 12px; }
+    /* Wrap page-head buttons */
+    .panel-head { flex-wrap: wrap; gap: 8px; }
+}
+
+/* ---------- Print (three modes triggered by JS: printing-region, printing-invoice, printing-ledger) ---------- */
+@media print {
+    @page { margin: 12mm; size: A4; }
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+        background: #fff !important;
+        color: #0f172a !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    #syncToast { display: none !important; }
+    .no-print { display: none !important; }
+
+    /* ==== GENERIC PRINT — daybook, stock, payments, receipts, etc. ==== */
+    /* JS adds .printing-region to <body> and .print-target to the section being printed. */
+    /* Hide everything that is neither the print-target, an ancestor of it,
+       nor a descendant of it — at EVERY nesting level. Unlike visibility:hidden,
+       display:none removes the element from layout entirely, so hidden
+       panels can no longer reserve blank space and push .print-target onto
+       a later page. */
+    body.printing-region *:not(.print-target):not(.print-target *):not(:has(.print-target)) {
+        display: none !important;
+    }
+    body.printing-region .print-target {
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        background: #fff !important;
+        color: #0f172a !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        max-height: none !important;
+    }
+    body.printing-region .print-target * { color: #0f172a !important; }
+    body.printing-region .print-target th {
+        background: #e9eff7 !important;
+        color: #0f172a !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    body.printing-region .print-target td,
+    body.printing-region .print-target th {
+        border-bottom: 1px solid #c3d0e0 !important;
+    }
+    body.printing-region .no-print { display: none !important; }
+
+    /* ==== INVOICE PRINT — printInvoiceDoc() adds .printing-invoice ==== */
+    /* display:none (not visibility:hidden) removes hidden siblings from the
+       layout entirely, so their height can't push the invoice onto a later
+       page — it stays a normal in-flow element starting at the top of page 1. */
+    body.printing-invoice > *:not(#invoiceModal) { display: none !important; }
+    body.printing-invoice #invoiceModal {
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        background: #fff !important;
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+        inset: auto !important;
+    }
+    body.printing-invoice #invoiceModal .invoice-box {
+        max-width: 100% !important;
+        max-height: none !important;
+        width: 100% !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 6mm !important;
+        background: #fff !important;
+        color: #0f172a !important;
+    }
+    body.printing-invoice #invoiceModal .no-print { display: none !important; }
+    body.printing-invoice #invoiceModal table,
+    body.printing-invoice #invoiceModal thead,
+    body.printing-invoice #invoiceModal tbody,
+    body.printing-invoice #invoiceModal tr { page-break-inside: avoid; }
+    body.printing-invoice #invoiceModal th,
+    body.printing-invoice #invoiceModal td {
+        color: #0f172a !important;
+        border: 1px solid #c3d0e0 !important;
+        background: #fff !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    body.printing-invoice #invoiceModal thead tr,
+    body.printing-invoice #invoiceModal thead th {
+        background: #e9eff7 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    body.printing-invoice #invoiceModal #invGrandTotal,
+    body.printing-invoice #invoiceModal #invTaxBreakdown,
+    body.printing-invoice #invoiceModal #invDocTitle,
+    body.printing-invoice #invoiceModal h3 { color: #0f172a !important; }
+
+    /* ==== LEDGER PRINT — printLedger() adds .printing-ledger ==== */
+    /* Same fix as above: display:none removes hidden content from layout so
+       it can't push #ledgerPrintArea onto a blank later page. */
+    body.printing-ledger *:not(#ledgerPrintArea):not(#ledgerPrintArea *):not(:has(#ledgerPrintArea)) {
+        display: none !important;
+    }
+    body.printing-ledger #ledgerPrintArea {
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        background: #fff !important;
+        color: #0f172a !important;
+        padding: 0 !important;
+        border: none !important;
+        overflow: visible !important;
+    }
+    body.printing-ledger #ledgerPrintArea h3,
+    body.printing-ledger #ledgerPrintArea div { color: #0f172a !important; }
+    body.printing-ledger th {
+        background: #e9eff7 !important;
+        color: #0f172a !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    body.printing-ledger td,
+    body.printing-ledger th {
+        border-bottom: 1px solid #c3d0e0 !important;
+        color: #0f172a !important;
+    }
+    body.printing-ledger .text-muted-print { color: #475569 !important; }
+}
+
+/* =========================================================
+   ADMIN LOGIN GATE
+   Full-screen overlay shown until a valid login is entered.
+   Reuses the app's existing color/font/radius tokens.
+========================================================= */
+#loginGate {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 18px;
+    background: var(--bg-header);
+    overflow-y: auto;
+}
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 50px -15px rgba(10,10,8,0.5);
+    padding: 34px 30px 30px;
+    margin: auto;
+}
+.login-brand {
+    text-align: center;
+    margin-bottom: 22px;
+}
+.login-brand .login-mark {
+    max-width: 260px;
+    width: 100%;
+    height: auto;
+    margin: 0 auto 14px;
+    display: block;
+}
+.login-brand h1 {
+    font-size: 1.5rem;
+    margin: 0;
+}
+.login-brand .login-tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+.login-card h2 {
+    font-size: 1.15rem;
+    text-align: center;
+    margin: 0 0 6px;
+}
+.login-welcome {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin: 0 0 20px;
+    line-height: 1.5;
+}
+.login-error {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    color: var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+.login-error button {
+    all: unset;
+    cursor: pointer;
+    color: var(--danger);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 2px;
+}
+.login-card label { margin-top: 14px; }
+.login-card label:first-of-type { margin-top: 0; }
+.fy-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+    align-items: stretch;
+}
+.fy-current {
+    flex: 1;
+    text-align: center;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    cursor: pointer;
+    background: var(--bg-card);
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.fy-current:hover { border-color: var(--accent); }
+.fy-current.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+}
+.fy-current-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+.fy-current.active .fy-current-label { color: var(--accent-hover); }
+.fy-current-sub {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+#fyOtherSelect {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    text-align: center;
+    text-align-last: center;
+}
+.login-card button[type="submit"] { margin-top: 22px; }
+.fy-active-badge {
+    display: none;
+    background: rgba(246,247,243,0.08);
+    border: 1px solid rgba(246,247,243,0.18);
+    color: var(--text-invert);
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+}
+
+/* Formal Print overlay content — matches the traditional Tax Invoice /
+   Voucher layout, scoped so it never leaks into the rest of the app. */
+#formalPrintContent * { box-sizing: border-box; }
+#formalPrintContent { background: #ffffff; color: #000000; }
+#formalPrintContent table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+#formalPrintContent td, #formalPrintContent th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; word-wrap: break-word; overflow-wrap: break-word; background: #fff !important; color: #000 !important; }
+#formalPrintContent .no-border td, #formalPrintContent .no-border th { border: none; }
+#formalPrintContent .outer { border: 1px solid #000; }
+#formalPrintContent .title { text-align:center; font-size:18px; font-weight:bold; margin-bottom:8px; letter-spacing:1px; }
+#formalPrintContent .right { text-align:right; }
+#formalPrintContent .center { text-align:center; }
+#formalPrintContent .bold { font-weight:bold; }
+#formalPrintContent .small { font-size:10.5px; }
+#formalPrintContent .muted { color:#333; }
+
+/* On phone-width screens, shrink padding/font and let the item table
+   scroll horizontally within its own box rather than force the whole
+   page sideways or clip the rightmost columns off-screen. */
+@media (max-width: 480px) {
+    #formalPrintContent { padding: 8px !important; font-size: 10px !important; }
+    #formalPrintContent .title { font-size: 14px !important; }
+    #formalPrintContent td, #formalPrintContent th { padding: 3px 4px !important; font-size: 10px !important; }
+    #formalPrintContent .small { font-size: 8.5px !important; }
+    #formalPrintContent .itemTableScroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    #formalPrintContent .itemTableScroll table { table-layout: auto; min-width: 480px; }
+}
+@media print {
+    body.printing-formal > *:not(#formalPrintOverlay) { display:none !important; }
+    body.printing-formal #formalPrintOverlay { position: static !important; }
+    #formalPrintOverlay .no-print { display:none !important; }
+}
+    
