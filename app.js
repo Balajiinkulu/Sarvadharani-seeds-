@@ -5976,8 +5976,16 @@
     }
 
     function renderLedgerSearchResults() {
-        const q = (document.getElementById('ledgerSearchInput').value || '').trim().toLowerCase();
+        const raw = (document.getElementById('ledgerSearchInput').value || '').trim();
         const box = document.getElementById('ledgerSearchResults');
+
+        // Once a ledger is open, openLedgerStatement() writes its full label
+        // back into this box — e.g. "Mahalakshmi traders (Vendor)". That
+        // trailing qualifier isn't part of any party or account name, so
+        // searching the raw text found nothing and showed "No matching
+        // ledger" directly above the ledger it had just opened. Match on the
+        // name only, ignoring the qualifier the app added itself.
+        const q = raw.replace(/\s*\([^)]*\)\s*$/, '').trim().toLowerCase();
 
         const matches = [];
         parties.forEach(p => {
