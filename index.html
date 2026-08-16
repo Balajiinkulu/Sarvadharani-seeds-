@@ -12164,6 +12164,16 @@ function handleAdminLogin(e) {
     btn.disabled = true;
     btn.textContent = 'Signing in\u2026';
 
+    // Set BEFORE signing in, not after — Firebase fires
+    // onAuthStateChanged (which the force-close detector further down
+    // this file listens to) as soon as the sign-in lands internally,
+    // which can race ahead of this function's own .then() below. If the
+    // marker weren't already set by the time that fires, a fresh,
+    // legitimate login could get read as "resumed with no marker" —
+    // i.e. mistaken for a force-close — and immediately signed back out
+    // again mid-login.
+    sessionStorage.setItem('sds_session_alive', '1');
+
     cloudAuth.signInWithEmailAndPassword(email, p)
         .then(() => {
             const fy = selectedFY();
@@ -12171,6 +12181,10 @@ function handleAdminLogin(e) {
             enterApp(fy);
         })
         .catch(err => {
+            // The attempt didn't actually establish a session — clear the
+            // marker back out so a stale one can't wrongly bless some
+            // later unrelated sign-in as "already alive".
+            sessionStorage.removeItem('sds_session_alive');
             document.getElementById('loginErrorText').textContent = 'Invalid email or password!';
             document.getElementById('loginError').style.display = 'flex';
         })
