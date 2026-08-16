@@ -6396,6 +6396,32 @@
             </tr>
         `;
 
+        // Mirror the footer totals into the summary bar at the top of the
+        // panel, so a long ledger doesn't have to be scrolled to the bottom
+        // just to read the closing balance.
+        const topSummary = document.getElementById('ledgerTopSummary');
+        if (topSummary) {
+            topSummary.style.display = 'flex';
+            document.getElementById('ledgerTopDebit').innerText =
+                '\u20B9' + totalDebit.toLocaleString('en-IN', {minimumFractionDigits: 2});
+            document.getElementById('ledgerTopCredit').innerText =
+                '\u20B9' + totalCredit.toLocaleString('en-IN', {minimumFractionDigits: 2});
+            // balanceText already carries its own "By/To Closing Balance"
+            // wording plus the figure; split it so the label sits above the
+            // number like the two cards beside it.
+            const sep = balanceText.indexOf(': ');
+            const lbl = document.getElementById('ledgerTopBalanceLabel');
+            const val = document.getElementById('ledgerTopBalance');
+            if (sep > -1) {
+                lbl.innerText = balanceText.slice(0, sep);
+                val.innerText = balanceText.slice(sep + 2);
+            } else {
+                lbl.innerText = isAggregate ? 'Total' : 'Closing Balance';
+                val.innerText = balanceText.replace(/^Total: /, '');
+            }
+            val.style.color = balanceColor;
+        }
+
         renderPaginationControls('ledgerStatement', ledgerTxns.length, () => openLedgerStatement(kind, id));
 
         document.getElementById('ledgerPrintArea').style.display = 'block';
