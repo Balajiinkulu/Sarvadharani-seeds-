@@ -962,13 +962,20 @@
             rows.forEach(r => {
                 total += r.totalDue;
                 const received = r.totalInvoiced - r.totalDue;
-                const invoiceLinks = r.invoices.map(inv =>
-                    `<span style="color:var(--accent); text-decoration:underline; cursor:pointer; white-space:nowrap;" onclick="event.stopPropagation(); printInvoice(${inv.id})" title="Open ${escapeHtml(inv.invNo)}">${escapeHtml(inv.invNo)}</span>`
-                ).join(', ');
+                // Rendered as padded chips rather than underlined text: as plain
+                // links, several invoice numbers sat in a tight comma-separated
+                // run with no space between them, which is very hard to hit
+                // accurately on a phone (and easy to open the wrong one).
+                // Only the trailing serial is shown — the "SDS/26-27/INV/"
+                // prefix is identical on every row and just consumes width.
+                const invoiceLinks = r.invoices.map(inv => {
+                    const shortNo = (inv.invNo || '').split('/').pop();
+                    return `<span class="inv-chip" onclick="event.stopPropagation(); printInvoice(${inv.id})" title="Open ${escapeHtml(inv.invNo)}">${escapeHtml(shortNo)}</span>`;
+                }).join('');
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open party ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
                         <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
-                        <td style="white-space:normal;">${invoiceLinks}</td>
+                        <td class="inv-chip-cell" style="white-space:normal;">${invoiceLinks}</td>
                         <td>\u20B9${r.totalInvoiced.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="color:var(--text-muted);">\u20B9${received.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="color:var(--success); font-weight:bold;">\u20B9${r.totalDue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
@@ -1014,12 +1021,12 @@
                 total += r.totalDue;
                 const paid = r.totalInvoiced - r.totalDue;
                 const invoiceLinks = r.invoices.map(inv =>
-                    `<span style="color:var(--accent); text-decoration:underline; cursor:pointer; white-space:nowrap;" onclick="event.stopPropagation(); printInvoice(${inv.id})" title="Open ${escapeHtml(inv.invNo)}">${escapeHtml(inv.invNo)}</span>`
-                ).join(', ');
+                    `<span class="inv-chip" onclick="event.stopPropagation(); printInvoice(${inv.id})" title="Open ${escapeHtml(inv.invNo)}">${escapeHtml((inv.invNo || '').split('/').pop())}</span>`
+                ).join('');
                 body.innerHTML += `
                     <tr style="cursor:pointer;" title="Open vendor ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
                         <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
-                        <td style="white-space:normal;">${invoiceLinks}</td>
+                        <td class="inv-chip-cell" style="white-space:normal;">${invoiceLinks}</td>
                         <td>\u20B9${r.totalInvoiced.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="color:var(--text-muted);">\u20B9${paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="color:var(--danger); font-weight:bold;">\u20B9${r.totalDue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>

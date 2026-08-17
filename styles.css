@@ -202,6 +202,30 @@ table td, table th {
     font-variant-numeric: tabular-nums;
 }
 
+/* Invoice chips in Pending to Receive / Pay. Sized to a real finger
+   target (~34px tall, generous padding) so several invoices on one row
+   can be tapped accurately, instead of the tight comma-separated run of
+   underlined text they used to be. */
+.inv-chip {
+    display: inline-block;
+    padding: 4px 7px;
+    margin: 2px 3px 2px 0;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.inv-chip:hover { background: var(--accent); color: #fff; }
+/* Give the invoice cell room for about five chips before wrapping, so a
+   party with several unpaid bills stays on one or two lines rather than
+   stacking one per row and blowing out the row height. */
+.inv-chip-cell { min-width: 262px; }
+
 /* ---------- Container / shell ---------- */
 .container {
     max-width: 1240px;
