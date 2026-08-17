@@ -2663,6 +2663,15 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="col-2" id="editLinkedPayWrap" style="display:none;">
                 <label>Payments Against This Invoice</label>
                 <div id="editLinkedPayList" style="font-size:0.85rem;"></div>
+                <!-- Collecting a balance from here guarantees the new receipt is
+                     linked to this invoice. Posting it as a standalone Receipt
+                     and forgetting the "Against Invoice" field is what leaves an
+                     invoice showing unpaid even though the money arrived. -->
+                <div id="editAddPayRow" style="display:none; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;">
+                    <input type="number" id="editAddPayAmount" placeholder="Amount" min="0" step="any" style="flex:1; min-width:110px;">
+                    <select id="editAddPayAccount" style="flex:1; min-width:130px;"></select>
+                    <button type="button" class="btn-inline" style="width:auto;" onclick="addPaymentAgainstInvoice()">Add Payment</button>
+                </div>
             </div>
 
             <button type="button" class="col-2 btn-success" onclick="saveEditedVoucher()">Save Changes</button>

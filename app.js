@@ -4236,7 +4236,9 @@
             ? transactions.filter(t => t.refInvoiceId == txn.id)
             : [];
 
-        if (!linked.length) { wrap.style.display = 'none'; return; }
+        // The row is useful even with no payments yet — that's the case where
+        // a credit sale is now being settled for the first time.
+        if (!isInvoice) { wrap.style.display = 'none'; return; }
         wrap.style.display = '';
 
         const paid = linked.reduce((a, c2) => a + (c2.grandTotal || 0), 0);
@@ -4254,6 +4256,27 @@
                         onclick="editLinkedPayment(${p.id})">Edit</button>
             </div>`).join('');
 
+        // Offer to collect whatever is still outstanding, pre-filled.
+        const addRow = document.getElementById('editAddPayRow');
+        if (addRow) {
+            addRow.style.display = due > 0 ? 'flex' : 'none';
+            if (due > 0) {
+                const accSel = document.getElementById('editAddPayAccount');
+                const opts = accounts.filter(a => a.type === 'Cash' || a.type === 'Bank');
+                accSel.innerHTML = opts.map(a =>
+                    `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
+                const preferred = opts.find(a => (a.name || '').toUpperCase() === 'CASH SALE')
+                               || opts.find(a => a.type === 'Cash');
+                if (preferred) accSel.value = preferred.id;
+                document.getElementById('editAddPayAmount').value = due.toFixed(2);
+            }
+        }
+
+        if (!linked.length) {
+            list.innerHTML = `<div style="color:var(--text-muted);">Nothing received yet \u00b7 Balance due: \u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>`;
+            return;
+        }
+
         list.innerHTML = rows + `
             <div style="margin-top:8px; padding-top:8px;">
                 Received: <strong style="font-family:'JetBrains Mono',monospace;">\u20B9${paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>
@@ -4270,6 +4293,58 @@
     // payment's own edit screen, rather than editing it in place: a receipt
     // records money that actually changed hands, so it gets the same
     // deliberate edit path (and audit entry) as any other voucher.
+    // Posts a Receipt/Payment for this invoice, already linked. Same shape
+    // as one posted manually with "Against Invoice" filled in — the linkage
+    // just can't be forgotten.
+    function addPaymentAgainstInvoice() {
+        const txn = transactions.find(t => t.id == document.getElementById('editTxnId').value);
+        if (!txn) return;
+        if (!isAdmin() && !hasPermission('postVouchers')) {
+            return alert("Only an admin, or a user with 'Post new vouchers' turned on, can post a voucher.");
+        }
+        const amt = parseFloat(document.getElementById('editAddPayAmount').value);
+        if (isNaN(amt) || amt <= 0) return alert('Enter the amount received.');
+
+        const paidSoFar = transactions
+            .filter(t => t.refInvoiceId == txn.id)
+            .reduce((a, c2) => a + (c2.grandTotal || 0), 0);
+        const due = (txn.grandTotal || 0) - paidSoFar;
+        if (amt > due + 0.005) {
+            return alert(`That's more than the \u20B9${due.toLocaleString('en-IN', {minimumFractionDigits: 2})} still outstanding on this invoice.`);
+        }
+
+        const accId = document.getElementById('editAddPayAccount').value;
+        const acc = accounts.find(a => a.id == accId);
+        if (!acc) return alert('Choose the Cash/Bank account the money went into.');
+
+        const payType = (txn.type === 'Sales') ? 'Receipt' : 'Payment';
+        const today = new Date().toISOString().slice(0, 10);
+        const payTxn = {
+            id: newId(transactions),
+            invNo: nextRefNo(payType, today),
+            date: today,
+            type: payType,
+            accountId: acc.id,
+            accountName: acc.name,
+            refInvoiceId: txn.id,
+            refInvoiceNo: txn.invNo,
+            narration: 'Against ' + txn.invNo,
+            partyId: txn.partyId,
+            partyName: txn.partyName,
+            items: [],
+            taxable: 0,
+            totalTax: 0,
+            grandTotal: amt
+        };
+        transactions.push(payTxn);
+        localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
+        syncCloud();
+        logAudit('Created', payTxn, 'Added against ' + txn.invNo);
+        renderLinkedPayments(txn);
+        render();
+        showSyncToast('ok', `${payType} posted \u2022 ${payTxn.invNo}`);
+    }
+
     function editLinkedPayment(payId) {
         navPendingAfterBack = () => openEditModal(payId);
         closeEditModal();
