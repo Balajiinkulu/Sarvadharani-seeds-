@@ -4269,6 +4269,7 @@
                                || opts.find(a => a.type === 'Cash');
                 if (preferred) accSel.value = preferred.id;
                 document.getElementById('editAddPayAmount').value = due.toFixed(2);
+                closeAddPayment();
             }
         }
 
@@ -4293,6 +4294,23 @@
     // payment's own edit screen, rather than editing it in place: a receipt
     // records money that actually changed hands, so it gets the same
     // deliberate edit path (and audit entry) as any other voucher.
+    // The "+" only reveals the fields — it never records anything by itself.
+    function openAddPayment() {
+        ['editAddPayAmount', 'editAddPayAccount', 'editAddPayConfirm', 'editAddPayCancel']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
+        const open = document.getElementById('editAddPayOpen');
+        if (open) open.style.display = 'none';
+        const amt = document.getElementById('editAddPayAmount');
+        if (amt) { amt.focus(); amt.select(); }
+    }
+
+    function closeAddPayment() {
+        ['editAddPayAmount', 'editAddPayAccount', 'editAddPayConfirm', 'editAddPayCancel']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+        const open = document.getElementById('editAddPayOpen');
+        if (open) open.style.display = '';
+    }
+
     // Posts a Receipt/Payment for this invoice, already linked. Same shape
     // as one posted manually with "Against Invoice" filled in — the linkage
     // just can't be forgotten.
@@ -4340,6 +4358,7 @@
         localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
         syncCloud();
         logAudit('Created', payTxn, 'Added against ' + txn.invNo);
+        closeAddPayment();
         renderLinkedPayments(txn);
         render();
         showSyncToast('ok', `${payType} posted \u2022 ${payTxn.invNo}`);
