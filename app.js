@@ -2934,8 +2934,59 @@
         document.getElementById('lblTotal').innerText = `\u20B9${totGrand.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
     }
 
+    // Shows the settle-on-post block only where paying immediately makes
+    // sense — a plain Sales or Purchase invoice. Payment/Receipt vouchers
+    // ARE the payment, Journals move money between ledgers, and Delivery
+    // Notes / Optional vouchers never carry a real payable balance.
+    function refreshSettleBlock() {
+        const wrap = document.getElementById('vSettleWrap');
+        if (!wrap) return;
+        const type = document.getElementById('vType').value;
+        const eligible = (type === 'Sales' || type === 'Purchase' || type === 'RawPurchase');
+        wrap.style.display = eligible ? '' : 'none';
+        if (!eligible) {
+            document.getElementById('vSettleMode').value = 'none';
+            toggleSettleFields();
+            return;
+        }
+        // Cash/Bank accounts to receive into, defaulting to CASH SALE where
+        // it exists since that's the usual counter case.
+        const sel = document.getElementById('vSettleAccount');
+        const keep = sel.value;
+        const opts = accounts.filter(a => a.type === 'Cash' || a.type === 'Bank');
+        sel.innerHTML = opts.map(a =>
+            `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join('');
+        if (keep && opts.some(a => a.id == keep)) {
+            sel.value = keep;
+        } else {
+            const preferred = opts.find(a => (a.name || '').toUpperCase() === 'CASH SALE')
+                           || opts.find(a => a.type === 'Cash');
+            if (preferred) sel.value = preferred.id;
+        }
+        toggleSettleFields();
+    }
+
+    function toggleSettleFields() {
+        const mode = (document.getElementById('vSettleMode') || {}).value || 'none';
+        const amt = document.getElementById('vSettleAmount');
+        const acc = document.getElementById('vSettleAccount');
+        const hint = document.getElementById('vSettleHint');
+        if (!amt) return;
+        amt.style.display = (mode === 'part') ? '' : 'none';
+        acc.style.display = (mode === 'none') ? 'none' : '';
+        if (mode === 'none') {
+            hint.style.display = 'none';
+        } else {
+            const type = document.getElementById('vType').value;
+            const kind = (type === 'Sales') ? 'Receipt' : 'Payment';
+            hint.style.display = 'block';
+            hint.innerText = `A ${kind} voucher will be posted automatically and linked against this invoice.`;
+        }
+    }
+
     function toggleVoucherMode() {
         const type = document.getElementById('vType').value;
+        refreshSettleBlock();
         const customType = customVoucherTypes.find(v => v.id === type);
         const isCash = (type === 'Payment' || type === 'Receipt');
         const isJournal = (type === 'Journal');
@@ -3607,6 +3658,64 @@
         document.getElementById('vDate').valueAsDate = new Date();
         render();
         logAudit('Created', txn);
+
+        // Settle-on-post: if the person marked this invoice paid, create the
+        // matching Receipt/Payment now and link it via refInvoiceId — the
+        // exact same shape a manually posted, manually linked voucher has,
+        // so ledgers, Pending to Receive/Pay and reports all treat it
+        // identically. Done after the invoice is saved so a failure here
+        // can never lose the invoice itself.
+        try {
+            const settleMode = (document.getElementById('vSettleMode') || {}).value || 'none';
+            if (settleMode !== 'none' && (type === 'Sales' || type === 'Purchase' || isRawPurchase)) {
+                const settleAccId = document.getElementById('vSettleAccount').value;
+                const settleAcc = accounts.find(a => a.id == settleAccId);
+                let payAmt = (settleMode === 'full')
+                    ? grandTotal
+                    : parseFloat(document.getElementById('vSettleAmount').value);
+
+                if (!settleAcc) {
+                    alert('Voucher posted, but no Cash/Bank account was selected, so no payment entry was made. Post it separately.');
+                } else if (isNaN(payAmt) || payAmt <= 0) {
+                    alert('Voucher posted, but the payment amount was not valid, so no payment entry was made. Post it separately.');
+                } else {
+                    // Never record more money than the invoice is worth.
+                    if (payAmt > grandTotal) payAmt = grandTotal;
+                    const settleType = (type === 'Sales') ? 'Receipt' : 'Payment';
+                    const settleTxn = {
+                        id: newId(transactions),
+                        invNo: nextRefNo(settleType, txn.date),
+                        date: txn.date,
+                        type: settleType,
+                        accountId: settleAcc.id,
+                        accountName: settleAcc.name,
+                        refInvoiceId: txn.id,
+                        refInvoiceNo: txn.invNo,
+                        narration: 'Auto-posted with ' + txn.invNo,
+                        partyId: txn.partyId,
+                        partyName: txn.partyName,
+                        items: [],
+                        taxable: 0,
+                        totalTax: 0,
+                        grandTotal: payAmt
+                    };
+                    transactions.push(settleTxn);
+                    localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
+                    syncCloud();
+                    logAudit('Created', settleTxn, 'Auto-posted against ' + txn.invNo);
+                    render();
+                }
+            }
+            // Reset for the next voucher so a paid sale doesn't silently
+            // mark the following one as paid too.
+            const modeSel = document.getElementById('vSettleMode');
+            if (modeSel) { modeSel.value = 'none'; toggleSettleFields(); }
+            const amtEl = document.getElementById('vSettleAmount');
+            if (amtEl) amtEl.value = '';
+        } catch (e) {
+            console.error('Settle-on-post failed:', e);
+            alert('The voucher was posted, but the linked payment entry could not be created. Please post it separately.');
+        }
         showSyncToast('ok', `${type === 'Sales' ? 'Sale' : isRawPurchase ? 'Raw purchase' : 'Purchase'} posted \u2022 ${txn.invNo}`);
         
         // Refresh Ledger if open
@@ -4010,6 +4119,7 @@
             return;
         }
         navPushState(closeEditModalUI);
+        renderLinkedPayments(txn);
         document.getElementById('editTxnId').value = txn.id;
         document.getElementById('editTitle').innerText = `Edit ${txn.invNo}`;
         document.getElementById('editDate').value = txn.date;
@@ -4111,6 +4221,58 @@
 
         recomputeEditTotal();
         document.getElementById('editModal').style.display = 'flex';
+    }
+
+    // Lists every payment linked to the invoice being edited, with the
+    // running total and balance, so the person can see at a glance whether
+    // changing the invoice amount leaves a receipt out of step.
+    function renderLinkedPayments(txn) {
+        const wrap = document.getElementById('editLinkedPayWrap');
+        const list = document.getElementById('editLinkedPayList');
+        if (!wrap || !list) return;
+
+        const isInvoice = (txn.type === 'Sales' || txn.type === 'Purchase' || txn.type === 'RawPurchase');
+        const linked = isInvoice
+            ? transactions.filter(t => t.refInvoiceId == txn.id)
+            : [];
+
+        if (!linked.length) { wrap.style.display = 'none'; return; }
+        wrap.style.display = '';
+
+        const paid = linked.reduce((a, c2) => a + (c2.grandTotal || 0), 0);
+        const total = txn.grandTotal || 0;
+        const due = Math.max(0, total - paid);
+        const over = paid > total;
+
+        const rows = linked.map(p => `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0;">
+                <div>
+                    <strong style="font-family:'JetBrains Mono',monospace;">\u20B9${(p.grandTotal || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>
+                    <span style="color:var(--text-muted);"> \u00b7 ${escapeHtml(p.invNo || '')} \u00b7 ${escapeHtml(p.date || '')}</span>
+                </div>
+                <button type="button" class="btn-inline" style="width:auto;"
+                        onclick="editLinkedPayment(${p.id})">Edit</button>
+            </div>`).join('');
+
+        list.innerHTML = rows + `
+            <div style="margin-top:8px; padding-top:8px;">
+                Received: <strong style="font-family:'JetBrains Mono',monospace;">\u20B9${paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>
+                of <strong style="font-family:'JetBrains Mono',monospace;">\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>
+                <span style="color:${over ? 'var(--danger)' : 'var(--text-muted)'};">
+                    &nbsp;\u00b7&nbsp;${over
+                        ? 'Received exceeds the invoice total \u2014 correct a payment below.'
+                        : 'Balance due: \u20B9' + due.toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                </span>
+            </div>`;
+    }
+
+    // Jumps from the invoice's edit screen straight into the linked
+    // payment's own edit screen, rather than editing it in place: a receipt
+    // records money that actually changed hands, so it gets the same
+    // deliberate edit path (and audit entry) as any other voucher.
+    function editLinkedPayment(payId) {
+        navPendingAfterBack = () => openEditModal(payId);
+        closeEditModal();
     }
 
     function closeEditModal() { history.back(); }

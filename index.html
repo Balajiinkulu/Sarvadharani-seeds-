@@ -2102,6 +2102,25 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </div>
             </div>
 
+            <!-- Settle-on-post: for a counter sale paid immediately, this
+                 saves posting a separate Receipt and remembering to link it.
+                 Defaults to "Nothing" so a credit sale is never marked paid
+                 by an inattentive tap. Only shown for Sales/Purchase. -->
+            <div class="col-2" id="vSettleWrap" style="display:none;">
+                <label>Payment Received Now</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                    <select id="vSettleMode" onchange="toggleSettleFields()" style="flex:1; min-width:150px;">
+                        <option value="none">Nothing (leave unpaid)</option>
+                        <option value="full">Full amount</option>
+                        <option value="part">Part amount</option>
+                    </select>
+                    <input type="number" id="vSettleAmount" placeholder="Amount" min="0" step="any"
+                           style="display:none; flex:1; min-width:120px;">
+                    <select id="vSettleAccount" style="flex:1; min-width:150px; display:none;"></select>
+                </div>
+                <div id="vSettleHint" style="display:none; font-size:0.78rem; color:var(--text-muted); margin-top:6px;"></div>
+            </div>
+
             <div class="col-2" id="vNarrationWrap">
                 <label>Narration (Optional)</label>
                 <input type="text" id="vNarrationMain" placeholder="e.g. Urgent delivery, quality checked, discount given">
@@ -2634,6 +2653,16 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="col-2" id="editTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 16px; border:none;">
                 <span style="color:var(--text-muted); font-size:0.85rem;">New Total:</span>
                 <span id="editTotal" style="font-weight:bold; font-size:1.1rem; color:var(--accent); margin-left:6px;">&#8377;0.00</span>
+            </div>
+
+            <!-- Payments already recorded against this invoice. Shown here so
+                 changing an invoice amount doesn't leave a stale receipt
+                 hiding in a separate voucher. Each receipt stays individually
+                 editable — they're separate events, and only the person
+                 knows which one was actually wrong. -->
+            <div class="col-2" id="editLinkedPayWrap" style="display:none;">
+                <label>Payments Against This Invoice</label>
+                <div id="editLinkedPayList" style="font-size:0.85rem;"></div>
             </div>
 
             <button type="button" class="col-2 btn-success" onclick="saveEditedVoucher()">Save Changes</button>
