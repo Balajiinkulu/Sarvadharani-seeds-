@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=7">
+    <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
 <script>
@@ -176,20 +176,18 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 <div class="container">
     <header>
-        <div>
-            <h1 class="brand-title" style="margin-bottom:0;">Sarvadharani seeds</h1>
-        </div>
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <div class="fy-active-badge" id="fyActiveBadge" title="Current Financial Year">FY —</div>
-            <div class="gst-badge" id="roleBadge" style="display:none;" title="Your access level"></div>
-            <button type="button" id="themeToggleBtn" onclick="toggleTheme()" title="Switch light/dark mode"
-                style="width:auto; padding:8px 12px; background:var(--bg-tint); color:var(--text-main); border:none; border-radius:999px; line-height:1; font-size:0.95rem; font-weight:600;">
+        <div class="hdr-top">
+            <img class="hdr-mark" src="logo-mark.png" alt="Sarvadharani Seeds">
+            <div class="hdr-name">Sarvadharani Seeds</div>
+            <button type="button" id="themeToggleBtn" class="hdr-icon" onclick="toggleTheme()" title="Switch light/dark mode">
                 <span id="themeToggleIcon">&#127769;</span>
             </button>
-            <button type="button" id="logoutBtn" onclick="logoutAdmin()" title="Log out"
-                style="width:auto; padding:8px 14px; background:var(--bg-tint); color:var(--text-main); border:none; border-radius:999px; line-height:1; font-size:0.85rem; font-weight:600;">
-                &#9211;&nbsp; Logout
-            </button>
+            <button type="button" id="logoutBtn" class="hdr-icon" onclick="logoutAdmin()" title="Log out">&#9211;</button>
+        </div>
+        <div class="hdr-chips">
+            <div class="hdr-chip live" id="fyActiveBadge" title="Current Financial Year">FY &mdash;</div>
+            <div class="hdr-chip" id="roleBadge" style="display:none;" title="Your access level"></div>
+            <div class="hdr-chip" id="gstChip" title="GSTIN">GST 21AFGFS0227N1Z2</div>
         </div>
     </header>
 
@@ -2719,6 +2717,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
