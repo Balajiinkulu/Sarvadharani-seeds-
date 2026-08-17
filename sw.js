@@ -23,7 +23,7 @@
    Bump CACHE when the shell file list changes, so old entries are
    cleaned up by the activate handler below.
 */
-const CACHE = 'sarvadharani-shell-v4';
+const CACHE = 'sarvadharani-shell-v5';
 
 const SHELL = [
   './',
