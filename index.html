@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=13">
+    <link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
 <script>
@@ -2509,14 +2509,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
         <div style="margin-top:24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;" class="no-print">
             <button id="invPrintBtn" onclick="printInvoiceCurrentStyle()" class="btn-success">Print / Download PDF</button>
-            <div id="invPrintStyleWrap" style="display:none; align-items:center; gap:6px;">
-                <label for="invPrintStyleSelect" style="font-size:0.78rem; color:var(--text-muted); margin:0;">Style</label>
-                <select id="invPrintStyleSelect" style="width:auto; padding:8px 10px;">
-                    <option value="classic">Classic</option>
-                    <option value="formal">Formal</option>
-                </select>
-            </div>
-            <button onclick="navPendingAfterBack = () => openEditModal(currentPrintTxnId); closeInvoiceModal();">Edit</button>
+            <!-- Style selector removed: with "Formal" gone there was only one
+                 option left to pick. Edit now lives in the toolbar at the top
+                 of the invoice, so it isn't repeated here. -->
             <button onclick="closeInvoiceModal()" style="background:#64748b; color:white;">Close</button>
         </div>
     </div>
@@ -2561,38 +2556,38 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="col-2" id="editItemsWrap">
                 <label>Line Items (add, edit, or remove)</label>
                 <div id="editItemsList"></div>
-                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:8px; border:none;">
-                    <div style="flex:2; min-width:160px;">
-                        <label style="font-size:0.7rem;">Add Item</label>
-                        <select id="editAddItemSelect" onchange="onEditAddItemChange()">
-                            <option value="">-- Select Item --</option>
-                        </select>
-                    </div>
-                    <div style="flex:1; min-width:70px;">
-                        <label style="font-size:0.7rem;">Qty</label>
-                        <input type="number" id="editAddItemQty" min="0" step="any" value="1">
-                    </div>
-                    <div style="flex:1; min-width:90px;">
-                        <label style="font-size:0.7rem;">Rate (Incl)</label>
-                        <input type="number" id="editAddItemRate" min="0" step="any">
-                    </div>
-                    <button type="button" onclick="addEditItemRow()" class="btn-success" style="width:auto; padding:10px 16px; white-space:nowrap;">+ Add Item</button>
+                <!-- Add row mirrors the columns of the list above (item | qty |
+                     rate | action) so the whole block reads as one table
+                     instead of a separate stacked form. -->
+                <div class="ln-add">
+                    <select id="editAddItemSelect" onchange="onEditAddItemChange()" aria-label="Add item">
+                        <option value="">-- Select Item --</option>
+                    </select>
+                    <input class="ln-num" type="number" id="editAddItemQty" min="0" step="any" value="1" aria-label="Quantity">
+                    <input class="ln-num" type="number" id="editAddItemRate" min="0" step="any" placeholder="Rate" aria-label="Rate including GST">
+                    <button type="button" onclick="addEditItemRow()" class="ln-add-btn" title="Add this item">+</button>
                 </div>
 
                 <!-- Discount / direct Total override — either one scales every
                      line's rate proportionally so tax stays calculated
                      correctly; using one clears the other since they'd
                      otherwise fight over the same result. -->
-                <div style="display:flex; gap:8px; align-items:flex-end; margin-top:10px; flex-wrap:wrap; background:var(--bg-tint); padding:10px; border-radius:8px; border:none;">
-                    <div style="flex:1; min-width:140px;">
-                        <label style="font-size:0.7rem;">Discount (&#8377;, optional)</label>
-                        <input type="number" id="editDiscount" min="0" step="any" placeholder="0.00" oninput="onEditDiscountInput()">
-                    </div>
-                    <div style="flex:1; min-width:140px;">
-                        <label style="font-size:0.7rem;">Or set New Total directly (&#8377;)</label>
-                        <input type="number" id="editTotalOverride" min="0" step="any" placeholder="e.g. 950.00" oninput="onEditTotalOverrideInput()">
-                    </div>
-                    <button type="button" onclick="clearEditTotalAdjust()" style="width:auto; padding:10px 14px; font-size:0.8rem; white-space:nowrap;">Reset to item rates</button>
+                <!-- Discount and "set total" are alternatives, not two separate
+                     settings — each handler already cleared the other, so two
+                     side-by-side boxes just invited entering both. One mode
+                     picker plus one value field says that plainly. -->
+                <div class="ln-adjust">
+                    <select id="editAdjustMode" onchange="onEditAdjustModeChange()" aria-label="Adjust total">
+                        <option value="none">No adjustment</option>
+                        <option value="discount">Give discount (&#8377;)</option>
+                        <option value="total">Set final total (&#8377;)</option>
+                    </select>
+                    <input type="number" id="editDiscount" min="0" step="any" placeholder="0.00"
+                           style="display:none;" oninput="onEditDiscountInput()" aria-label="Discount amount">
+                    <input type="number" id="editTotalOverride" min="0" step="any" placeholder="e.g. 950.00"
+                           style="display:none;" oninput="onEditTotalOverrideInput()" aria-label="Final total">
+                    <button type="button" id="editAdjustReset" onclick="clearEditTotalAdjust()"
+                            style="display:none; width:auto; padding:9px 12px; font-size:0.78rem; white-space:nowrap;">Reset</button>
                 </div>
                 <div id="editDiscountNote" style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;"></div>
             </div>
@@ -2670,8 +2665,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                      a stray tap recorded money that had never been received —
                      so recording a payment now takes a deliberate second step. -->
                 <div id="editAddPayRow" style="display:none; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;">
-                    <button type="button" id="editAddPayOpen" onclick="openAddPayment()" title="Record a payment"
-                            style="width:40px; min-width:40px; max-width:40px; height:40px; min-height:40px; padding:0; flex:none; border-radius:50%; background:var(--success); color:#fff; font-size:1.2rem; font-weight:700; line-height:1;">+</button>
+                    <button type="button" id="editAddPayOpen" onclick="openAddPayment()"
+                            class="btn-success" style="width:auto; flex:none; padding:9px 14px; font-size:0.8rem; white-space:nowrap;">+ Add Payment</button>
                     <input type="number" id="editAddPayAmount" placeholder="Amount" min="0" step="any" style="display:none; flex:1 1 80px; min-width:70px;">
                     <select id="editAddPayAccount" style="display:none; flex:1 1 90px; min-width:80px;"></select>
                     <button type="button" id="editAddPayConfirm" onclick="addPaymentAgainstInvoice()" title="Confirm payment"
@@ -2717,6 +2712,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=13"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>

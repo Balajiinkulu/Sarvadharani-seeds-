@@ -3971,18 +3971,22 @@
             list.innerHTML = '<div style="padding:10px 0; color:var(--text-muted); font-size:0.85rem;">No items \u2014 add at least one below before saving.</div>';
             return;
         }
-        list.innerHTML = editWorkingItems.map(it => `
+        // One compact row per item. The previous layout gave a full-width
+        // box to a single-digit Qty and a full-width red bar to Remove —
+        // the least-used control taking the most space — so three items
+        // filled the screen. Name left, two small number boxes, small \u2715.
+        list.innerHTML = `
+            <div class="ln-head">
+                <span></span><span>Qty</span><span>Rate</span><span></span>
+            </div>` + editWorkingItems.map(it => `
             <div class="edit-line-row">
-                <div class="ln-name">${escapeHtml(it.name)} <span style="color:var(--text-muted);">(${escapeHtml(it.uom)})</span></div>
-                <div>
-                    <label style="font-size:0.7rem;">Qty</label>
-                    <input type="number" min="0" step="any" value="${it.qty}" oninput="updateEditRow(${it.rowId}, 'qty', this.value)">
-                </div>
-                <div>
-                    <label style="font-size:0.7rem;">Rate (Incl)</label>
-                    <input type="number" min="0" step="any" value="${it.inclRate}" oninput="updateEditRow(${it.rowId}, 'inclRate', this.value)">
-                </div>
-                <button type="button" class="btn-danger" style="width:auto; padding:8px 10px; font-size:0.75rem;" onclick="removeEditRow(${it.rowId})">Remove</button>
+                <div class="ln-name">${escapeHtml(it.name)}<span class="ln-uom">${escapeHtml(it.uom)}</span></div>
+                <input class="ln-num" type="number" min="0" step="any" value="${it.qty}"
+                       aria-label="Quantity" oninput="updateEditRow(${it.rowId}, 'qty', this.value)">
+                <input class="ln-num" type="number" min="0" step="any" value="${it.inclRate}"
+                       aria-label="Rate including GST" oninput="updateEditRow(${it.rowId}, 'inclRate', this.value)">
+                <button type="button" class="ln-del" title="Remove this item"
+                        onclick="removeEditRow(${it.rowId})">&#10005;</button>
             </div>
         `).join('');
     }
@@ -4007,6 +4011,31 @@
         const factor = targetTotal / base;
         editWorkingItems.forEach(it => { it.inclRate = it.inclRate * factor; });
         renderEditItemsList();
+    }
+
+    // Switching mode always clears whatever the other mode had set, so the
+    // voucher can never end up carrying a stale discount AND an override.
+    function onEditAdjustModeChange() {
+        const mode = document.getElementById('editAdjustMode').value;
+        const disc = document.getElementById('editDiscount');
+        const over = document.getElementById('editTotalOverride');
+        const reset = document.getElementById('editAdjustReset');
+        disc.style.display = (mode === 'discount') ? '' : 'none';
+        over.style.display = (mode === 'total') ? '' : 'none';
+        reset.style.display = (mode === 'none') ? 'none' : '';
+        if (mode === 'none') {
+            // clearEditTotalAdjust() asks for confirmation because it undoes
+            // rate changes — only worth asking if something was actually
+            // applied, otherwise switching back to "No adjustment" nags for
+            // no reason.
+            const applied = (parseFloat(disc.value) || 0) > 0 || (parseFloat(over.value) || 0) > 0;
+            if (applied) clearEditTotalAdjust();
+            else document.getElementById('editDiscountNote').innerText = '';
+        } else {
+            const field = (mode === 'discount') ? disc : over;
+            field.value = '';
+            field.focus();
+        }
     }
 
     function onEditDiscountInput() {
@@ -4126,6 +4155,8 @@
             return;
         }
         navPushState(closeEditModalUI);
+        const adjMode = document.getElementById('editAdjustMode');
+        if (adjMode) { adjMode.value = 'none'; onEditAdjustModeChange(); }
         renderLinkedPayments(txn);
         document.getElementById('editTxnId').value = txn.id;
         document.getElementById('editTitle').innerText = `Edit ${txn.invNo}`;
@@ -4285,8 +4316,11 @@
             return;
         }
 
+        // The summary sits in its own element so the Add Payment button can
+        // sit inline beside it (see #editAddPayRow) rather than on a line of
+        // its own underneath.
         list.innerHTML = rows + `
-            <div style="margin-top:8px; padding-top:8px;">
+            <div id="editPaySummary" style="margin-top:8px; padding-top:8px;">
                 Received: <strong style="font-family:'JetBrains Mono',monospace;">\u20B9${paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>
                 of <strong style="font-family:'JetBrains Mono',monospace;">\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong>
                 <span style="color:${over ? 'var(--danger)' : 'var(--text-muted)'};">
@@ -6164,13 +6198,9 @@
         const txn = transactions.find(t => t.id == txnId);  
         if (!txn) return;  
         currentPrintTxnId = txnId;
-        const styleWrap = document.getElementById('invPrintStyleWrap');
-        const styleSelect = document.getElementById('invPrintStyleSelect');
-        const formalAvailable = (txn.type === 'Sales' || txn.type === 'Payment' || txn.type === 'Receipt');
-        if (styleWrap) {
-            styleWrap.style.display = formalAvailable ? 'flex' : 'none';
-            if (styleSelect) styleSelect.value = 'classic'; // always reset — never silently remember Formal from a previous invoice
-        }
+        // The Formal style and its picker were removed; every invoice now
+        // prints in the Classic layout. The printFormalStyle() code is left
+        // in place but unreachable, so nothing else had to be unpicked.
         const isJournalTxn = (txn.type === 'Journal');
         const partyObj = isJournalTxn ? null : parties.find(p => p.id == txn.partyId);
         const isCash = (txn.type === 'Payment' || txn.type === 'Receipt' || isCustomNoPartyType(txn.type));
@@ -6322,6 +6352,12 @@
         } else {
             narrWrap.style.display = 'none';
         }
+
+        // e-Way Bill is only meaningful for a Sales invoice — it accompanies
+        // goods being dispatched. Hiding it on Payments/Receipts/Purchases
+        // avoids generating a JSON that has nothing to describe.
+        const ewayBtn = document.getElementById('ewayBtn');
+        if (ewayBtn) ewayBtn.style.display = (txn.type === 'Sales') ? '' : 'none';
 
         document.getElementById('invoiceModal').style.display = 'flex';  
         // Let layout settle, then shrink to fit if page zoom made it wider
@@ -7357,14 +7393,7 @@
     // is the existing printInvoiceDoc() flow, completely unchanged;
     // Formal is the new alternate layout, also unchanged by this change.
     function printInvoiceCurrentStyle() {
-        const styleSelect = document.getElementById('invPrintStyleSelect');
-        const styleWrap = document.getElementById('invPrintStyleWrap');
-        const useFormal = styleWrap && styleWrap.style.display !== 'none' && styleSelect && styleSelect.value === 'formal';
-        if (useFormal) {
-            printFormalStyle();
-        } else {
-            printInvoiceDoc();
-        }
+        printInvoiceDoc();
     }
 
     // Renders the Formal print layout INSIDE this same page, in a full-
@@ -8491,19 +8520,18 @@
         function hideBackupBannerRef() { const b = document.getElementById('backupBanner'); if (b) b.remove(); }
         window.__hideBackupBanner = hideBackupBannerRef;
 
-        // ---- Add "e-Way Bill" + paper-size to invoice modal ----
+        // ---- Invoice modal toolbar: Edit + e-Way Bill ----
+        // Paper size lives in the dashboard's Print Size control, so having
+        // it here too was a duplicate; Edit is what's actually wanted from
+        // a voucher you're looking at. e-Way Bill only applies to Sales
+        // (goods leaving), so it's shown/hidden per voucher in printInvoice.
         const invModal = document.getElementById('invoiceModal');
         if (invModal && !invModal.querySelector('.extras-invoice-toolbar')) {
             const bar = document.createElement('div');
             bar.className = 'extras-invoice-toolbar no-print';
             bar.innerHTML = `
-                <button type="button" class="btn-inline" onclick="generateEwayBillFromModal()">e-Way Bill JSON</button>
-                <label class="extras-paper">
-                    <span>Size</span>
-                    <select class="paperSizeSelect" onchange="setPaperSize(this.value)">
-                        ${Object.entries(PAPER_SIZES).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}
-                    </select>
-                </label>`;
+                <button type="button" class="btn-inline" onclick="navPendingAfterBack = () => openEditModal(currentPrintTxnId); closeInvoiceModal();">Edit</button>
+                <button type="button" class="btn-inline" id="ewayBtn" onclick="generateEwayBillFromModal()">e-Way Bill JSON</button>`;
             const box = invModal.querySelector('.invoice-box');
             if (box) box.insertBefore(bar, box.firstChild);
         }

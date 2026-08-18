@@ -1000,23 +1000,136 @@ body.printing-ledger #ledgerHeaderTotals { display: flex !important; }
     box-shadow: 0 20px 50px -12px rgba(36,31,20,0.28);
 }
 
+/* Compact single-line item row: name | qty | rate | remove. Column widths
+   are fixed for the numbers so every row lines up into readable columns
+   rather than each field sizing itself. */
 .edit-line-row {
     display: grid;
-    grid-template-columns: 2.4fr 1fr 1.4fr 1fr auto;
+    grid-template-columns: 1fr 58px 74px 32px;
     gap: 8px;
-    align-items: end;
-    padding: 8px;
+    align-items: center;
+    padding: 7px 8px;
     background: var(--bg-tint);
     border: none;
     border-radius: var(--radius-sm);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 .edit-line-row .ln-name {
     font-weight: 600;
-    font-size: 0.88rem;
-    padding: 6px 0;
+    font-size: 0.85rem;
+    line-height: 1.25;
     color: var(--text-main);
+    min-width: 0;
+    overflow-wrap: break-word;
 }
+.edit-line-row .ln-uom {
+    display: block;
+    font-weight: 500;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
+/* Number inputs shrink to fit their column; the app-wide 44px min-height
+   would otherwise make these rows unnecessarily tall. */
+.edit-line-row .ln-num {
+    width: 100%;
+    min-width: 0;
+    min-height: 36px !important;
+    padding: 6px 8px !important;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem !important;
+}
+.edit-line-row .ln-del {
+    width: 32px; min-width: 32px; max-width: 32px;
+    height: 32px; min-height: 32px !important;
+    padding: 0 !important;
+    border: none;
+    border-radius: 50%;
+    background: var(--danger);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: none;
+}
+/* Add-item row: same column track as the list above it. */
+.ln-add {
+    display: grid;
+    grid-template-columns: 1fr 58px 74px 32px;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+    padding: 7px 8px;
+    background: var(--bg-tint);
+    border-radius: var(--radius-sm);
+}
+.ln-add select {
+    min-width: 0;
+    min-height: 36px !important;
+    padding: 6px 8px !important;
+    font-size: 0.82rem !important;
+}
+.ln-add-btn {
+    width: 32px; min-width: 32px; max-width: 32px;
+    height: 32px; min-height: 32px !important;
+    padding: 0 !important;
+    border: none;
+    border-radius: 50%;
+    background: var(--success);
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: none;
+}
+
+/* Total-adjustment row: mode picker, then a single value field. */
+.ln-adjust {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+    padding: 7px 8px;
+    background: var(--bg-tint);
+    border-radius: var(--radius-sm);
+    flex-wrap: wrap;
+}
+.ln-adjust select {
+    flex: 1 1 150px;
+    min-width: 0;
+    min-height: 36px !important;
+    padding: 6px 8px !important;
+    font-size: 0.82rem !important;
+}
+.ln-adjust input {
+    flex: 1 1 90px;
+    min-width: 0;
+    min-height: 36px !important;
+    padding: 6px 8px !important;
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem !important;
+}
+.ln-adjust button {
+    min-height: 36px !important;
+    flex: none;
+}
+
+/* Column captions shown once above the list instead of on every row. */
+.ln-head {
+    display: grid;
+    grid-template-columns: 1fr 58px 74px 32px;
+    gap: 8px;
+    padding: 0 8px 4px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: right;
+}
+.ln-head span:first-child { text-align: left; }
 
 /* ---------- Sync toast (keep functional look, re-skin) ---------- */
 #syncToast {
@@ -1162,17 +1275,18 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     .extras-bar, .backup-banner, .extras-invoice-toolbar { display: none !important; }
 }
 
-/* Invoice modal — extras toolbar (paper size + e-Way) */
+/* Invoice modal — action toolbar (Edit + e-Way). Just the buttons: the
+   tinted panel and dashed outline read as a separate boxed section, which
+   competed with the invoice document itself sitting right below it. */
 .extras-invoice-toolbar {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
-    padding: 8px 10px;
+    padding: 0;
     margin-bottom: 14px;
-    background: var(--accent-soft);
-    border: 1px dashed var(--border-strong);
-    border-radius: var(--radius-sm);
+    background: none;
+    border: none;
 }
 .extras-invoice-toolbar .extras-paper {
     margin-left: auto;
@@ -1250,7 +1364,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     form, .form-grid { grid-template-columns: 1fr; gap: 12px; }
     .col-2 { grid-column: span 1; }
-    .edit-line-row { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .edit-line-row, .ln-head, .ln-add { grid-template-columns: 1fr 52px 66px 32px; gap: 6px; }
 
     /* Tap-friendly sizes on mobile */
     input, select, textarea { padding: 11px 12px; font-size: 0.95rem; min-height: 44px; }
