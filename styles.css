@@ -170,6 +170,15 @@ body.dark-mode #loginGate { background: #17181A; }
 html, body {
     max-width: 100%;
     overflow-x: hidden;
+    /* Only vertical panning on the page itself, so the whole layout can't be
+       dragged sideways. Containers that genuinely need horizontal scrolling
+       opt back in below. */
+    touch-action: pan-y;
+}
+/* Wide report/statement tables keep their own sideways scroll. */
+.table-responsive,
+.table-responsive * {
+    touch-action: pan-x pan-y;
 }
 
 body {

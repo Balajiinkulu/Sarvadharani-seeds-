@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sarvadharani seeds - Management System</title>
     <meta name="theme-color" content="#1C2318">
     <meta name="mobile-web-app-capable" content="yes">
@@ -14,9 +14,24 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=20">
+    <link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
+<script>
+// Keep the app fixed at fit-to-screen: pinch/double-tap zoom the WHOLE page
+// makes a fixed-layout app drift around. Tables that need more width scroll
+// horizontally inside their own container instead (see .table-responsive).
+['gesturestart', 'gesturechange', 'gestureend'].forEach(evt => {
+    document.addEventListener(evt, e => e.preventDefault(), { passive: false });
+});
+// Double-tap to zoom: a second tap within 300ms of the first.
+let __lastTap = 0;
+document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - __lastTap <= 300) e.preventDefault();
+    __lastTap = now;
+}, { passive: false });
+</script>
 <script>
 // Applied synchronously, before anything paints, so a saved dark-mode
 // preference doesn't show a flash of the light theme first.
@@ -2736,6 +2751,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>
