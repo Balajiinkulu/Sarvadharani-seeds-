@@ -6145,6 +6145,17 @@
         if (m && m.style.display === 'flex') fitInvoiceToScreen();
     });
 
+    // Tap the dimmed area outside the invoice to close it. The check that
+    // the tap landed on the overlay ITSELF (not a child) matters — without
+    // it, any click inside the invoice bubbles up and closes it while you're
+    // trying to use the Size or Style dropdowns. The invoice is a read-only
+    // preview, so dismissing it can't lose any work.
+    document.addEventListener('click', function (e) {
+        const modal = document.getElementById('invoiceModal');
+        if (!modal || modal.style.display !== 'flex') return;
+        if (e.target === modal) closeInvoiceModal();
+    });
+
     function closeInvoiceModal() { history.back(); }
     function closeInvoiceModalUI() {
         document.getElementById('invoiceModal').style.display = 'none';
