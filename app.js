@@ -4307,6 +4307,8 @@
             .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
         const open = document.getElementById('editAddPayOpen');
         if (open) open.style.display = 'none';
+        const modalEl = document.getElementById('editModal');
+        if (modalEl) modalEl.classList.add('kbd-space');
         const amt = document.getElementById('editAddPayAmount');
         if (!amt) return;
         amt.focus();
@@ -4350,6 +4352,8 @@
             .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
         const open = document.getElementById('editAddPayOpen');
         if (open) open.style.display = '';
+        const modalEl = document.getElementById('editModal');
+        if (modalEl) modalEl.classList.remove('kbd-space');
     }
 
     // Posts a Receipt/Payment for this invoice, already linked. Same shape
