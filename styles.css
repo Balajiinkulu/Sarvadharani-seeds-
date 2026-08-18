@@ -1275,6 +1275,47 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     .extras-bar, .backup-banner, .extras-invoice-toolbar { display: none !important; }
 }
 
+/* Invoice popup — compact card view. Deliberately tight: this is a
+   glance-at-it screen, not the document. The paper layout underneath is
+   what gets printed, so nothing here has to satisfy GST formatting. */
+.invoice-box #invCardView { display: none; }
+.invoice-box.screen-view #invCardView { display: block; }
+.invoice-box.screen-view #invPaperView { display: none; }
+
+#invCardView .ivc-hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+#invCardView .ivc-biz { font-weight: 700; font-size: 0.82rem; color: #111; }
+#invCardView .ivc-chip {
+    font-size: 0.6rem; background: #eef2f7; color: #3b5b86;
+    padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+}
+#invCardView .ivc-sub { font-size: 0.6rem; color: #777; margin-top: 1px; }
+#invCardView .ivc-party { font-size: 0.75rem; margin: 7px 0 5px; color: #333; }
+#invCardView .ivc-party b { font-size: 0.82rem; color: #111; }
+#invCardView .ivc-item {
+    background: #f6f7f9; border-radius: 6px; padding: 5px 7px; margin-bottom: 3px;
+}
+#invCardView .ivc-item .t {
+    display: flex; justify-content: space-between; gap: 8px;
+    font-size: 0.72rem; font-weight: 600; color: #111;
+}
+#invCardView .ivc-item .t span:last-child { font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+#invCardView .ivc-item .b { font-size: 0.62rem; color: #777; }
+#invCardView .ivc-grand {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-top: 7px; padding-top: 6px; border-top: 1px solid #e3e3e3;
+    font-size: 0.74rem; color: #333;
+}
+#invCardView .ivc-grand b { font-size: 0.98rem; font-family: 'JetBrains Mono', monospace; color: #111; }
+#invCardView .ivc-due {
+    display: flex; justify-content: space-between; font-size: 0.66rem;
+    color: #666; margin-top: 2px;
+}
+#invCardView .ivc-narr {
+    margin-top: 6px; padding-top: 5px; border-top: 1px dashed #ddd;
+    font-size: 0.64rem; color: #555;
+}
+
 /* Invoice modal — action toolbar (Edit + e-Way). Just the buttons: the
    tinted panel and dashed outline read as a separate boxed section, which
    competed with the invoice document itself sitting right below it. */

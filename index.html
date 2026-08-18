@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=18">
+    <link rel="stylesheet" href="styles.css?v=19">
 </head>
 <body>
 <script>
@@ -2437,6 +2437,28 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 <div id="invoiceModal">
     <div class="invoice-box">
+        <!-- Screen view: compact card stack. Shown instead of the paper
+             layout below while the invoice is on screen; swapped out again
+             for printing / PDF so the customer copy is always the full
+             tax invoice. -->
+        <div id="invCardView">
+            <div class="ivc-hd">
+                <div class="ivc-biz">Sarvadharani Seeds</div>
+                <span class="ivc-chip" id="ivcNo"></span>
+            </div>
+            <div class="ivc-sub">GSTIN 21AFGFS0227N1Z2 &middot; <span id="ivcDate"></span></div>
+            <div class="ivc-party"><span id="ivcPartyLabel">Billed to</span>: <b id="ivcParty"></b></div>
+            <div id="ivcItems"></div>
+            <div class="ivc-grand"><span>Grand Total</span><b id="ivcTotal"></b></div>
+            <div class="ivc-due" id="ivcDueWrap">
+                <span id="ivcPaid"></span><span id="ivcDue"></span>
+            </div>
+            <div class="ivc-narr" id="ivcNarrWrap" style="display:none;">
+                <b>Narration:</b> <span id="ivcNarr"></span>
+            </div>
+        </div>
+
+        <div id="invPaperView">
         <div style="display:flex; justify-content:space-between; border-bottom: 2px solid #0f172a; padding-bottom:12px;">
             <div>
                 <img src="logo.png" alt="Sarvadharani Seeds" style="height:46px; width:auto; display:block; margin-bottom:6px;">
@@ -2505,6 +2527,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div style="text-align:center; font-size:0.82rem; color:#475569;">
                 <div style="border-top:1px solid #475569; padding-top:6px; min-width:180px;">Authorized Signatory</div>
             </div>
+        </div>
+
         </div>
 
         <div style="margin-top:24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;" class="no-print">
@@ -2712,6 +2736,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=18"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

@@ -6353,6 +6353,63 @@
             narrWrap.style.display = 'none';
         }
 
+        // ---- Compact card view (screen only) ----
+        // Built from the same txn as the paper layout, so the two can never
+        // disagree; the paper version stays untouched for printing.
+        try {
+            const box = document.querySelector('#invoiceModal .invoice-box');
+            if (box) box.classList.add('screen-view');
+            const cardNo = document.getElementById('ivcNo');
+            if (cardNo) {
+                cardNo.innerText = (txn.invNo || '').split('/').pop() || txn.invNo || '';
+                document.getElementById('ivcDate').innerText = txn.date || '';
+                document.getElementById('ivcPartyLabel').innerText =
+                    isJournalTxn ? 'Entry' : isCash ? (txn.type === 'Receipt' ? 'Received from' : 'Paid to') : 'Billed to';
+                document.getElementById('ivcParty').innerText =
+                    document.getElementById('invParty').innerText;
+
+                const cardItems = document.getElementById('ivcItems');
+                if (Array.isArray(txn.items) && txn.items.length) {
+                    cardItems.innerHTML = txn.items.map(it => {
+                        const line = (it.total != null) ? it.total : ((it.qty || 0) * (it.inclRate || 0));
+                        return `<div class="ivc-item">
+                            <div class="t"><span>${escapeHtml(it.name || '')}</span><span>\u20B9${(line || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span></div>
+                            <div class="b">${it.qty || 0} ${escapeHtml(it.uom || '')} \u00d7 \u20B9${(it.inclRate || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>
+                        </div>`;
+                    }).join('');
+                } else {
+                    // Cash vouchers and journals carry no line items.
+                    cardItems.innerHTML = `<div class="ivc-item"><div class="t">
+                        <span>${escapeHtml(txn.accountName || txn.type || '')}</span>
+                        <span>\u20B9${(txn.grandTotal || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span></div></div>`;
+                }
+                document.getElementById('ivcTotal').innerText =
+                    '\u20B9' + (txn.grandTotal || 0).toLocaleString('en-IN', {minimumFractionDigits: 2});
+
+                // Mirror the Paid/Due figures the paper view already computed.
+                const paidWrap = document.getElementById('invPaidBalanceWrap');
+                const dueWrap = document.getElementById('ivcDueWrap');
+                if (paidWrap && paidWrap.style.display !== 'none') {
+                    dueWrap.style.display = 'flex';
+                    document.getElementById('ivcPaid').innerText = 'Paid ' + document.getElementById('invPaidAmount').innerText;
+                    const dueEl = document.getElementById('ivcDue');
+                    dueEl.innerText = 'Due ' + document.getElementById('invBalanceDue').innerText;
+                    dueEl.style.color = '#c0392b';
+                } else {
+                    dueWrap.style.display = 'none';
+                }
+
+                const narrWrapEl = document.getElementById('invNarrationWrap');
+                const cardNarr = document.getElementById('ivcNarrWrap');
+                if (narrWrapEl && narrWrapEl.style.display !== 'none') {
+                    cardNarr.style.display = '';
+                    document.getElementById('ivcNarr').innerText = document.getElementById('invNarrationText').innerText;
+                } else {
+                    cardNarr.style.display = 'none';
+                }
+            }
+        } catch (e) { console.error('Card view build failed:', e); }
+
         // e-Way Bill is only meaningful for a Sales invoice — it accompanies
         // goods being dispatched. Hiding it on Payments/Receipts/Purchases
         // avoids generating a JSON that has nothing to describe.
@@ -7008,6 +7065,10 @@
         // of only whatever fit in the on-screen scroll viewport.
         const prevOverflow = node.style.overflow;
         const prevScale = clearInvoiceScale();
+        // Print/PDF must always be the full paper invoice, never the compact
+        // screen card view.
+        const wasScreenView = node.classList.contains('screen-view');
+        node.classList.remove('screen-view');
         node.classList.add('pdf-capture-mode');
         node.style.overflow = 'visible';
 
@@ -7111,6 +7172,7 @@
         } finally {
             noPrintEls.forEach((el, i) => { el.style.display = prevDisplay[i]; });
             node.classList.remove('pdf-capture-mode');
+            if (wasScreenView) node.classList.add('screen-view');
             restoreInvoiceScale(prevScale);
             node.style.overflow = prevOverflow;
         }
@@ -7638,8 +7700,12 @@
         // The preview may be scaled down to fit the screen; paper output
         // must always print at full size.
         const prevScale = clearInvoiceScale();
+        const boxEl = document.querySelector('#invoiceModal .invoice-box');
+        const wasScreen = boxEl && boxEl.classList.contains('screen-view');
+        if (boxEl) boxEl.classList.remove('screen-view');
         const cleanup = () => {
             document.body.classList.remove('printing-invoice');
+            if (boxEl && wasScreen) boxEl.classList.add('screen-view');
             restoreInvoiceScale(prevScale);
             window.removeEventListener('afterprint', cleanup);
         };
