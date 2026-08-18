@@ -936,6 +936,10 @@ body.printing-ledger #ledgerHeaderTotals { display: flex !important; }
     align-items: flex-start;
 }
 #invoiceModal.open, #editModal.open, #globalSearchModal.open { display: flex; }
+/* Room to scroll the last field clear of the on-screen keyboard. Without
+   trailing space, scrollIntoView on a control at the very bottom has
+   nowhere to scroll to and the keyboard keeps covering it. */
+#editModal { padding-bottom: 75vh; }
 #appNoticeModal, #appConfirmModal {
     /* Always above any other open modal — a confirm can be triggered
        from inside the edit modal (e.g. "Remove this item?"). */
@@ -1243,6 +1247,8 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     /* Modals become bottom sheet-ish on mobile */
     #invoiceModal, #editModal { padding: 12px 8px; }
+    /* Keep room to lift the last field above the on-screen keyboard. */
+    #editModal { padding-bottom: 75vh; }
     .invoice-box, .edit-box { padding: 18px 14px; border-radius: var(--radius); }
     .invoice-box { font-size: 0.85rem; }
     .invoice-box h3 { font-size: 1.05rem !important; }

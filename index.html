@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=9">
+    <link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
 <script>
@@ -2672,8 +2672,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div id="editAddPayRow" style="display:none; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;">
                     <button type="button" id="editAddPayOpen" onclick="openAddPayment()" title="Record a payment"
                             style="width:40px; min-width:40px; max-width:40px; height:40px; min-height:40px; padding:0; flex:none; border-radius:50%; background:var(--success); color:#fff; font-size:1.2rem; font-weight:700; line-height:1;">+</button>
-                    <input type="number" id="editAddPayAmount" placeholder="Amount" min="0" step="any" style="display:none; flex:1; min-width:100px;">
-                    <select id="editAddPayAccount" style="display:none; flex:1; min-width:120px;"></select>
+                    <input type="number" id="editAddPayAmount" placeholder="Amount" min="0" step="any" style="display:none; flex:1 1 80px; min-width:70px;">
+                    <select id="editAddPayAccount" style="display:none; flex:1 1 90px; min-width:80px;"></select>
                     <button type="button" id="editAddPayConfirm" onclick="addPaymentAgainstInvoice()" title="Confirm payment"
                             style="display:none; width:40px; min-width:40px; max-width:40px; height:40px; min-height:40px; padding:0; flex:none; border-radius:50%; background:var(--success); color:#fff; font-size:1rem; font-weight:700; line-height:1;">&#10003;</button>
                     <button type="button" id="editAddPayCancel" onclick="closeAddPayment()" title="Cancel"
@@ -2717,6 +2717,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

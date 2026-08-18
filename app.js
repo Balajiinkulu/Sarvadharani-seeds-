@@ -4308,7 +4308,41 @@
         const open = document.getElementById('editAddPayOpen');
         if (open) open.style.display = 'none';
         const amt = document.getElementById('editAddPayAmount');
-        if (amt) { amt.focus(); amt.select(); }
+        if (!amt) return;
+        amt.focus();
+        amt.select();
+        // This row sits at the very bottom of the edit modal, so the on-screen
+        // keyboard covers it the moment the amount field takes focus — you
+        // couldn't see what you were typing or reach the confirm button. The
+        // keyboard animates in over roughly a quarter second, so scroll the
+        // row up once it has settled. visualViewport (where supported) tells
+        // us how much space the keyboard actually took, so the row can be
+        // placed just above it rather than guessed at.
+        const scrollRowIntoView = () => {
+            const row = document.getElementById('editAddPayRow');
+            const modal = document.getElementById('editModal');
+            if (!row || !modal) return;
+            // Position the row explicitly rather than relying on
+            // scrollIntoView: the modal is the scrolling container, and
+            // "center" left the row roughly halfway down — still inside the
+            // area an on-screen keyboard covers. Aim for the upper third,
+            // which clears even a tall keyboard with a suggestion strip.
+            const target = (window.visualViewport ? window.visualViewport.height : window.innerHeight) * 0.28;
+            const delta = row.getBoundingClientRect().top - target;
+            modal.scrollTo({ top: modal.scrollTop + delta, behavior: 'smooth' });
+        };
+        setTimeout(scrollRowIntoView, 320);
+        if (window.visualViewport) {
+            // Fires when the keyboard finishes opening; re-align in case the
+            // first scroll ran before the viewport had actually shrunk.
+            const onResize = () => {
+                scrollRowIntoView();
+                window.visualViewport.removeEventListener('resize', onResize);
+            };
+            window.visualViewport.addEventListener('resize', onResize);
+            // Don't leave the listener attached if no keyboard ever appears.
+            setTimeout(() => window.visualViewport.removeEventListener('resize', onResize), 1200);
+        }
     }
 
     function closeAddPayment() {
