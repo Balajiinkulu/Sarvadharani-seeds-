@@ -1246,8 +1246,33 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     .invoice-box, .edit-box { padding: 18px 14px; border-radius: var(--radius); }
     .invoice-box { font-size: 0.85rem; }
     .invoice-box h3 { font-size: 1.05rem !important; }
-    .invoice-box table { min-width: 100%; font-size: 0.75rem; }
-    .invoice-box table th, .invoice-box table td { padding: 5px 6px !important; }
+    /* Without table-layout:fixed the columns size themselves to their
+       content, so a long HSN or a big amount pushed the table past the
+       modal's right edge — the TOTAL column ended up cut off on screen and
+       in the captured PDF. Fixed layout makes the columns share the width
+       available and wrap instead of overflowing. */
+    .invoice-box table {
+        table-layout: fixed;
+        width: 100%;
+        min-width: 0;
+        font-size: 0.54rem;
+    }
+    .invoice-box table th, .invoice-box table td {
+        padding: 5px 2px !important;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        white-space: normal !important;
+    }
+    /* Explicit column shares: the item name is the only field that should
+       wrap, so give the money columns enough width to keep a figure like
+       \20B911,500.00 on one line — splitting an amount across two lines
+       looks wrong on a tax invoice. */
+    .invoice-box table th:nth-child(1), .invoice-box table td:nth-child(1) { width: 14%; }
+    .invoice-box table th:nth-child(2), .invoice-box table td:nth-child(2) { width: 11%; }
+    .invoice-box table th:nth-child(3), .invoice-box table td:nth-child(3) { width: 9%; }
+    .invoice-box table th:nth-child(4), .invoice-box table td:nth-child(4) { width: 21%; }
+    .invoice-box table th:nth-child(5), .invoice-box table td:nth-child(5) { width: 22%; }
+    .invoice-box table th:nth-child(6), .invoice-box table td:nth-child(6) { width: 23%; }
 
     /* Party autocomplete list scrollable */
     .party-ac-list { max-height: 220px; }
@@ -1256,7 +1281,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 @media (max-width: 480px) {
     .brand-title { font-size: 1.2rem; }
     .tile-grid { grid-template-columns: 1fr 1fr; }
-    .section-label { font-size: 0.62rem; }
+    .section-label { font-size: 0.54rem; }
     .invoice-box { padding: 14px 12px; }
     /* Wrap page-head buttons */
     .panel-head { flex-wrap: wrap; gap: 8px; }
