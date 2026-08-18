@@ -549,6 +549,41 @@ h3 {
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+/* Directional screen changes: going deeper slides in from the right, going
+   back slides in from the left, so the movement matches the direction of
+   travel. Kept short (170ms) — at a shop counter a slow animation is just
+   waiting. */
+@keyframes navForward {
+    from { opacity: 0; transform: translateX(14px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes navBack {
+    from { opacity: 0; transform: translateX(-14px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+.submenu.active.nav-forward, .panel.active.nav-forward,
+#tileMenu.nav-forward { animation: navForward 0.17s ease-out; }
+.submenu.active.nav-back, .panel.active.nav-back,
+#tileMenu.nav-back { animation: navBack 0.17s ease-out; }
+
+/* Modals grow in slightly rather than appearing instantly. */
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.97) translateY(6px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+#invoiceModal .invoice-box,
+#editModal .edit-box,
+#globalSearchModal .edit-box,
+#appNoticeModal .edit-box,
+#appConfirmModal .edit-box { animation: modalIn 0.16s ease-out; }
+
+/* Honour the phone's Reduce Motion setting. */
+@media (prefers-reduced-motion: reduce) {
+    .submenu, .panel, #tileMenu,
+    #invoiceModal .invoice-box, #editModal .edit-box,
+    #globalSearchModal .edit-box, #appNoticeModal .edit-box,
+    #appConfirmModal .edit-box { animation: none !important; }
+}
 @keyframes spin { to { transform: rotate(360deg); } }
 .panel-head {
     display: flex;

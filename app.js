@@ -1600,6 +1600,16 @@
         });
     }
 
+    // Marks the screen that's about to appear with a direction so the CSS
+    // can slide it in the right way. Re-adding the class after a reflow is
+    // what lets the same animation replay on every navigation.
+    function playNav(el, dir) {
+        if (!el) return;
+        el.classList.remove('nav-forward', 'nav-back');
+        void el.offsetWidth;
+        el.classList.add(dir);
+    }
+
     function hideAllMenus() {
         document.getElementById('tileMenu').style.display = 'none';
         setHomeDashboardVisible(false);
@@ -1612,6 +1622,7 @@
         hideAllMenus();
         currentGroup = groupId;
         document.getElementById(groupId).classList.add('active');
+        playNav(document.getElementById(groupId), 'nav-forward');
         navPushState(backToGroupsUI);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1625,6 +1636,7 @@
         hideAllMenus();
         currentGroup = null;
         document.getElementById('tileMenu').style.display = 'block';
+        playNav(document.getElementById('tileMenu'), 'nav-back');
         setHomeDashboardVisible(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1651,6 +1663,7 @@
         currentGroup = PANEL_GROUP[id] || null;
         const panel = document.getElementById(id);
         panel.classList.add('active');
+        playNav(panel, 'nav-forward');
         // Pushed here (not at the end) so that a branch below which itself
         // calls closePanel() — e.g. the Users permission check — pops
         // exactly this one entry instead of the one underneath it.
@@ -1712,10 +1725,13 @@
         hideAllMenus();
         if (previousGroupId) {
             currentGroup = previousGroupId;
-            document.getElementById(previousGroupId).classList.add('active');
+            const g = document.getElementById(previousGroupId);
+            g.classList.add('active');
+            playNav(g, 'nav-back');
         } else {
             currentGroup = null;
             document.getElementById('tileMenu').style.display = 'block';
+            playNav(document.getElementById('tileMenu'), 'nav-back');
             setHomeDashboardVisible(true);
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
