@@ -4342,7 +4342,26 @@
         const open = document.getElementById('editAddPayOpen');
         if (open) open.style.display = 'none';
         const modalEl = document.getElementById('editModal');
-        if (modalEl) modalEl.classList.add('kbd-space');
+        // Reserve exactly the keyboard's height — no more. A fixed 60vh was
+        // usually larger than the keyboard, and that surplus was scrollable,
+        // so the modal could be dragged completely off screen leaving the
+        // dashboard showing behind it. visualViewport reports the real
+        // shrink, so the modal gains only what it actually needs.
+        if (modalEl) {
+            modalEl.classList.add('kbd-space');
+            const applyPad = () => {
+                const kb = window.visualViewport
+                    ? Math.max(0, window.innerHeight - window.visualViewport.height)
+                    : 0;
+                // Small cushion so the row isn't flush against the keyboard.
+                modalEl.style.paddingBottom = (kb ? kb + 24 : 0) + 'px';
+            };
+            applyPad();
+            if (window.visualViewport) {
+                modalEl.__kbPad = applyPad;
+                window.visualViewport.addEventListener('resize', applyPad);
+            }
+        }
         const amt = document.getElementById('editAddPayAmount');
         if (!amt) return;
         amt.focus();
@@ -4363,9 +4382,19 @@
             // "center" left the row roughly halfway down — still inside the
             // area an on-screen keyboard covers. Aim for the upper third,
             // which clears even a tall keyboard with a suggestion strip.
+            const box = modal.querySelector('.edit-box');
             const target = (window.visualViewport ? window.visualViewport.height : window.innerHeight) * 0.28;
-            const delta = row.getBoundingClientRect().top - target;
-            modal.scrollTo({ top: modal.scrollTop + delta, behavior: 'smooth' });
+            let newTop = modal.scrollTop + (row.getBoundingClientRect().top - target);
+            if (box) {
+                // Never scroll so far that the edit panel itself leaves the
+                // screen. The extra bottom padding that makes room for the
+                // keyboard also makes it possible to over-scroll — which
+                // pushed the whole box off the top and left only the dimmed
+                // dashboard showing.
+                const maxTop = modal.scrollTop + (box.getBoundingClientRect().top - 8);
+                newTop = Math.min(newTop, maxTop);
+            }
+            modal.scrollTo({ top: Math.max(0, newTop), behavior: 'smooth' });
         };
         setTimeout(scrollRowIntoView, 320);
         if (window.visualViewport) {
@@ -4387,7 +4416,14 @@
         const open = document.getElementById('editAddPayOpen');
         if (open) open.style.display = '';
         const modalEl = document.getElementById('editModal');
-        if (modalEl) modalEl.classList.remove('kbd-space');
+        if (modalEl) {
+            modalEl.classList.remove('kbd-space');
+            modalEl.style.paddingBottom = '';
+            if (window.visualViewport && modalEl.__kbPad) {
+                window.visualViewport.removeEventListener('resize', modalEl.__kbPad);
+                modalEl.__kbPad = null;
+            }
+        }
     }
 
     // Posts a Receipt/Payment for this invoice, already linked. Same shape

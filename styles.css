@@ -966,7 +966,7 @@ body.printing-ledger #ledgerHeaderTotals { display: flex !important; }
    applied ONLY while the Add Payment row is open (JS toggles the class),
    so the modal isn't left permanently over-scrollable with a dead gap
    under the Save button during ordinary editing. */
-#editModal.kbd-space { padding-bottom: 60vh; }
+#editModal.kbd-space { padding-bottom: 42vh; }
 #appNoticeModal, #appConfirmModal {
     /* Always above any other open modal — a confirm can be triggered
        from inside the edit modal (e.g. "Remove this item?"). */
@@ -1430,7 +1430,7 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     /* Modals become bottom sheet-ish on mobile */
     #invoiceModal, #editModal { padding: 12px 8px; }
     /* Keep room to lift the last field above the on-screen keyboard. */
-    #editModal.kbd-space { padding-bottom: 60vh; }
+    #editModal.kbd-space { padding-bottom: 42vh; }
     .invoice-box, .edit-box { padding: 18px 14px; border-radius: var(--radius); }
     .invoice-box { font-size: 0.85rem; }
     .invoice-box h3 { font-size: 1.05rem !important; }
