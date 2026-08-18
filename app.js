@@ -4373,28 +4373,13 @@
         // row up once it has settled. visualViewport (where supported) tells
         // us how much space the keyboard actually took, so the row can be
         // placed just above it rather than guessed at.
+        // Let the browser place the row: computing a scroll offset by hand
+        // fought iOS's own "scroll the focused field into view", which is why
+        // the modal sometimes jumped back to the top. The padding added above
+        // gives it exactly the room it needs to clear the keyboard.
         const scrollRowIntoView = () => {
             const row = document.getElementById('editAddPayRow');
-            const modal = document.getElementById('editModal');
-            if (!row || !modal) return;
-            // Position the row explicitly rather than relying on
-            // scrollIntoView: the modal is the scrolling container, and
-            // "center" left the row roughly halfway down — still inside the
-            // area an on-screen keyboard covers. Aim for the upper third,
-            // which clears even a tall keyboard with a suggestion strip.
-            const box = modal.querySelector('.edit-box');
-            const target = (window.visualViewport ? window.visualViewport.height : window.innerHeight) * 0.28;
-            let newTop = modal.scrollTop + (row.getBoundingClientRect().top - target);
-            if (box) {
-                // Never scroll so far that the edit panel itself leaves the
-                // screen. The extra bottom padding that makes room for the
-                // keyboard also makes it possible to over-scroll — which
-                // pushed the whole box off the top and left only the dimmed
-                // dashboard showing.
-                const maxTop = modal.scrollTop + (box.getBoundingClientRect().top - 8);
-                newTop = Math.min(newTop, maxTop);
-            }
-            modal.scrollTo({ top: Math.max(0, newTop), behavior: 'smooth' });
+            if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
         };
         setTimeout(scrollRowIntoView, 320);
         if (window.visualViewport) {
