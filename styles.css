@@ -202,6 +202,23 @@ table td, table th {
     font-variant-numeric: tabular-nums;
 }
 
+/* When the preview is laid out at its fixed design width and scaled to
+   fit (see fitInvoiceToScreen), the viewport-based mobile squeeze above no
+   longer applies — the box really is ~420px wide regardless of zoom, so
+   restore comfortable column widths. Without this, item names broke one
+   or two letters per line at high zoom. */
+.invoice-box.inv-fixed table { font-size: 0.55rem !important; }
+.invoice-box.inv-fixed table th, .invoice-box.inv-fixed table td {
+    padding: 5px 3px !important;
+    overflow-wrap: break-word;
+}
+.invoice-box.inv-fixed table th:nth-child(1), .invoice-box.inv-fixed table td:nth-child(1) { width: 20%; }
+.invoice-box.inv-fixed table th:nth-child(2), .invoice-box.inv-fixed table td:nth-child(2) { width: 11%; }
+.invoice-box.inv-fixed table th:nth-child(3), .invoice-box.inv-fixed table td:nth-child(3) { width: 8%; }
+.invoice-box.inv-fixed table th:nth-child(4), .invoice-box.inv-fixed table td:nth-child(4) { width: 20%; }
+.invoice-box.inv-fixed table th:nth-child(5), .invoice-box.inv-fixed table td:nth-child(5) { width: 20%; }
+.invoice-box.inv-fixed table th:nth-child(6), .invoice-box.inv-fixed table td:nth-child(6) { width: 21%; }
+
 /* Invoice chips in Pending to Receive / Pay. Sized to a real finger
    target (~34px tall, generous padding) so several invoices on one row
    can be tapped accurately, instead of the tight comma-separated run of

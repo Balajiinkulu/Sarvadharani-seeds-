@@ -6080,6 +6080,71 @@
     // the person — that pass shouldn't push a history entry, or the back
     // button would have to be pressed once per invoice in the batch.
     let suppressInvoiceModalHistory = false;
+    // Scales the invoice preview down so a whole page fits the screen no
+    // matter what the browser's page-zoom is set to. CSS can't undo page
+    // zoom (it scales every unit equally), so this measures the real
+    // rendered width against the space available and applies the ratio as
+    // a transform. Preview only — the scale is stripped before any PDF
+    // capture or print so output is never distorted (see setInvoiceScale
+    // calls in the capture path).
+    function fitInvoiceToScreen() {
+        const modal = document.getElementById('invoiceModal');
+        const box = modal && modal.querySelector('.invoice-box');
+        if (!box) return;
+        box.style.transform = '';
+        box.style.transformOrigin = '';
+        box.style.marginBottom = '';
+        box.style.width = '';
+        // Lay the invoice out at one fixed design width, then scale the whole
+        // block to fit. Letting it reflow into a narrow viewport instead just
+        // crams the columns (item names breaking one letter per line), so the
+        // invoice looked different at every zoom level. Fixed width + scale
+        // means it always looks like the same document, only smaller.
+        const DESIGN_W = 420;
+        const avail = modal.clientWidth - 20;
+        if (!avail) return;
+        box.style.width = DESIGN_W + 'px';
+        box.classList.add('inv-fixed');
+        box.style.maxWidth = 'none';
+        const scale = Math.min(1, avail / DESIGN_W);
+        if (scale >= 0.999) return;
+        box.style.transformOrigin = 'top center';
+        box.style.transform = 'scale(' + scale + ')';
+        // A scaled element still reserves its original height, leaving a
+        // large gap underneath — pull that back by the amount removed.
+        box.style.marginBottom = (-box.offsetHeight * (1 - scale)) + 'px';
+    }
+
+    function clearInvoiceScale() {
+        const box = document.querySelector('#invoiceModal .invoice-box');
+        if (!box) return;
+        const prev = { t: box.style.transform, o: box.style.transformOrigin,
+                       m: box.style.marginBottom, w: box.style.width, mw: box.style.maxWidth };
+        box.style.transform = '';
+        box.style.transformOrigin = '';
+        box.style.marginBottom = '';
+        box.style.width = '';
+        box.style.maxWidth = '';
+        box.classList.remove('inv-fixed');
+        return prev;
+    }
+
+    function restoreInvoiceScale(prev) {
+        const box = document.querySelector('#invoiceModal .invoice-box');
+        if (!box || !prev) return;
+        box.style.transform = prev.t;
+        box.style.transformOrigin = prev.o;
+        box.style.marginBottom = prev.m;
+        box.style.width = prev.w;
+        box.style.maxWidth = prev.mw;
+        if (prev.w) box.classList.add('inv-fixed');
+    }
+
+    window.addEventListener('resize', () => {
+        const m = document.getElementById('invoiceModal');
+        if (m && m.style.display === 'flex') fitInvoiceToScreen();
+    });
+
     function closeInvoiceModal() { history.back(); }
     function closeInvoiceModalUI() {
         document.getElementById('invoiceModal').style.display = 'none';
@@ -6248,6 +6313,9 @@
         }
 
         document.getElementById('invoiceModal').style.display = 'flex';  
+        // Let layout settle, then shrink to fit if page zoom made it wider
+        // than the screen.
+        setTimeout(fitInvoiceToScreen, 30);
         if (!suppressInvoiceModalHistory) navPushState(closeInvoiceModalUI);
     }  
 
@@ -6892,6 +6960,7 @@
         // so the snapshot captures the FULL width of wide content instead
         // of only whatever fit in the on-screen scroll viewport.
         const prevOverflow = node.style.overflow;
+        const prevScale = clearInvoiceScale();
         node.classList.add('pdf-capture-mode');
         node.style.overflow = 'visible';
 
@@ -6995,6 +7064,7 @@
         } finally {
             noPrintEls.forEach((el, i) => { el.style.display = prevDisplay[i]; });
             node.classList.remove('pdf-capture-mode');
+            restoreInvoiceScale(prevScale);
             node.style.overflow = prevOverflow;
         }
     }
@@ -7525,8 +7595,12 @@
     function printInvoiceDoc() {
         if (!isAdmin() && !hasPermission('exportPrint')) return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
         document.body.classList.add('printing-invoice');
+        // The preview may be scaled down to fit the screen; paper output
+        // must always print at full size.
+        const prevScale = clearInvoiceScale();
         const cleanup = () => {
             document.body.classList.remove('printing-invoice');
+            restoreInvoiceScale(prevScale);
             window.removeEventListener('afterprint', cleanup);
         };
         window.addEventListener('afterprint', cleanup);
