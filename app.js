@@ -6229,7 +6229,22 @@
 
     function closeInvoiceModal() { history.back(); }
     function closeInvoiceModalUI() {
-        document.getElementById('invoiceModal').style.display = 'none';
+        const m = document.getElementById('invoiceModal');
+        if (!m) return;
+        // Let the sheet slide back down before hiding it. If the browser
+        // can't run the animation (reduced motion, or the element is
+        // already hidden), fall through to hiding immediately so the modal
+        // can never be left stuck on screen.
+        if (m.style.display !== 'flex' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            m.style.display = 'none';
+            m.classList.remove('sheet-closing');
+            return;
+        }
+        m.classList.add('sheet-closing');
+        setTimeout(() => {
+            m.style.display = 'none';
+            m.classList.remove('sheet-closing');
+        }, 180);
     }
     function printInvoice(txnId) {  
         const txn = transactions.find(t => t.id == txnId);  
