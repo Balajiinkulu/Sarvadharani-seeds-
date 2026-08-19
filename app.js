@@ -1600,6 +1600,20 @@
         });
     }
 
+    // Short vibration on key actions. At a counter you're often handing over
+    // goods rather than watching the screen, so a buzz confirms a voucher
+    // saved without having to look. Wrapped in a try/catch and a support
+    // check because iOS Safari doesn't implement the Vibration API at all —
+    // there it simply does nothing rather than throwing.
+    function haptic(kind) {
+        try {
+            if (!navigator.vibrate) return;
+            if (kind === 'success') navigator.vibrate([12, 40, 18]);   // posted
+            else if (kind === 'error') navigator.vibrate([40, 60, 40]); // failed
+            else navigator.vibrate(10);                                 // tap
+        } catch (e) { /* vibration unavailable — not worth surfacing */ }
+    }
+
     // Marks the screen that's about to appear with a direction so the CSS
     // can slide it in the right way. Re-adding the class after a reflow is
     // what lets the same animation replay on every navigation.
@@ -1609,6 +1623,13 @@
         void el.offsetWidth;
         el.classList.add(dir);
     }
+
+    // One delegated listener rather than wiring every button: tiles and
+    // dashboard menu items are re-rendered often, so per-element handlers
+    // would need re-attaching each time.
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('.tile, .dash-menu-item, .back-btn, .dash-voucher-btn')) haptic('tap');
+    }, true);
 
     function hideAllMenus() {
         document.getElementById('tileMenu').style.display = 'none';
@@ -3335,6 +3356,7 @@
             document.getElementById('vDate').valueAsDate = new Date();
             render();
             logAudit('Created', journalTxn);
+            haptic('success');
             showSyncToast('ok', `Journal posted \u2022 ${journalTxn.invNo}`);
             return;
         }
@@ -3407,6 +3429,7 @@
             render();
             if (!customNoPartyDef) populateRefInvoices();
             logAudit('Created', cashTxn);
+            haptic('success');
             showSyncToast('ok', `${customNoPartyDef ? (customTypeDef.name || 'Expense') : type} posted \u2022 ${cashTxn.invNo}`);
 
             if (lastLedger && lastLedger.kind === 'party' && lastLedger.id == partyId
@@ -3464,6 +3487,7 @@
             document.getElementById('vDate').valueAsDate = new Date();
             render();
             logAudit('Created', dnTxn);
+            haptic('success');
             showSyncToast('ok', `Delivery Note created (dispatch record only) \u2022 ${dnTxn.invNo}`);
             return;
         }
@@ -3541,6 +3565,7 @@
             document.getElementById('vDate').valueAsDate = new Date();
             render();
             logAudit('Created', ctTxn);
+            haptic('success');
             showSyncToast('ok', `${customType.name} created \u2022 ${ctTxn.invNo}`);
             return;
         }
@@ -3681,6 +3706,7 @@
         document.getElementById('vDate').valueAsDate = new Date();
         render();
         logAudit('Created', txn);
+        haptic('success');
 
         // Settle-on-post: if the person marked this invoice paid, create the
         // matching Receipt/Payment now and link it via refInvoiceId — the
@@ -4474,6 +4500,7 @@
         localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
         syncCloud();
         logAudit('Created', payTxn, 'Added against ' + txn.invNo);
+        haptic('success');
         closeAddPayment();
         renderLinkedPayments(txn);
         render();
@@ -5549,6 +5576,7 @@
         onRpUnitChange(); // reset the rate label back to Quintal, matching the form reset
         populateRawPurchaseDropdowns();
         render();
+        haptic('success');
         showSyncToast('ok', `Raw purchase posted \u2022 ${qty} ${purchaseUnit} of ${item.name} \u2022 ${txn.invNo}`);
     });
 
@@ -5682,6 +5710,7 @@
         document.getElementById('cvDate').valueAsDate = new Date();
         populateConversionDropdowns();
         render();
+        haptic('success');
         showSyncToast('ok', `Conversion posted \u2022 ${rawQty} ${rawItem.uom} of ${rawItem.name} \u2192 ${outQty} ${procItem.uom} of ${procItem.name}`);
     });
 
