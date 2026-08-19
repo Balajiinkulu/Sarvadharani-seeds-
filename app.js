@@ -665,7 +665,7 @@
                 const qtyDisplay = isOversold
                     ? `${i.qty} ${escapeHtml(i.uom)} <span style="font-size:0.68rem; font-weight:normal; background:var(--danger); color:#fff; padding:1px 6px; border-radius:4px; margin-left:4px;">Oversold</span>`
                     : `${i.qty} ${escapeHtml(i.uom)}`;
-                stockBody.innerHTML += `
+                stockBody.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td onclick="viewStockItem(${i.id})" style="cursor:pointer;" title="View item summary"><strong>${escapeHtml(i.name)}</strong></td>
                         <td><span class="group-badge${i.groupId ? '' : ' muted'}">${escapeHtml(getStockGroupName(i.groupId))}</span></td>
@@ -678,7 +678,7 @@
                             <button onclick="deleteItem(${i.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
                         </td>
                     </tr>
-                `;
+                `);
             });
         }
         renderPaginationControls('stockSummary', filteredItems.length, renderStockSummary);
@@ -972,7 +972,7 @@
                     const shortNo = (inv.invNo || '').split('/').pop();
                     return `<span class="inv-chip" onclick="event.stopPropagation(); printInvoice(${inv.id})" title="Open ${escapeHtml(inv.invNo)}">${escapeHtml(shortNo)}</span>`;
                 }).join('');
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;" title="Open party ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
                         <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
                         <td class="inv-chip-cell" style="white-space:normal;">${invoiceLinks}</td>
@@ -980,7 +980,7 @@
                         <td style="color:var(--text-muted);">\u20B9${received.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="color:var(--success); font-weight:bold;">\u20B9${r.totalDue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
-                `;
+                `);
             });
         }
 
@@ -1023,7 +1023,7 @@
                 const invoiceLinks = r.invoices.map(inv =>
                     `<span class="inv-chip" onclick="event.stopPropagation(); printInvoice(${inv.id})" title="Open ${escapeHtml(inv.invNo)}">${escapeHtml((inv.invNo || '').split('/').pop())}</span>`
                 ).join('');
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;" title="Open vendor ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
                         <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
                         <td class="inv-chip-cell" style="white-space:normal;">${invoiceLinks}</td>
@@ -1031,7 +1031,7 @@
                         <td style="color:var(--text-muted);">\u20B9${paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="color:var(--danger); font-weight:bold;">\u20B9${r.totalDue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
-                `;
+                `);
             });
         }
 
@@ -1712,6 +1712,10 @@
         if (id === 'panelRawPurchaseReport') renderRawPurchaseReport();
         if (id === 'panelTrialBalance') renderTrialBalance();
         if (id === 'panelInvoiceGapCheck') renderInvoiceGapCheck();
+        // These were previously kept fresh by every render() call; now that
+        // render() skips hidden panels, they refresh as they open.
+        if (id === 'panelStock') renderStockSummary();
+        if (id === 'panelStockGroup' || id === 'panelLedgerGroup' || id === 'panelGroupStock') renderGroupTables();
         if (id === 'panelAuditTrail') renderAuditTrail();
         if (id === 'panelManageStaff') {
             if (!isAdmin() && !hasPermission('manageUsers')) { alert("Only an admin, or a user with 'Manage other users' access' turned on, can open Users."); closePanel(); return; }
@@ -1829,7 +1833,7 @@
         }
         parties.forEach(p => {
             const bal = partyBalance(p.id);
-            body.innerHTML += `
+            body.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td><strong>${escapeHtml(p.name)}</strong></td>
                     <td>${escapeHtml(p.type)}</td>
@@ -1840,7 +1844,7 @@
                         <button onclick="deleteParty(${p.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
                     </td>
                 </tr>
-            `;
+            `);
         });
     }
 
@@ -1884,7 +1888,7 @@
         // have changed since the page loaded).
         const groupSel = document.getElementById('apGroup');
         groupSel.innerHTML = '<option value="">-- Select Group --</option>';
-        ledgerGroups.forEach(g => groupSel.innerHTML += `<option value="${g.id}">${escapeHtml(g.name)} (${g.nature})</option>`);
+        ledgerGroups.forEach(g => groupSel.insertAdjacentHTML('beforeend', `<option value="${g.id}">${escapeHtml(g.name)} (${g.nature})</option>`));
 
         document.getElementById('apEditId').value = p.id;
         document.getElementById('apType').value = p.type;
@@ -2053,13 +2057,13 @@
             return;
         }
         names.forEach(name => {
-            body.innerHTML += `
+            body.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td><strong>${escapeHtml(name)}</strong></td>
                     <td>${counts[name]} item(s)</td>
                     <td><button onclick="startAlterUnit('${escapeHtml(name)}')" style="padding:4px 10px; font-size:0.75rem; width:auto;">Rename</button></td>
                 </tr>
-            `;
+            `);
         });
     }
 
@@ -2160,7 +2164,7 @@
         const prev = sel.value;
         sel.innerHTML = '<option value="">-- Select Category --</option>';
         subLedgers.forEach(name => {
-            sel.innerHTML += `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`;
+            sel.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`);
         });
         if (prev && subLedgers.includes(prev)) sel.value = prev;
     }
@@ -2960,7 +2964,7 @@
             totTax += taxDetails.taxAmount;
             totGrand += taxDetails.lineTotal;
 
-            tableBody.innerHTML += `
+            tableBody.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td>${escapeHtml(it.name)}</td>
                     <td>${it.qty} ${escapeHtml(it.uom)}</td>
@@ -2970,7 +2974,7 @@
                     <td>\u20B9${taxDetails.lineTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td><button onclick="removeTempItem(${idx})" class="btn-danger" style="padding:2px 6px; font-size:0.75rem;">X</button></td>
                 </tr>
-            `;
+            `);
         });
 
         document.getElementById('lblTaxable').innerText = `\u20B9${totTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
@@ -3130,7 +3134,7 @@
         const sel = document.getElementById('vAccount');
         sel.innerHTML = '<option value="">-- Select Account --</option>';
         accounts.forEach(a => {
-            sel.innerHTML += `<option value="${a.id}">${escapeHtml(a.name)} (${a.type})</option>`;
+            sel.insertAdjacentHTML('beforeend', `<option value="${a.id}">${escapeHtml(a.name)} (${a.type})</option>`);
         });
     }
 
@@ -3152,7 +3156,7 @@
             .sort((a, b) => a.id - b.id)
             .forEach(t => {
                 const due = invoiceOutstanding(t);
-                sel.innerHTML += `<option value="${t.id}">${t.invNo} - ${t.date} (Due: \u20B9${due.toLocaleString('en-IN', {minimumFractionDigits: 2})})</option>`;
+                sel.insertAdjacentHTML('beforeend', `<option value="${t.id}">${t.invNo} - ${t.date} (Due: \u20B9${due.toLocaleString('en-IN', {minimumFractionDigits: 2})})</option>`);
             });
     }
 
@@ -3985,7 +3989,7 @@
         }
         rows.forEach(t => {
             const typeLabel = t.customVoucherTypeName || t.type;
-            body.innerHTML += `
+            body.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td>${t.date}</td>
                     <td>${escapeHtml(typeLabel)}</td>
@@ -3994,10 +3998,10 @@
                     <td>\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td><button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button></td>
                 </tr>
-            `;
+            `);
         });
         if (!q && transactions.length > 50) {
-            body.innerHTML += `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-size:0.75rem;">Showing the 50 most recent. Type above to search the full history.</td></tr>`;
+            body.insertAdjacentHTML('beforeend', `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); font-size:0.75rem;">Showing the 50 most recent. Type above to search the full history.</td></tr>`);
         }
     }
 
@@ -4207,7 +4211,7 @@
         // Party dropdown
         const pSel = document.getElementById('editParty');
         pSel.innerHTML = '<option value="">-- Choose Party --</option>';
-        parties.forEach(p => pSel.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)} (${p.type})</option>`);
+        parties.forEach(p => pSel.insertAdjacentHTML('beforeend', `<option value="${p.id}">${escapeHtml(p.name)} (${p.type})</option>`));
         pSel.value = txn.partyId || '';
 
         const isCash = (txn.type === 'Payment' || txn.type === 'Receipt' || isCustomNoPartyType(txn.type));
@@ -4231,7 +4235,7 @@
             // Sub-ledger
             const slSel = document.getElementById('editSubLedger');
             slSel.innerHTML = '<option value="">-- Select Category --</option>';
-            subLedgers.forEach(n => slSel.innerHTML += `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`);
+            subLedgers.forEach(n => slSel.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`));
             slSel.value = txn.subLedger || '';
 
             // Working copy of the line items — lets add/remove work without
@@ -4258,7 +4262,7 @@
             // auto-filled as a starting point once one is chosen.
             const addSel = document.getElementById('editAddItemSelect');
             addSel.innerHTML = '<option value="">-- Select Item --</option>';
-            stockItems.forEach(s => addSel.innerHTML += `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.uom)})</option>`);
+            stockItems.forEach(s => addSel.insertAdjacentHTML('beforeend', `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.uom)})</option>`));
             document.getElementById('editAddItemQty').value = '1';
             document.getElementById('editAddItemRate').value = '';
         }
@@ -4266,7 +4270,7 @@
         if (isCash) {
             const aSel = document.getElementById('editAccount');
             aSel.innerHTML = '<option value="">-- Select Account --</option>';
-            accounts.forEach(a => aSel.innerHTML += `<option value="${a.id}">${escapeHtml(a.name)} (${a.type})</option>`);
+            accounts.forEach(a => aSel.insertAdjacentHTML('beforeend', `<option value="${a.id}">${escapeHtml(a.name)} (${a.type})</option>`));
             aSel.value = txn.accountId || '';
             document.getElementById('editAmount').value = txn.grandTotal;
             document.getElementById('editNarration').value = txn.narration || '';
@@ -4277,7 +4281,7 @@
             if (showCategory) {
                 const cSel = document.getElementById('editCashCategory');
                 cSel.innerHTML = '<option value="">-- Select Category --</option>';
-                subLedgers.forEach(n => cSel.innerHTML += `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`);
+                subLedgers.forEach(n => cSel.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`));
                 cSel.value = txn.subLedger || '';
             }
 
@@ -4872,7 +4876,7 @@
                 // any — same distinction as Purchase/Sales reports.
                 const openId = t.id;
                 const invOpenId = t.refInvoiceId || t.id;
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;" title="Open ${kind.toLowerCase()}">
                         <td class="no-print" data-select-col="${listKey}" style="display:none;" onclick="event.stopPropagation();">
                             <input type="checkbox" data-select-key="${listKey}" data-select-id="${t.id}" onchange="toggleRowSelection('${listKey}', ${t.id}, this.checked)">
@@ -4885,7 +4889,7 @@
                         <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="display:flex; gap:6px;"><button onclick="event.stopPropagation(); deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
                     </tr>
-                `;
+                `);
             });
         }
 
@@ -4908,7 +4912,7 @@
         const prevAccSel = accSel.value;
         accSel.innerHTML = '<option value="all">All Accounts</option><option value="group:Cash">All Cash Accounts</option><option value="group:Bank">All Bank Accounts</option>';
         accounts.forEach(a => {
-            accSel.innerHTML += `<option value="${a.id}">${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`;
+            accSel.insertAdjacentHTML('beforeend', `<option value="${a.id}">${escapeHtml(a.name)} (${escapeHtml(a.type)})</option>`);
         });
         if ([...accSel.options].some(o => o.value === prevAccSel)) accSel.value = prevAccSel;
 
@@ -4974,7 +4978,7 @@
                 const invOpenId = t.refInvoiceId || t.id;
                 const typeColor = t.type === 'Receipt' ? 'var(--success)' : 'var(--danger)';
 
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;" title="Open voucher">
                         <td onclick="printInvoice(${openId})">${t.date}</td>
                         <td onclick="printInvoice(${openId})" style="color:${typeColor}; font-weight:bold;">${t.type}</td>
@@ -4985,7 +4989,7 @@
                         <td onclick="printInvoice(${invOpenId})" style="white-space:normal; max-width:260px;">${inventoryHtml}</td>
                         <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
-                `;
+                `);
             });
         }
 
@@ -5049,14 +5053,14 @@
             totSales += sales; totPurch += purch;
             const net = sales - purch;
             const netColor = net > 0 ? 'var(--success)' : net < 0 ? 'var(--danger)' : 'var(--text-muted)';
-            body.innerHTML += `
+            body.insertAdjacentHTML('beforeend', `
                 <tr style="cursor:pointer;" onclick="openCategoryDetail('${escapeHtml(name)}')" title="Open category detail">
                     <td><strong>${escapeHtml(name)}</strong></td>
                     <td style="color:var(--success);">\u20B9${sales.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td style="color:var(--pink);">\u20B9${purch.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td style="color:${netColor}; font-weight:bold;">\u20B9${net.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 </tr>
-            `;
+            `);
         });
 
         if (!anyRows) {
@@ -5098,7 +5102,7 @@
                 if (isSaleType) salesTotal += t.grandTotal; else purchTotal += t.grandTotal;
                 const itemList = (t.items || []).map(it => `${escapeHtml(it.name || 'Item')} (${it.qty || 0} ${escapeHtml(it.uom || '')} @ \u20B9${(typeof it.inclRate === 'number' ? it.inclRate : 0).toLocaleString('en-IN', {minimumFractionDigits: 2})})`).join(', ');
                 const typeColor = isSaleType ? 'var(--success)' : 'var(--pink)';
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr onclick="printInvoice(${t.id})" style="cursor:pointer;" title="Open invoice">
                         <td class="no-print" data-select-col="categoryDetail" style="display:none;" onclick="event.stopPropagation();">
                             <input type="checkbox" data-select-key="categoryDetail" data-select-id="${t.id}" onchange="toggleRowSelection('categoryDetail', ${t.id}, this.checked)">
@@ -5110,7 +5114,7 @@
                         <td style="white-space:normal; max-width:280px;">${itemList}</td>
                         <td style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
-                `;
+                `);
             });
         }
 
@@ -5154,7 +5158,7 @@
                 const itemsDetail = (t.items && t.items.length)
                     ? t.items.map(it => `<div class="item-detail-line">${escapeHtml(it.name)}: ${it.qty}${it.uom ? ' ' + escapeHtml(it.uom) : ''} @ \u20B9${(it.inclRate || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>`).join('')
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;">
                         <td class="no-print" data-select-col="salesStatement" style="display:none;" onclick="event.stopPropagation();">
                             <input type="checkbox" data-select-key="salesStatement" data-select-id="${t.id}" onchange="toggleRowSelection('salesStatement', ${t.id}, this.checked)">
@@ -5171,7 +5175,7 @@
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${t.id})" class="btn-danger" style="padding:3px 9px; font-size:0.7rem;">Delete</button>
                         </td>
                     </tr>
-                `;
+                `);
             });
         }
         renderPaginationControls('salesStatement', rows.length, renderSalesStatement);
@@ -5214,7 +5218,7 @@
                 const typeLabel = t.type === 'RawPurchase'
                     ? '<span style="color:var(--success); font-weight:bold;">Raw Purchase</span>'
                     : '<span style="color:var(--text-main);">Purchase</span>';
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;">
                         <td class="no-print" data-select-col="purchaseReport" style="display:none;" onclick="event.stopPropagation();">
                             <input type="checkbox" data-select-key="purchaseReport" data-select-id="${t.id}" onchange="toggleRowSelection('purchaseReport', ${t.id}, this.checked)">
@@ -5232,7 +5236,7 @@
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${t.id})" class="btn-danger" style="padding:3px 9px; font-size:0.7rem;">Delete</button>
                         </td>
                     </tr>
-                `;
+                `);
             });
         }
         renderPaginationControls('purchaseReport', rows.length, renderPurchaseReport);
@@ -5280,7 +5284,7 @@
                 const taxCellText = (t.taxType === 'EXEMPT')
                     ? `<span style="color:var(--text-muted);">Nil GST</span>`
                     : `\u20B9${t.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})} (${taxLabel})`;
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;" title="Open invoice">
                         <td onclick="printInvoice(${t.id})">${t.date}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.type)}</td>
@@ -5289,7 +5293,7 @@
                         <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td onclick="printInvoice(${t.id})" style="color:${taxColor}; font-weight:bold;">${taxCellText}</td>
                     </tr>
-                `;
+                `);
             });
         }
 
@@ -5357,7 +5361,7 @@
                 const transportHtml = transportBits.length
                     ? transportBits.join('<br>')
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td class="no-print" data-select-col="deliveryNotes" style="display:none;">
                             <input type="checkbox" data-select-key="deliveryNotes" data-select-id="${t.id}" onchange="toggleRowSelection('deliveryNotes', ${t.id}, this.checked)">
@@ -5374,7 +5378,7 @@
                             <button onclick="deleteDeliveryNote(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button>
                         </td>
                     </tr>
-                `;
+                `);
             });
         }
         document.getElementById('dnCount').innerText = rows.length;
@@ -5445,13 +5449,13 @@
     function populateRawPurchaseDropdowns() {
         const pSel = document.getElementById('rpParty');
         pSel.innerHTML = '<option value="">-- Choose Vendor --</option>';
-        parties.forEach(p => pSel.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)} (${p.type})</option>`);
+        parties.forEach(p => pSel.insertAdjacentHTML('beforeend', `<option value="${p.id}">${escapeHtml(p.name)} (${p.type})</option>`));
 
         const iSel = document.getElementById('rpItem');
         iSel.innerHTML = '<option value="">-- Select Raw Item --</option>';
         stockItems.filter(i => i.rawMaterial).forEach(i =>
-            iSel.innerHTML += `<option value="${i.id}">${escapeHtml(i.name)} (Stock: ${i.qty} ${escapeHtml(i.uom)})</option>`
-        );
+            iSel.insertAdjacentHTML('beforeend', `<option value="${i.id}">${escapeHtml(i.name)} (Stock: ${i.qty} ${escapeHtml(i.uom)})</option>`
+        ));
     }
 
     function autoFillRawItem() {
@@ -5593,16 +5597,16 @@
         const prevRaw = rawSel.value;
         rawSel.innerHTML = '<option value="">-- Select Raw Item --</option>';
         stockItems.filter(i => i.rawMaterial).forEach(i =>
-            rawSel.innerHTML += `<option value="${i.id}">${escapeHtml(i.name)} (Available: ${i.qty} ${escapeHtml(i.uom)})</option>`
-        );
+            rawSel.insertAdjacentHTML('beforeend', `<option value="${i.id}">${escapeHtml(i.name)} (Available: ${i.qty} ${escapeHtml(i.uom)})</option>`
+        ));
         if (prevRaw) rawSel.value = prevRaw;
 
         const procSel = document.getElementById('cvProcessedItem');
         const prevProc = procSel.value;
         procSel.innerHTML = '<option value="">-- Select Processed Item --</option>';
         stockItems.filter(i => i.processedGood).forEach(i =>
-            procSel.innerHTML += `<option value="${i.id}">${escapeHtml(i.name)} (Stock: ${i.qty} ${escapeHtml(i.uom)})</option>`
-        );
+            procSel.insertAdjacentHTML('beforeend', `<option value="${i.id}">${escapeHtml(i.name)} (Stock: ${i.qty} ${escapeHtml(i.uom)})</option>`
+        ));
         if (prevProc) procSel.value = prevProc;
 
         updateConversionAvailability();
@@ -5768,7 +5772,7 @@
             rows.forEach(t => {
                 rawTotal += t.rawQty;
                 outTotal += t.outQty;
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td>${t.date}</td>
                         <td>${escapeHtml(t.rawItemName)}</td>
@@ -5778,7 +5782,7 @@
                         <td style="color:var(--text-muted);">${escapeHtml(t.notes || '-')}</td>
                         <td><button onclick="deleteConversion(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
                     </tr>
-                `;
+                `);
             });
         }
 
@@ -5797,13 +5801,13 @@
                 const totalProduced = transactions
                     .filter(t => t.conversion && t.processedItemId == i.id)
                     .reduce((a, c) => a + c.outQty, 0);
-                stockBody.innerHTML += `
+                stockBody.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td><strong>${escapeHtml(i.name)}</strong></td>
                         <td style="color:${i.qty < 5 ? 'var(--danger)' : 'var(--success)'}; font-weight:bold;">${i.qty} ${escapeHtml(i.uom)}</td>
                         <td>${totalProduced} ${escapeHtml(i.uom)}</td>
                     </tr>
-                `;
+                `);
             });
         }
     }
@@ -5820,7 +5824,7 @@
         const prev = sel.value;
         sel.innerHTML = '<option value="">All Varieties</option>';
         stockItems.filter(i => i.rawMaterial).forEach(i => {
-            sel.innerHTML += `<option value="${i.id}">${escapeHtml(i.name)}</option>`;
+            sel.insertAdjacentHTML('beforeend', `<option value="${i.id}">${escapeHtml(i.name)}</option>`);
         });
         if (prev) sel.value = prev;
     }
@@ -5851,7 +5855,7 @@
                 const line = t.items[0] || {};
                 qtyTotal += line.qty || 0;
                 valueTotal += t.grandTotal;
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;" title="Open invoice">
                         <td class="no-print" data-select-col="rawPurchaseReport" style="display:none;" onclick="event.stopPropagation();">
                             <input type="checkbox" data-select-key="rawPurchaseReport" data-select-id="${t.id}" onchange="toggleRowSelection('rawPurchaseReport', ${t.id}, this.checked)">
@@ -5864,7 +5868,7 @@
                         <td onclick="printInvoice(${t.id})">\u20B9${(line.inclRate || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
-                `;
+                `);
             });
         }
 
@@ -5886,14 +5890,14 @@
                 const totalConverted = transactions
                     .filter(t => t.conversion && t.rawItemId == i.id)
                     .reduce((a, c) => a + c.rawQty, 0);
-                stockBody.innerHTML += `
+                stockBody.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td><strong>${escapeHtml(i.name)}</strong></td>
                         <td style="color:${i.qty < 5 ? 'var(--danger)' : 'var(--success)'}; font-weight:bold;">${i.qty} ${escapeHtml(i.uom)}</td>
                         <td>${totalPurchased} ${escapeHtml(i.uom)}</td>
                         <td>${totalConverted} ${escapeHtml(i.uom)}</td>
                     </tr>
-                `;
+                `);
             });
         }
     }
@@ -5980,7 +5984,7 @@
         if (!grp) return;
         grp.innerHTML = '';
         customVoucherTypes.forEach(vt => {
-            grp.innerHTML += `<option value="${vt.id}">${escapeHtml(vt.name)}</option>`;
+            grp.insertAdjacentHTML('beforeend', `<option value="${vt.id}">${escapeHtml(vt.name)}</option>`);
         });
     }
 
@@ -5997,7 +6001,7 @@
         customVoucherTypes.forEach(vt => {
             const count = transactions.filter(t => t.customVoucherTypeId === vt.id).length;
             const requiresParty = vt.requiresParty !== 'no'; // defaults to required, matching older types
-            body.innerHTML += `
+            body.insertAdjacentHTML('beforeend', `
                 <tr style="cursor:pointer;" onclick="openCustomVoucherList('${vt.id}')" title="View entries for this voucher type">
                     <td><strong>${escapeHtml(vt.name)}</strong> <span style="color:var(--text-muted); font-size:0.72rem;">(${count})</span></td>
                     <td>${stockEffectLabel(vt.stockEffect)}</td>
@@ -6012,7 +6016,7 @@
                         <button onclick="event.stopPropagation(); deleteVoucherType('${vt.id}')" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
                     </td>
                 </tr>
-            `;
+            `);
         });
     }
 
@@ -6055,7 +6059,7 @@
         customVoucherListRowOrder = rows.map(t => t.id);
         rows.forEach(t => {
             const itemList = (t.items || []).map(it => `${escapeHtml(it.name)} (${it.qty} ${escapeHtml(it.uom)})`).join(', ');
-            body.innerHTML += `
+            body.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td class="no-print" data-select-col="customVoucherList" style="display:none;">
                         <input type="checkbox" data-select-key="customVoucherList" data-select-id="${t.id}" onchange="toggleRowSelection('customVoucherList', ${t.id}, this.checked)">
@@ -6071,7 +6075,7 @@
                         <button onclick="deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button>
                     </td>
                 </tr>
-            `;
+            `);
         });
     }
 
@@ -6096,7 +6100,7 @@
                 const label = t.type === 'OptionalSales' ? 'Optional Sale' : 'Optional Purchase';
                 const color = t.type === 'OptionalSales' ? 'var(--success)' : 'var(--pink)';
                 // main summary row (click to open invoice)
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td class="no-print" data-select-col="optionalVouchers" style="display:none;">
                             <input type="checkbox" data-select-key="optionalVouchers" data-select-id="${t.id}" onchange="toggleRowSelection('optionalVouchers', ${t.id}, this.checked)">
@@ -6109,7 +6113,7 @@
                         <td style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="display:flex; gap:6px;"><button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.72rem;">Invoice</button><button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.72rem; width:auto;">Edit</button><button onclick="deleteOptional(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
                     </tr>
-                `;
+                `);
                 // hidden inventory detail row
                 let itemRows = t.items.map(it =>
                     `<div style="display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px dashed var(--border);">
@@ -6120,14 +6124,14 @@
                 if (t.narration) {
                     itemRows += `<div style="padding:6px 0 0; color:var(--text-muted); font-style:italic; font-size:0.78rem;">Narration: ${escapeHtml(t.narration)}</div>`;
                 }
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr id="optItems-${t.id}" style="display:none; background:rgba(139,124,255,0.05);">
                         <td colspan="8" style="font-size:0.8rem;">
                             <div style="font-weight:600; color:var(--accent); margin-bottom:4px;">Inventory in this voucher</div>
                             ${itemRows}
                         </td>
                     </tr>
-                `;
+                `);
             });
         }
 
@@ -6885,7 +6889,7 @@
             }
             if (opening > 0) totalDebit += opening;
             else if (opening < 0) totalCredit += Math.abs(opening);
-            tbody.innerHTML += `
+            tbody.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td style="vertical-align:top;">-</td>
                     <td><strong>Opening Balance</strong></td>
@@ -6895,7 +6899,7 @@
                     <td style="vertical-align:top;">${opening < 0 ? Math.abs(opening).toLocaleString('en-IN', {minimumFractionDigits: 2}) : ''}</td>
                     <td style="vertical-align:top;">-</td>
                 </tr>
-            `;
+            `);
         } else if (!isAggregate) {
             const party = parties.find(p => p.id == id);
             const asOf = party.openingAsOf || '2000-01-01';
@@ -6912,7 +6916,7 @@
             }
             if (opening > 0) totalDebit += opening;
             else if (opening < 0) totalCredit += Math.abs(opening);
-            tbody.innerHTML += `
+            tbody.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td style="vertical-align:top;">-</td>
                     <td><strong>Opening Balance</strong></td>
@@ -6922,11 +6926,11 @@
                     <td style="vertical-align:top;">${opening < 0 ? Math.abs(opening).toLocaleString('en-IN', {minimumFractionDigits: 2}) : ''}</td>
                     <td style="vertical-align:top;">-</td>
                 </tr>
-            `;
+            `);
         }
 
         if (ledgerTxns.length === 0) {
-            tbody.innerHTML += `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No transactions found for this ledger.</td></tr>`;
+            tbody.insertAdjacentHTML('beforeend', `<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">No transactions found for this ledger.</td></tr>`);
         } else {
             ledgerCurrentRowOrder = ledgerTxns.map(t => t.id); // full set, for Print Selected — independent of which page is showing
 
@@ -7010,7 +7014,7 @@
                 const debitColor = isReceiptTxn ? receiptGreen : (isPaymentTxn ? 'var(--danger)' : 'inherit');
                 const creditColor = isPaymentTxn ? 'var(--danger)' : (isReceiptTxn ? receiptGreen : 'inherit');
 
-                tbody.innerHTML += `
+                tbody.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;" title="Click to view this voucher">
                         <td class="no-print" data-select-col="ledgerStatement" style="vertical-align:top; display:none;" onclick="event.stopPropagation();">
                             <input type="checkbox" data-select-key="ledgerStatement" data-select-id="${txn.id}" onchange="toggleRowSelection('ledgerStatement', ${txn.id}, this.checked)">
@@ -7028,7 +7032,7 @@
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${txn.id})" class="btn-danger" style="padding:2px 8px; font-size:0.68rem; width:auto;">Delete</button>
                         </td>
                     </tr>
-                `;
+                `);
             });
         }
 
@@ -7807,19 +7811,19 @@
         const itemGroupSel = document.getElementById('itemGroup');
         const prevItemGroup = itemGroupSel.value;
         itemGroupSel.innerHTML = '<option value="">-- Select Group --</option>';
-        stockGroups.forEach(g => itemGroupSel.innerHTML += `<option value="${g.id}">${escapeHtml(g.name)}</option>`);
+        stockGroups.forEach(g => itemGroupSel.insertAdjacentHTML('beforeend', `<option value="${g.id}">${escapeHtml(g.name)}</option>`));
         if (prevItemGroup) itemGroupSel.value = prevItemGroup;
 
         const acctGroupSel = document.getElementById('acctGroup');
         const prevAcctGroup = acctGroupSel.value;
         acctGroupSel.innerHTML = '<option value="">-- Select Group --</option>';
-        ledgerGroups.forEach(g => acctGroupSel.innerHTML += `<option value="${g.id}">${escapeHtml(g.name)} (${g.nature})</option>`);
+        ledgerGroups.forEach(g => acctGroupSel.insertAdjacentHTML('beforeend', `<option value="${g.id}">${escapeHtml(g.name)} (${g.nature})</option>`));
         if (prevAcctGroup) acctGroupSel.value = prevAcctGroup;
 
         const pGroupSel = document.getElementById('pGroup');
         const prevPGroup = pGroupSel.value;
         pGroupSel.innerHTML = '<option value="">-- Select Group --</option>';
-        ledgerGroups.forEach(g => pGroupSel.innerHTML += `<option value="${g.id}">${escapeHtml(g.name)} (${g.nature})</option>`);
+        ledgerGroups.forEach(g => pGroupSel.insertAdjacentHTML('beforeend', `<option value="${g.id}">${escapeHtml(g.name)} (${g.nature})</option>`));
         if (prevPGroup) pGroupSel.value = prevPGroup;
     }
 
@@ -7840,7 +7844,7 @@
         }
         items.forEach(i => {
             const val = i.qty * i.rate;
-            body.innerHTML += `
+            body.insertAdjacentHTML('beforeend', `
                 <tr onclick="viewStockItem(${i.id})" style="cursor:pointer;" title="View item summary">
                     <td><strong>${escapeHtml(i.name)}</strong></td>
                     <td>${escapeHtml(i.hsn)}</td>
@@ -7848,7 +7852,7 @@
                     <td>\u20B9${i.rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td>\u20B9${val.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                 </tr>
-            `;
+            `);
         });
         openPanel('panelGroupStock');
     }
@@ -7909,7 +7913,7 @@
             rows.sort((a, b) => new Date(b.date) - new Date(a.date));
             rows.forEach(r => {
                 const color = r.type === 'Sales' ? 'var(--success)' : 'var(--accent)';
-                body.innerHTML += `
+                body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;" title="Open invoice">
                         <td onclick="printInvoice(${r.openId})">${r.date}</td>
                         <td onclick="printInvoice(${r.openId})" style="color:${color}; font-weight:bold;">${r.type}</td>
@@ -7919,7 +7923,7 @@
                         <td onclick="printInvoice(${r.openId})">\u20B9${r.rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td onclick="printInvoice(${r.openId})" style="font-weight:bold;">\u20B9${r.amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     </tr>
-                `;
+                `);
             });
         }
         openPanel('panelStockItemView');
@@ -7933,7 +7937,7 @@
         }
         stockGroups.forEach(g => {
             const count = stockItems.filter(i => i.groupId == g.id).length;
-            sgBody.innerHTML += `
+            sgBody.insertAdjacentHTML('beforeend', `
                 <tr style="cursor:pointer;">
                     <td onclick="viewGroupStock(${g.id})"><strong>${escapeHtml(g.name)}</strong></td>
                     <td onclick="viewGroupStock(${g.id})">${count}</td>
@@ -7942,7 +7946,7 @@
                         <button onclick="event.stopPropagation(); deleteStockGroup(${g.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
                     </td>
                 </tr>
-            `;
+            `);
         });
 
         const lgBody = document.getElementById('ledgerGroupsBody');
@@ -7954,7 +7958,7 @@
             const acctCount = accounts.filter(a => a.groupId == g.id).length;
             const partyCount = parties.filter(p => p.groupId == g.id).length;
             const count = acctCount + partyCount;
-            lgBody.innerHTML += `
+            lgBody.insertAdjacentHTML('beforeend', `
                 <tr onclick="viewGroupLedgers(${g.id})" style="cursor:pointer;">
                     <td><strong>${escapeHtml(g.name)}</strong></td>
                     <td>${escapeHtml(g.nature || '-')}</td>
@@ -7964,7 +7968,7 @@
                         <button onclick="event.stopPropagation(); deleteLedgerGroup(${g.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
                     </td>
                 </tr>
-            `;
+            `);
         });
     }
 
@@ -7995,26 +7999,26 @@
             const net = dr - cr;
             const balTxt = net > 0 ? `\u20B9${net.toLocaleString('en-IN', {minimumFractionDigits: 2})} (Dr)` : net < 0 ? `\u20B9${Math.abs(net).toLocaleString('en-IN', {minimumFractionDigits: 2})} (Cr)` : 'Settled';
             const balColor = net > 0 ? 'var(--accent)' : net < 0 ? 'var(--danger)' : 'var(--text-muted)';
-            body.innerHTML += `
+            body.insertAdjacentHTML('beforeend', `
                 <tr style="cursor:pointer;">
                     <td onclick="openLedgerStatement('party', ${p.id})"><strong>${escapeHtml(p.name)}</strong></td>
                     <td onclick="openLedgerStatement('party', ${p.id})"><span style="font-size:0.75rem; background:#1e293b; padding:2px 6px; border-radius:4px;">Party (${escapeHtml(p.type)})</span></td>
                     <td onclick="openLedgerStatement('party', ${p.id})" style="color:${balColor}; font-weight:bold;">${balTxt}</td>
                     <td><button onclick="event.stopPropagation(); deletePartyFromGroup(${p.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button></td>
                 </tr>
-            `;
+            `);
         });
 
         groupAccounts.forEach(a => {
             const bal = accountBalance(a.id);
-            body.innerHTML += `
+            body.insertAdjacentHTML('beforeend', `
                 <tr style="cursor:pointer;">
                     <td onclick="openLedgerStatement('account', ${a.id})"><strong>${escapeHtml(a.name)}</strong></td>
                     <td onclick="openLedgerStatement('account', ${a.id})"><span style="font-size:0.75rem; background:#1e293b; padding:2px 6px; border-radius:4px;">Account (${escapeHtml(a.type)})</span></td>
                     <td onclick="openLedgerStatement('account', ${a.id})" style="color:${bal < 0 ? 'var(--danger)' : 'var(--success)'}; font-weight:bold;">\u20B9${bal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td><button onclick="event.stopPropagation(); deleteAccount(${a.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button></td>
                 </tr>
-            `;
+            `);
         });
 
         openPanel('panelGroupLedgers');
@@ -8040,7 +8044,13 @@
     function render() {  
         recalcStockFromLedger(); // keep "In Stock" mathematically tied to Purchased/Sold on every redraw — see definition above
         populateGroupDropdowns();
-        renderGroupTables();
+        // Group tables are only visible inside their own panels, so rebuilding
+        // them on every voucher post was work nobody could see — and they're
+        // row-heavy, which is what made posting feel sluggish. They're rebuilt
+        // when their panel opens instead.
+        const groupPanelOpen = ['panelStockGroup', 'panelLedgerGroup', 'panelGroupStock']
+            .some(id => { const el = document.getElementById(id); return el && el.classList.contains('active'); });
+        if (groupPanelOpen) renderGroupTables();
         populateCustomVoucherTypeOptions();
 
         const vPartyHidden = document.getElementById('vParty');  
@@ -8083,7 +8093,7 @@
         }
         accounts.forEach(a => {
             const bal = accountBalance(a.id);
-            acctBody.innerHTML += `
+            acctBody.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td><strong>${escapeHtml(a.name)}</strong></td>
                     <td>${escapeHtml(a.type)}</td>
@@ -8095,14 +8105,17 @@
                         <button onclick="deleteAccount(${a.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
                     </td>
                 </tr>
-            `;
+            `);
         });
         if (document.getElementById('paymentPanel').style.display === 'block') {
             populateAccountDropdown();
             populateRefInvoices();
         }
   
-        renderStockSummary();
+        // Likewise: only redraw the (potentially long) stock table when its
+        // panel is actually on screen.
+        const stockPanel = document.getElementById('panelStock');
+        if (stockPanel && stockPanel.classList.contains('active')) renderStockSummary();
 
         const lBody = document.getElementById('ledgerBody');  
         lBody.innerHTML = '';  
@@ -8134,7 +8147,7 @@
             const checkboxCell = isSelectable
                 ? `<input type="checkbox" data-select-key="daybook" data-select-id="${t.id}" onchange="toggleRowSelection('daybook', ${t.id}, this.checked)">`
                 : '';
-            lBody.innerHTML += `  
+            lBody.insertAdjacentHTML('beforeend', `  
                 <tr>  
                     <td class="no-print" data-select-col="daybook" style="display:none;">${checkboxCell}</td>
                     <td>${t.date}</td>  
@@ -8147,7 +8160,7 @@
                         <button onclick="deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
                     </td>  
                 </tr>  
-            `;  
+            `);  
         });  
 
         let salesSum = 0, purSum = 0, outputGst = 0, inputGst = 0;
