@@ -4382,79 +4382,70 @@
     // records money that actually changed hands, so it gets the same
     // deliberate edit path (and audit entry) as any other voucher.
     // The "+" only reveals the fields — it never records anything by itself.
+    // Anything scheduled while the payment row is open lives here so it can
+    // all be torn down on close. Previously a scroll timer AND a viewport
+    // listener both tried to reposition the row — they fought each other
+    // (the jitter), and if you cancelled first they still fired afterwards
+    // against a row that was no longer there, leaving the modal stuck.
+    let addPayCleanup = null;
+
     function openAddPayment() {
+        // Never stack two sessions: re-opening without closing used to leave
+        // the previous listeners attached.
+        if (addPayCleanup) addPayCleanup();
+
         ['editAddPayAmount', 'editAddPayAccount', 'editAddPayConfirm', 'editAddPayCancel']
             .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = ''; });
         const open = document.getElementById('editAddPayOpen');
         if (open) open.style.display = 'none';
+
         const modalEl = document.getElementById('editModal');
-        // Reserve exactly the keyboard's height — no more. A fixed 60vh was
-        // usually larger than the keyboard, and that surplus was scrollable,
-        // so the modal could be dragged completely off screen leaving the
-        // dashboard showing behind it. visualViewport reports the real
-        // shrink, so the modal gains only what it actually needs.
-        if (modalEl) {
-            modalEl.classList.add('kbd-space');
-            const applyPad = () => {
-                const kb = window.visualViewport
-                    ? Math.max(0, window.innerHeight - window.visualViewport.height)
-                    : 0;
-                // Small cushion so the row isn't flush against the keyboard.
-                modalEl.style.paddingBottom = (kb ? kb + 24 : 0) + 'px';
-            };
-            applyPad();
-            if (window.visualViewport) {
-                modalEl.__kbPad = applyPad;
-                window.visualViewport.addEventListener('resize', applyPad);
-            }
-        }
         const amt = document.getElementById('editAddPayAmount');
-        if (!amt) return;
-        amt.focus();
-        amt.select();
-        // This row sits at the very bottom of the edit modal, so the on-screen
-        // keyboard covers it the moment the amount field takes focus — you
-        // couldn't see what you were typing or reach the confirm button. The
-        // keyboard animates in over roughly a quarter second, so scroll the
-        // row up once it has settled. visualViewport (where supported) tells
-        // us how much space the keyboard actually took, so the row can be
-        // placed just above it rather than guessed at.
-        // Let the browser place the row: computing a scroll offset by hand
-        // fought iOS's own "scroll the focused field into view", which is why
-        // the modal sometimes jumped back to the top. The padding added above
-        // gives it exactly the room it needs to clear the keyboard.
-        const scrollRowIntoView = () => {
+        if (!modalEl || !amt) return;
+        modalEl.classList.add('kbd-space');
+
+        let timer = null;
+        let closed = false;
+
+        // Reserve exactly the keyboard's height, and place the row — both
+        // driven by the same handler, so there's only ever one thing moving
+        // the view.
+        const settle = () => {
+            if (closed) return;
+            const kb = window.visualViewport
+                ? Math.max(0, window.innerHeight - window.visualViewport.height)
+                : 0;
+            modalEl.style.paddingBottom = (kb ? kb + 24 : 0) + 'px';
             const row = document.getElementById('editAddPayRow');
             if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
         };
-        setTimeout(scrollRowIntoView, 320);
-        if (window.visualViewport) {
-            // Fires when the keyboard finishes opening; re-align in case the
-            // first scroll ran before the viewport had actually shrunk.
-            const onResize = () => {
-                scrollRowIntoView();
-                window.visualViewport.removeEventListener('resize', onResize);
-            };
-            window.visualViewport.addEventListener('resize', onResize);
-            // Don't leave the listener attached if no keyboard ever appears.
-            setTimeout(() => window.visualViewport.removeEventListener('resize', onResize), 1200);
-        }
+
+        addPayCleanup = () => {
+            closed = true;
+            if (timer) clearTimeout(timer);
+            if (window.visualViewport) window.visualViewport.removeEventListener('resize', settle);
+            modalEl.classList.remove('kbd-space');
+            modalEl.style.paddingBottom = '';
+            addPayCleanup = null;
+        };
+
+        amt.focus();
+        amt.select();
+        // One delayed pass for browsers with no visualViewport; where it does
+        // exist, the resize handler takes over once the keyboard settles.
+        timer = setTimeout(settle, 320);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', settle);
     }
 
     function closeAddPayment() {
+        if (addPayCleanup) addPayCleanup();
         ['editAddPayAmount', 'editAddPayAccount', 'editAddPayConfirm', 'editAddPayCancel']
             .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
         const open = document.getElementById('editAddPayOpen');
         if (open) open.style.display = '';
-        const modalEl = document.getElementById('editModal');
-        if (modalEl) {
-            modalEl.classList.remove('kbd-space');
-            modalEl.style.paddingBottom = '';
-            if (window.visualViewport && modalEl.__kbPad) {
-                window.visualViewport.removeEventListener('resize', modalEl.__kbPad);
-                modalEl.__kbPad = null;
-            }
-        }
+        // Drop focus so the keyboard closes with the row.
+        const amt = document.getElementById('editAddPayAmount');
+        if (amt) amt.blur();
     }
 
     // Posts a Receipt/Payment for this invoice, already linked. Same shape
