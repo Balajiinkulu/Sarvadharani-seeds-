@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=38">
+    <link rel="stylesheet" href="styles.css?v=41">
 </head>
 <body>
 <script>
@@ -1436,6 +1436,17 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <option value="nil">Nil GST Summary</option>
                 </select>
             </div>
+            <!-- Fertiliser is taxed, Seeds isn't (etc.) — this filters the
+                 register down to one sub-ledger at a time, populated from
+                 whatever categories actually exist rather than hardcoding
+                 Fertiliser/Seeds/Pesticides, so it stays correct if more are
+                 ever added. -->
+            <div style="flex:1; min-width:170px;">
+                <label>Category</label>
+                <select id="gstSubLedger" onchange="renderGstLiability()">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
             <div id="gstCustomWrap" style="display:none; flex:2; min-width:220px;">
                 <label>From &ndash; To</label>
                 <div style="display:flex; gap:6px;">
@@ -2777,6 +2788,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=38"></script>
+<script src="app.js?v=41"></script>
 </body>
 </html>

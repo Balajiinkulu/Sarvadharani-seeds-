@@ -5346,11 +5346,25 @@
         renderGstLiability();
     }
 
+    // Keeps the Category dropdown in sync with whatever sub-ledgers
+    // actually exist, rather than a fixed Fertiliser/Seeds/Pesticides list —
+    // stays correct if categories are ever renamed or added to.
+    function populateGstSubLedgerOptions() {
+        const sel = document.getElementById('gstSubLedger');
+        if (!sel) return;
+        const keep = sel.value;
+        sel.innerHTML = '<option value="">All Categories</option>'
+            + subLedgers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        if (keep && subLedgers.includes(keep)) sel.value = keep;
+    }
+
     function renderGstLiability() {
         const range = periodRange(document.getElementById('gstPeriod').value,
                                   document.getElementById('gstFrom').value,
                                   document.getElementById('gstTo').value);
         const view = document.getElementById('gstView').value; // 'all' | 'taxed' | 'nil'
+        populateGstSubLedgerOptions();
+        const subLedgerFilter = document.getElementById('gstSubLedger').value;
 
         // Same rule the dashboard figure itself uses: Output tax from Sales,
         // Input tax from Purchase only (Raw Purchase is tracked separately
@@ -5358,6 +5372,7 @@
         let rows = transactions.filter(t => (t.type === 'Sales' || t.type === 'Purchase') && inRange(t.date, range));
         if (view === 'taxed') rows = rows.filter(t => t.taxType !== 'EXEMPT');
         else if (view === 'nil') rows = rows.filter(t => t.taxType === 'EXEMPT');
+        if (subLedgerFilter) rows = rows.filter(t => t.subLedger === subLedgerFilter);
         rows = sortByDate(rows, 'gstLiability');
 
         const registerBody = document.getElementById('gstRegisterBody');
@@ -5374,9 +5389,11 @@
         if (bizEl) bizEl.innerText = 'Sarvadharani Seeds';
         if (addrEl) addrEl.innerText = [getCompanyAddress(), getCompanyMobile()].filter(Boolean).join(' \u00b7 ');
         if (titleEl) {
-            titleEl.innerText = view === 'nil' ? 'GST Sale \u2014 Nil GST'
-                               : view === 'taxed' ? 'GST Sale \u2014 Taxed'
-                               : 'GST Sale';
+            let title = 'GST Sale';
+            if (view === 'nil') title += ' \u2014 Nil GST';
+            else if (view === 'taxed') title += ' \u2014 Taxed';
+            if (subLedgerFilter) title += ` \u2014 ${subLedgerFilter}`;
+            titleEl.innerText = title;
         }
         if (rangeEl) {
             const fmtDate = d => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -5407,14 +5424,25 @@
                 let itemLines = '';
                 if (isSale && Array.isArray(t.items) && t.items.length) {
                     itemLines = t.items.map(it => {
-                        // Same MRP-at-time-of-sale basis reportTaxForSale()
-                        // uses, so the per-line amount shown here always
-                        // matches what was actually totalled into the
-                        // voucher figure above it.
+                        // MRP with GST taken back out — the item's TAXABLE
+                        // value, not the tax-inclusive rate. CGST+SGST are
+                        // added back underneath, so showing the MRP here AND
+                        // adding tax again below was counting that item's GST
+                        // twice. Taxable + tax now equals the true total
+                        // exactly once, the same way the paper invoice's own
+                        // Taxable Value / GST / Grand Total breakdown works.
                         const baseRate = (it.masterRateAtSale != null) ? it.masterRateAtSale : (it.inclRate || 0);
-                        const lineAmt = baseRate * (it.qty || 0);
+                        const mrpAmt = baseRate * (it.qty || 0);
+                        const lineRate = it.gstRate || 0;
+                        const lineAmt = lineRate > 0 ? mrpAmt / (1 + lineRate / 100) : mrpAmt;
+                        // Per-unit rate shown alongside the quantity is now
+                        // exclusive too (rate ÷ qty), matching the line total
+                        // it sits next to — previously this showed the MRP
+                        // rate beside an exclusive total, which didn't add up
+                        // if you multiplied them yourself.
+                        const exRate = (it.qty || 0) > 0 ? lineAmt / it.qty : lineAmt;
                         return `<div style="display:flex; justify-content:space-between; gap:8px; font-size:0.82rem; padding:2px 0;">
-                            <span>${escapeHtml(it.name)} &nbsp; <span style="color:var(--text-muted);">${it.qty} ${escapeHtml(it.uom || '')} \u00d7 \u20B9${fmt(baseRate)}/${escapeHtml(it.uom || '')}</span></span>
+                            <span>${escapeHtml(it.name)} &nbsp; <span style="color:var(--text-muted);">${it.qty} ${escapeHtml(it.uom || '')} \u00d7 \u20B9${fmt(exRate)}/${escapeHtml(it.uom || '')}</span></span>
                             <span style="font-family:'JetBrains Mono',monospace; white-space:nowrap;">\u20B9${fmt(lineAmt)}</span>
                         </div>`;
                     }).join('');
