@@ -18,20 +18,20 @@
     --bg-main: #FFFFFF;
     --bg-card: #FFFFFF;
     --bg-input: #FFFFFF;
-    --bg-tint: #F2F3F5;
-    --bg-hover: #E6E8EC;
+    --bg-tint: #DFF7FF;
+    --bg-hover: #C9EFFB;
     --bg-menu: #FFFFFF;
     --bg-header: #1C2318;
     --statement-bg: #FFFFFF;
-    --statement-row-alt: #F6F7F8;
+    --statement-row-alt: #F1FBFF;
     --glass-blur: none;
     --glass-highlight: none;
 
     /* Primary accent — blue (default/primary buttons, links, borders) */
-    --accent: #2563EB;
+    --accent: #2457FF;
     --accent-2: #9CA3AF;      /* neutral grey secondary */
-    --accent-hover: #1D4ED8;
-    --accent-soft: rgba(37, 99, 235, 0.12);
+    --accent-hover: #1743D6;
+    --accent-soft: rgba(36, 87, 255, 0.10);
 
     /* Text */
     --text-main: #1A1A1A;
@@ -52,7 +52,7 @@
     --border: rgba(0, 0, 0, 0.12);
     --border-strong: rgba(0, 0, 0, 0.22);
     --card-shadow: 0 1px 0 0 rgba(0,0,0,0.04);
-    --grad-accent: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    --grad-accent: linear-gradient(135deg, #2457FF 0%, #4B79FF 100%);
     --grad-success: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
     --grad-danger: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
     --danger-bg: #FBE9E7;
@@ -80,17 +80,17 @@ body.dark-mode {
     --bg-main: #121212;
     --bg-card: #1E1E1E;
     --bg-input: #2A2A2A;
-    --bg-tint: #262626;
+    --bg-tint: #16202B;
     --bg-header: #0D0D0D;
-    --bg-hover: #333333;
+    --bg-hover: #1F2E3D;
     --bg-menu: #2C2C2E;
     --statement-bg: #1E1E1E;
-    --statement-row-alt: #242424;
+    --statement-row-alt: #16202B;
 
-    --accent: #3B82F6;
+    --accent: #4B79FF;
     --accent-2: #8B93A0;
-    --accent-hover: #60A5FA;
-    --accent-soft: rgba(59, 130, 246, 0.18);
+    --accent-hover: #7B9CFF;
+    --accent-soft: rgba(75, 121, 255, 0.20);
 
     --text-main: #EDEDED;
     --text-muted: #A0A0A0;
@@ -108,7 +108,7 @@ body.dark-mode {
     --border: rgba(255, 255, 255, 0.14);
     --border-strong: rgba(255, 255, 255, 0.26);
     --card-shadow: 0 1px 0 0 rgba(0,0,0,0.3);
-    --grad-accent: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+    --grad-accent: linear-gradient(135deg, #2457FF 0%, #4B79FF 100%);
     --grad-success: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
     --grad-danger: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
 
@@ -261,10 +261,15 @@ table td, table th {
 
 /* ---------- Header ---------- */
 header {
-    background: #000000;
-    color: var(--text-invert);
-    margin: 0 -24px 28px;
+    /* Follows the theme like every other surface, rather than staying
+       permanently black — white card in light mode, dark card in dark
+       mode. Text and icons flip with it (see the two overrides below). */
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: none;
+    margin: 10px 0 20px;
     padding: 14px 16px 12px;
+    border-radius: var(--radius);
     position: relative;
 }
 .hdr-top {
@@ -285,7 +290,7 @@ header {
     font-weight: 700;
     font-size: 1.12rem;
     line-height: 1.2;
-    color: #FFFFFF;
+    color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -299,13 +304,13 @@ header {
     flex: none;
     border: none;
     border-radius: 50%;
-    background: rgba(255,255,255,0.12);
-    color: #FFFFFF;
+    background: var(--bg-tint);
+    color: var(--text-main);
     font-size: 0.95rem;
     line-height: 1;
     box-shadow: none;
 }
-.hdr-icon:hover { background: rgba(255,255,255,0.2); filter: none; }
+.hdr-icon:hover { background: var(--bg-hover); filter: none; }
 .hdr-chips {
     display: flex;
     gap: 7px;
@@ -313,8 +318,8 @@ header {
     flex-wrap: wrap;
 }
 .hdr-chip {
-    background: rgba(255,255,255,0.11);
-    color: #E6ECE6;
+    background: var(--bg-tint);
+    color: var(--text-muted);
     border-radius: 8px;
     padding: 5px 10px;
     font-family: 'JetBrains Mono', monospace;
