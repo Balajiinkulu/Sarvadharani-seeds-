@@ -5360,64 +5360,84 @@
         else if (view === 'nil') rows = rows.filter(t => t.taxType === 'EXEMPT');
         rows = sortByDate(rows, 'gstLiability');
 
-        const body = document.getElementById('gstLiabilityBody');
-        body.innerHTML = '';
+        const registerBody = document.getElementById('gstRegisterBody');
+        registerBody.innerHTML = '';
         let outputTax = 0, inputTax = 0, outputTaxable = 0, inputTaxable = 0;
+
+        // Header block — company details plus the period being viewed,
+        // matching the letterhead-and-range layout of a printed sales
+        // register rather than a plain report title.
+        const bizEl = document.getElementById('gstRegBiz');
+        const addrEl = document.getElementById('gstRegAddr');
+        const titleEl = document.getElementById('gstRegTitle');
+        const rangeEl = document.getElementById('gstRegRange');
+        if (bizEl) bizEl.innerText = 'Sarvadharani Seeds';
+        if (addrEl) addrEl.innerText = [getCompanyAddress(), getCompanyMobile()].filter(Boolean).join(' \u00b7 ');
+        if (titleEl) {
+            titleEl.innerText = view === 'nil' ? 'GST Sale \u2014 Nil GST'
+                               : view === 'taxed' ? 'GST Sale \u2014 Taxed'
+                               : 'GST Sale';
+        }
+        if (rangeEl) {
+            const fmtDate = d => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+            rangeEl.innerText = range ? `${fmtDate(range.from)} to ${fmtDate(range.to)}` : 'All Time';
+        }
+
+        const fmt = n => (n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         if (rows.length === 0) {
             const emptyMsg = view === 'nil' ? 'No Nil GST transactions in this period.'
                             : view === 'taxed' ? 'No taxed GST transactions in this period.'
                             : 'No GST-contributing transactions in this period.';
-            body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">${emptyMsg}</td></tr>`;
+            registerBody.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:24px 0;">${emptyMsg}</div>`;
         } else {
             rows.forEach(t => {
                 const isSale = (t.type === 'Sales');
-                // Sales use the MRP/slab recompute above; Purchases are left
-                // exactly as before — this was only asked for on the sale side.
                 const figures = isSale ? reportTaxForSale(t) : { taxable: t.taxable || 0, tax: t.totalTax || 0 };
                 if (isSale) { outputTax += figures.tax; outputTaxable += figures.taxable; }
                 else { inputTax += figures.tax; inputTaxable += figures.taxable; }
-                const taxColor = isSale ? 'var(--success)' : 'var(--pink)';
-                const taxLabel = isSale ? 'Output' : 'Input';
-                // A Sales voucher marked Nil GST at the counter still shows its
-                // real computed liability here — that's the whole point of this
-                // report — with a small note that nothing was actually charged
-                // to the customer. Purchases keep the original Nil GST label.
-                // Rounded to exactly 2 decimals — the MRP/slab recompute divides
-                // (e.g. 1000 / 1.05), which produces long repeating decimals if
-                // left unbounded.
-                // CGST/SGST (or IGST for an inter-state sale) breakdown, shown
-                // alongside the amount — this is what previously just said
-                // "(Nil at counter)" with no indication of the actual rate.
-                // The blended rate (tax ÷ taxable) is used rather than reading
-                // a single item's rate directly, so a voucher mixing more than
-                // one GST slab still gets a correct split rather than one
-                // item's rate being wrongly applied to the whole total.
-                let taxSplit = '';
-                if (isSale && figures.taxable > 0) {
-                    const effRate = (figures.tax / figures.taxable) * 100;
-                    const fmt = n => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                    const fmtRate = n => (Math.round(n * 100) / 100).toString().replace(/\.00$/, '');
-                    if (t.taxType === 'INTER') {
-                        taxSplit = ` <span style="font-weight:normal; color:var(--text-muted);">(IGST ${fmtRate(effRate)}%: \u20B9${fmt(figures.tax)})</span>`;
-                    } else {
-                        const half = figures.tax / 2, halfRate = effRate / 2;
-                        taxSplit = ` <span style="font-weight:normal; color:var(--text-muted);">`
-                                 + `(CGST ${fmtRate(halfRate)}%: \u20B9${fmt(half)} + SGST ${fmtRate(halfRate)}%: \u20B9${fmt(half)})</span>`;
-                    }
+
+                // Real party name where one was actually selected; the
+                // generic account otherwise (a cash-counter sale with no
+                // party attached) — same distinction the printed register
+                // makes between a named customer and a plain "Retail Sale"
+                // line.
+                const partyDisplay = t.partyName || (t.accountName || 'Retail Sale');
+
+                let itemLines = '';
+                if (isSale && Array.isArray(t.items) && t.items.length) {
+                    itemLines = t.items.map(it => {
+                        // Same MRP-at-time-of-sale basis reportTaxForSale()
+                        // uses, so the per-line amount shown here always
+                        // matches what was actually totalled into the
+                        // voucher figure above it.
+                        const baseRate = (it.masterRateAtSale != null) ? it.masterRateAtSale : (it.inclRate || 0);
+                        const lineAmt = baseRate * (it.qty || 0);
+                        return `<div style="display:flex; justify-content:space-between; gap:8px; font-size:0.82rem; padding:2px 0;">
+                            <span>${escapeHtml(it.name)} &nbsp; <span style="color:var(--text-muted);">${it.qty} ${escapeHtml(it.uom || '')} \u00d7 \u20B9${fmt(baseRate)}/${escapeHtml(it.uom || '')}</span></span>
+                            <span style="font-family:'JetBrains Mono',monospace; white-space:nowrap;">\u20B9${fmt(lineAmt)}</span>
+                        </div>`;
+                    }).join('');
                 }
-                const taxCellText = (t.taxType === 'EXEMPT' && !isSale)
-                    ? `<span style="color:var(--text-muted);">Nil GST</span>`
-                    : `\u20B9${figures.tax.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${taxLabel})${taxSplit}`;
-                body.insertAdjacentHTML('beforeend', `
-                    <tr style="cursor:pointer;" title="Open invoice">
-                        <td onclick="printInvoice(${t.id})">${t.date}</td>
-                        <td onclick="printInvoice(${t.id})">${escapeHtml(t.type)}</td>
-                        <td onclick="printInvoice(${t.id})">${escapeHtml(t.invNo)}</td>
-                        <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${figures.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td onclick="printInvoice(${t.id})" style="color:${taxColor}; font-weight:bold;">${taxCellText}</td>
-                    </tr>
+
+                const isInter = (t.taxType === 'INTER');
+                const taxRows = isInter
+                    ? `<div style="display:flex; justify-content:space-between; font-size:0.82rem;"><span>Igst</span><span class="mono">\u20B9${fmt(figures.tax)}</span></div>`
+                    : `<div style="display:flex; justify-content:space-between; font-size:0.82rem;"><span>Cgst</span><span class="mono">\u20B9${fmt(figures.tax / 2)}</span></div>
+                       <div style="display:flex; justify-content:space-between; font-size:0.82rem;"><span>Sgst</span><span class="mono">\u20B9${fmt(figures.tax / 2)}</span></div>`;
+
+                registerBody.insertAdjacentHTML('beforeend', `
+                    <div style="padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="printInvoice(${t.id})">
+                        <div style="display:flex; justify-content:space-between; gap:10px; font-size:0.85rem;">
+                            <span><strong>${escapeHtml(t.date)}</strong> &nbsp; ${escapeHtml(partyDisplay)}
+                                &nbsp; <span style="color:var(--text-muted);">${escapeHtml(t.type)} \u00b7 ${escapeHtml(t.invNo)}</span></span>
+                            <span style="font-weight:700; font-family:'JetBrains Mono',monospace; white-space:nowrap;">\u20B9${fmt(t.grandTotal)}</span>
+                        </div>
+                        <div style="padding-left:8px; margin-top:4px;">
+                            ${itemLines}
+                            ${taxRows}
+                        </div>
+                    </div>
                 `);
             });
         }

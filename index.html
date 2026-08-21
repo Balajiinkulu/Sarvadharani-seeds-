@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=36">
+    <link rel="stylesheet" href="styles.css?v=37">
 </head>
 <body>
 <script>
@@ -1453,21 +1453,17 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="summary-card"><div id="gstCard2Label">Input Tax (Purchases)</div><div id="gstInputTax" style="color:var(--pink);">&#8377;0.00</div></div>
             <div class="summary-card"><div id="gstCard3Label">Net Payable</div><div id="gstNetPayable" style="color:var(--warning);">&#8377;0.00</div></div>
         </div>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Voucher No.</th>
-                        <th>Party</th>
-                        <th>Taxable</th>
-                        <th>Tax (Output/Input)</th>
-                    </tr>
-                </thead>
-                <tbody id="gstLiabilityBody"></tbody>
-            </table>
+        <!-- Register layout: company letterhead, then one block per
+             voucher with its items listed underneath — matching the sales
+             register format used for GST filing, rather than one table row
+             per voucher. -->
+        <div id="gstRegisterHead" style="text-align:center; margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid var(--border-strong);">
+            <div style="font-weight:700; font-size:1.05rem;" id="gstRegBiz">Sarvadharani Seeds</div>
+            <div style="font-size:0.78rem; color:var(--text-muted);" id="gstRegAddr"></div>
+            <div style="font-weight:600; margin-top:8px; font-size:0.92rem;" id="gstRegTitle">GST Sale</div>
+            <div style="font-size:0.78rem; color:var(--text-muted);" id="gstRegRange"></div>
         </div>
+        <div id="gstRegisterBody"></div>
         <div class="no-print" style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a row to open its invoice. Click a party name to open their ledger statement.</div>
     </div>
 
@@ -2781,6 +2777,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=36"></script>
+<script src="app.js?v=37"></script>
 </body>
 </html>
