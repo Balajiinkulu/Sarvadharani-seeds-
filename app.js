@@ -5426,12 +5426,20 @@
                     : `<div style="display:flex; justify-content:space-between; font-size:0.82rem;"><span>Cgst</span><span class="mono">\u20B9${fmt(figures.tax / 2)}</span></div>
                        <div style="display:flex; justify-content:space-between; font-size:0.82rem;"><span>Sgst</span><span class="mono">\u20B9${fmt(figures.tax / 2)}</span></div>`;
 
+                // MRP total for the voucher — taxable + tax on the same MRP
+                // basis as the item lines and CGST/SGST below it, NOT
+                // t.grandTotal (what was actually charged at the counter).
+                // Showing the counter total up top and MRP figures underneath
+                // was two different totals on one voucher; this keeps the
+                // whole block on one consistent basis throughout.
+                const mrpTotal = figures.taxable + figures.tax;
+
                 registerBody.insertAdjacentHTML('beforeend', `
                     <div style="padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="printInvoice(${t.id})">
                         <div style="display:flex; justify-content:space-between; gap:10px; font-size:0.85rem;">
                             <span><strong>${escapeHtml(t.date)}</strong> &nbsp; ${escapeHtml(partyDisplay)}
                                 &nbsp; <span style="color:var(--text-muted);">${escapeHtml(t.type)} \u00b7 ${escapeHtml(t.invNo)}</span></span>
-                            <span style="font-weight:700; font-family:'JetBrains Mono',monospace; white-space:nowrap;">\u20B9${fmt(t.grandTotal)}</span>
+                            <span style="font-weight:700; font-family:'JetBrains Mono',monospace; white-space:nowrap;">\u20B9${fmt(mrpTotal)}</span>
                         </div>
                         <div style="padding-left:8px; margin-top:4px;">
                             ${itemLines}
