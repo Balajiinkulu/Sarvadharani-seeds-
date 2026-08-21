@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=34">
+    <link rel="stylesheet" href="styles.css?v=36">
 </head>
 <body>
 <script>
@@ -1410,11 +1410,14 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
     <!-- GST Liability (drill-down from dashboard tile) -->
     <div class="panel" id="panelGstLiability">
-        <div class="panel-head"><h3>GST Liability</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
+        <div class="panel-head"><h3>GST Liability</h3><button class="back-btn no-print" onclick="closePanel()">&#8592; Back</button></div>
+        <div class="no-print" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
             A mini GST return: Output tax collected on Sales, Input tax paid on Purchases, and the net you owe (or have in credit).
         </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;">
+        <!-- Period/Summary filters, Save as PDF, and the sort toggle are all
+             screen-only controls for finding the right rows — none of it
+             belongs on the printed page itself. -->
+        <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;">
             <div style="flex:1; min-width:150px;">
                 <label>Period</label>
                 <select id="gstPeriod" onchange="onGstPeriodChange()">
@@ -1465,7 +1468,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <tbody id="gstLiabilityBody"></tbody>
             </table>
         </div>
-        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a row to open its invoice. Click a party name to open their ledger statement.</div>
+        <div class="no-print" style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a row to open its invoice. Click a party name to open their ledger statement.</div>
     </div>
 
     <!-- Purchase Report -->
@@ -2778,6 +2781,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=34"></script>
+<script src="app.js?v=36"></script>
 </body>
 </html>

@@ -1478,6 +1478,19 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 
     /* Tables scroll but with hint */
     .table-responsive { -webkit-overflow-scrolling: touch; }
+    /* During a PDF/print capture, the OUTER panel is set to overflow:visible
+       in JS — but that never reached this INNER scrolling container, so any
+       columns a phone screen had scrolled out of view (Date, Type, Voucher
+       No. on the GST report, for instance) were still clipped out of the
+       captured image even though the panel around them wasn't clipping
+       anything. Every column now makes it into the PDF, not just whichever
+       ones happened to be on screen at the time. */
+    .pdf-capture-mode .table-responsive,
+    body.printing-region .table-responsive {
+        overflow: visible !important;
+        width: max-content !important;
+        max-width: none !important;
+    }
     table { font-size: 0.82rem; min-width: 560px; }
     thead th, tbody td { padding: 8px 10px; }
 

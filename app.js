@@ -5383,19 +5383,39 @@
                 // real computed liability here — that's the whole point of this
                 // report — with a small note that nothing was actually charged
                 // to the customer. Purchases keep the original Nil GST label.
+                // Rounded to exactly 2 decimals — the MRP/slab recompute divides
+                // (e.g. 1000 / 1.05), which produces long repeating decimals if
+                // left unbounded.
+                // CGST/SGST (or IGST for an inter-state sale) breakdown, shown
+                // alongside the amount — this is what previously just said
+                // "(Nil at counter)" with no indication of the actual rate.
+                // The blended rate (tax ÷ taxable) is used rather than reading
+                // a single item's rate directly, so a voucher mixing more than
+                // one GST slab still gets a correct split rather than one
+                // item's rate being wrongly applied to the whole total.
+                let taxSplit = '';
+                if (isSale && figures.taxable > 0) {
+                    const effRate = (figures.tax / figures.taxable) * 100;
+                    const fmt = n => n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const fmtRate = n => (Math.round(n * 100) / 100).toString().replace(/\.00$/, '');
+                    if (t.taxType === 'INTER') {
+                        taxSplit = ` <span style="font-weight:normal; color:var(--text-muted);">(IGST ${fmtRate(effRate)}%: \u20B9${fmt(figures.tax)})</span>`;
+                    } else {
+                        const half = figures.tax / 2, halfRate = effRate / 2;
+                        taxSplit = ` <span style="font-weight:normal; color:var(--text-muted);">`
+                                 + `(CGST ${fmtRate(halfRate)}%: \u20B9${fmt(half)} + SGST ${fmtRate(halfRate)}%: \u20B9${fmt(half)})</span>`;
+                    }
+                }
                 const taxCellText = (t.taxType === 'EXEMPT' && !isSale)
                     ? `<span style="color:var(--text-muted);">Nil GST</span>`
-                    : `\u20B9${figures.tax.toLocaleString('en-IN', {minimumFractionDigits: 2})} (${taxLabel})`
-                      + (t.taxType === 'EXEMPT' && isSale
-                          ? ` <span style="color:var(--text-muted); font-weight:normal;">(Nil at counter)</span>`
-                          : '');
+                    : `\u20B9${figures.tax.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${taxLabel})${taxSplit}`;
                 body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;" title="Open invoice">
                         <td onclick="printInvoice(${t.id})">${t.date}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.type)}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${figures.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${figures.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                         <td onclick="printInvoice(${t.id})" style="color:${taxColor}; font-weight:bold;">${taxCellText}</td>
                     </tr>
                 `);
@@ -5416,18 +5436,18 @@
             card1.innerText = 'Nil Rated Value (Sales)';
             card2.innerText = 'Nil Rated Value (Purchases)';
             card3.innerText = 'Total Nil Rated Value';
-            outEl.innerText = `\u20B9${outputTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-            inEl.innerText = `\u20B9${inputTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-            netEl.innerText = `\u20B9${(outputTaxable + inputTaxable).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+            outEl.innerText = `\u20B9${outputTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            inEl.innerText = `\u20B9${inputTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            netEl.innerText = `\u20B9${(outputTaxable + inputTaxable).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             netEl.style.color = 'var(--text-muted)';
         } else {
             card1.innerText = 'Output Tax (Sales)';
             card2.innerText = 'Input Tax (Purchases)';
             card3.innerText = 'Net Payable';
             const net = outputTax - inputTax;
-            outEl.innerText = `\u20B9${outputTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-            inEl.innerText = `\u20B9${inputTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
-            netEl.innerText = `\u20B9${Math.abs(net).toLocaleString('en-IN', {minimumFractionDigits: 2})}${net < 0 ? ' (Credit)' : ''}`;
+            outEl.innerText = `\u20B9${outputTax.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            inEl.innerText = `\u20B9${inputTax.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            netEl.innerText = `\u20B9${Math.abs(net).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}${net < 0 ? ' (Credit)' : ''}`;
             netEl.style.color = net < 0 ? 'var(--success)' : 'var(--warning)';
         }
     }
