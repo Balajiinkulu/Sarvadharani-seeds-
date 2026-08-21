@@ -5376,10 +5376,12 @@
         rows = sortByDate(rows, 'gstLiability');
 
         const registerBody = document.getElementById('gstRegisterBody');
+        const registerFoot = document.getElementById('gstRegisterFoot');
         registerBody.innerHTML = '';
+        if (registerFoot) registerFoot.innerHTML = '';
         let outputTax = 0, inputTax = 0, outputTaxable = 0, inputTaxable = 0;
 
-        // Header block — company details plus the period being viewed,
+        // Header block \u2014 company details plus the period being viewed,
         // matching the letterhead-and-range layout of a printed sales
         // register rather than a plain report title.
         const bizEl = document.getElementById('gstRegBiz');
@@ -5406,7 +5408,7 @@
             const emptyMsg = view === 'nil' ? 'No Nil GST transactions in this period.'
                             : view === 'taxed' ? 'No taxed GST transactions in this period.'
                             : 'No GST-contributing transactions in this period.';
-            registerBody.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:24px 0;">${emptyMsg}</div>`;
+            registerBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px 0;">${emptyMsg}</td></tr>`;
         } else {
             rows.forEach(t => {
                 const isSale = (t.type === 'Sales');
@@ -5414,68 +5416,55 @@
                 if (isSale) { outputTax += figures.tax; outputTaxable += figures.taxable; }
                 else { inputTax += figures.tax; inputTaxable += figures.taxable; }
 
-                // Real party name where one was actually selected; the
-                // generic account otherwise (a cash-counter sale with no
-                // party attached) — same distinction the printed register
-                // makes between a named customer and a plain "Retail Sale"
-                // line.
                 const partyDisplay = t.partyName || (t.accountName || 'Retail Sale');
 
                 let itemLines = '';
                 if (isSale && Array.isArray(t.items) && t.items.length) {
                     itemLines = t.items.map(it => {
-                        // MRP with GST taken back out — the item's TAXABLE
-                        // value, not the tax-inclusive rate. CGST+SGST are
-                        // added back underneath, so showing the MRP here AND
-                        // adding tax again below was counting that item's GST
-                        // twice. Taxable + tax now equals the true total
-                        // exactly once, the same way the paper invoice's own
-                        // Taxable Value / GST / Grand Total breakdown works.
                         const baseRate = (it.masterRateAtSale != null) ? it.masterRateAtSale : (it.inclRate || 0);
                         const mrpAmt = baseRate * (it.qty || 0);
                         const lineRate = it.gstRate || 0;
                         const lineAmt = lineRate > 0 ? mrpAmt / (1 + lineRate / 100) : mrpAmt;
-                        // Per-unit rate shown alongside the quantity is now
-                        // exclusive too (rate ÷ qty), matching the line total
-                        // it sits next to — previously this showed the MRP
-                        // rate beside an exclusive total, which didn't add up
-                        // if you multiplied them yourself.
                         const exRate = (it.qty || 0) > 0 ? lineAmt / it.qty : lineAmt;
-                        return `<div style="display:flex; justify-content:space-between; gap:8px; font-size:0.82rem; padding:2px 0;">
-                            <span>${escapeHtml(it.name)} &nbsp; <span style="color:var(--text-muted);">${it.qty} ${escapeHtml(it.uom || '')} \u00d7 \u20B9${fmt(exRate)}/${escapeHtml(it.uom || '')}</span></span>
-                            <span style="font-family:'JetBrains Mono',monospace; white-space:nowrap;">\u20B9${fmt(lineAmt)}</span>
+                        return `<div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">
+                            \u21B3 ${escapeHtml(it.name)} : ${it.qty} ${escapeHtml(it.uom || '')} @ \u20B9${fmt(exRate)}
                         </div>`;
                     }).join('');
                 }
 
                 const isInter = (t.taxType === 'INTER');
-                const taxRows = isInter
-                    ? `<div style="display:flex; justify-content:space-between; font-size:0.82rem;"><span>Igst</span><span class="mono">\u20B9${fmt(figures.tax)}</span></div>`
-                    : `<div style="display:flex; justify-content:space-between; font-size:0.82rem;"><span>Cgst</span><span class="mono">\u20B9${fmt(figures.tax / 2)}</span></div>
-                       <div style="display:flex; justify-content:space-between; font-size:0.82rem;"><span>Sgst</span><span class="mono">\u20B9${fmt(figures.tax / 2)}</span></div>`;
+                const taxCell = isInter
+                    ? `IGST: \u20B9${fmt(figures.tax)}`
+                    : `CGST: \u20B9${fmt(figures.tax / 2)}<br>SGST: \u20B9${fmt(figures.tax / 2)}`;
 
-                // MRP total for the voucher — taxable + tax on the same MRP
-                // basis as the item lines and CGST/SGST below it, NOT
-                // t.grandTotal (what was actually charged at the counter).
-                // Showing the counter total up top and MRP figures underneath
-                // was two different totals on one voucher; this keeps the
-                // whole block on one consistent basis throughout.
-                const mrpTotal = figures.taxable + figures.tax;
+                const rowTotal = figures.taxable + figures.tax;
 
                 registerBody.insertAdjacentHTML('beforeend', `
-                    <div style="padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="printInvoice(${t.id})">
-                        <div style="display:flex; justify-content:space-between; gap:10px; font-size:0.85rem;">
-                            <span><strong>${escapeHtml(t.date)}</strong> &nbsp; ${escapeHtml(partyDisplay)}
-                                &nbsp; <span style="color:var(--text-muted);">${escapeHtml(t.type)} \u00b7 ${escapeHtml(t.invNo)}</span></span>
-                            <span style="font-weight:700; font-family:'JetBrains Mono',monospace; white-space:nowrap;">\u20B9${fmt(mrpTotal)}</span>
-                        </div>
-                        <div style="padding-left:8px; margin-top:4px;">
-                            ${itemLines}
-                            ${taxRows}
-                        </div>
-                    </div>
+                    <tr style="cursor:pointer;" onclick="printInvoice(${t.id})" title="Open invoice">
+                        <td style="white-space:nowrap;">${escapeHtml(t.date)}</td>
+                        <td><strong>${escapeHtml(partyDisplay)}</strong>${itemLines}</td>
+                        <td>${escapeHtml(t.subLedger || '\u2014')}</td>
+                        <td>${escapeHtml(t.invNo)}</td>
+                        <td style="font-family:'JetBrains Mono',monospace;">\u20B9${fmt(figures.taxable)}</td>
+                        <td style="font-family:'JetBrains Mono',monospace; font-size:0.82rem;">${taxCell}</td>
+                        <td style="font-family:'JetBrains Mono',monospace; font-weight:700;">\u20B9${fmt(rowTotal)}</td>
+                    </tr>
                 `);
             });
+
+            const totalTaxable = outputTaxable + inputTaxable;
+            const totalTax = outputTax + inputTax;
+            const totalGrand = totalTaxable + totalTax;
+            if (registerFoot) {
+                registerFoot.innerHTML = `
+                    <tr style="font-weight:700; border-top:2px solid var(--border-strong);">
+                        <td colspan="4" style="text-align:right;">Total</td>
+                        <td style="font-family:'JetBrains Mono',monospace;">\u20B9${fmt(totalTaxable)}</td>
+                        <td style="font-family:'JetBrains Mono',monospace; font-size:0.82rem;">CGST: \u20B9${fmt(totalTax / 2)}<br>SGST: \u20B9${fmt(totalTax / 2)}</td>
+                        <td style="font-family:'JetBrains Mono',monospace;">\u20B9${fmt(totalGrand)}</td>
+                    </tr>
+                `;
+            }
         }
 
         const card1 = document.getElementById('gstCard1Label');
