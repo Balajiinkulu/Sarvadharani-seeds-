@@ -5466,10 +5466,8 @@
         const totalTax = outputTax + inputTax;
         const totalGrand = totalTaxable + totalTax;
         const topTaxableEl = document.getElementById('gstTopTaxable');
-        const topTaxEl = document.getElementById('gstTopTax');
         const topGrandEl = document.getElementById('gstTopGrand');
         if (topTaxableEl) topTaxableEl.innerText = `\u20B9${fmt(totalTaxable)}`;
-        if (topTaxEl) topTaxEl.innerText = `CGST \u20B9${fmt(totalTax / 2)} + SGST \u20B9${fmt(totalTax / 2)}`;
         if (topGrandEl) topGrandEl.innerText = `\u20B9${fmt(totalGrand)}`;
 
         const card1 = document.getElementById('gstCard1Label');
