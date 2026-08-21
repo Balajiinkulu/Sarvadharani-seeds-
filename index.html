@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=30">
+    <link rel="stylesheet" href="styles.css?v=34">
 </head>
 <body>
 <script>
@@ -404,7 +404,34 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div class="tile-name">Import / Export Data</div>
                 <div class="tile-sub">Backup or move to another device</div>
             </div>
+            <div class="tile" onclick="openPanel('panelBackfillGst')">
+                <div class="tile-name">Fix Old Sales for GST Report</div>
+                <div class="tile-sub">One-time — only if item rates never changed</div>
+            </div>
         </div>
+    </div>
+
+    <!-- One-time backfill: stamps each item's current master rate onto its
+         past sale lines so the GST Liability report can compute a real
+         figure for them, same as it now does automatically for new sales.
+         Only safe because the person doing this has confirmed rates have
+         never changed — otherwise this would misdate old sales to a rate
+         that didn't apply on the day. -->
+    <div class="panel" id="panelBackfillGst">
+        <div class="panel-head"><h3>Fix Old Sales for GST Report</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div style="background:var(--bg-tint); border-radius:var(--radius-sm); padding:14px; margin-bottom:14px; font-size:0.88rem; line-height:1.5;">
+            <strong>Only run this if your item rates have never changed.</strong>
+            <p style="margin:8px 0 0; color:var(--text-muted);">
+                New sales already capture the correct rate for the GST Liability report automatically.
+                This is a one-time fix for sales posted before that started — it stamps each item's
+                current rate onto its past sale lines that don't have one yet, so the report can
+                compute their tax the same way. If any item's rate has changed since some of these
+                sales happened, do not run this — it would apply today's rate to a sale made under
+                the old one.
+            </p>
+        </div>
+        <div id="backfillGstSummary" style="font-size:0.88rem; margin-bottom:12px;"></div>
+        <button type="button" class="btn-success col-2" onclick="runGstBackfill()">Stamp Current Rates onto Past Sales</button>
     </div>
 
     <!-- SUB-MENU: TRANSACTIONS -->
@@ -2751,6 +2778,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=30"></script>
+<script src="app.js?v=34"></script>
 </body>
 </html>

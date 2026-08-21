@@ -1717,6 +1717,12 @@
         if (id === 'panelStock') renderStockSummary();
         if (id === 'panelStockGroup' || id === 'panelLedgerGroup' || id === 'panelGroupStock') renderGroupTables();
         if (id === 'panelAuditTrail') renderAuditTrail();
+        if (id === 'panelBackfillGst') {
+            const { vouchers, lines } = countGstBackfillCandidates();
+            document.getElementById('backfillGstSummary').innerText = vouchers
+                ? `${lines} line(s) across ${vouchers} sale(s) don't have this yet.`
+                : 'Nothing to fix — every sale already has this.';
+        }
         if (id === 'panelManageStaff') {
             if (!isAdmin() && !hasPermission('manageUsers')) { alert("Only an admin, or a user with 'Manage other users' access' turned on, can open Users."); closePanel(); return; }
             renderManageStaff();
@@ -2928,7 +2934,14 @@
             uom: item.uom,
             qty: qty,
             inclRate: rate,
-            gstRate: item.gstRate
+            gstRate: item.gstRate,
+            // Snapshot of the item's master rate AT THE MOMENT of this sale —
+            // used only by the GST filing report, and captured once, here,
+            // rather than looked up later. If the item's rate in Masters is
+            // ever changed afterwards, this sale must keep reporting against
+            // the rate that was actually true on the day it happened; a
+            // filed return can't retroactively change.
+            masterRateAtSale: item.rate
         });
 
         document.getElementById('vItem').value = '';
@@ -5235,6 +5248,97 @@
             `\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
     }
 
+    // Recomputes what the GST SHOULD be for a Sales voucher, from each
+    // line's MRP and the item's own assigned GST rate — independent of
+    // whatever taxable/tax the voucher itself was posted with. This is for
+    // the GST Liability report only: it never writes back to the voucher,
+    // never touches stock, and never touches any balance. The voucher
+    // itself, the invoice you print, and Pending to Receive all keep
+    // showing exactly what was actually charged at the counter.
+    //
+    // Why this is needed: items are commonly sold at MRP with Nil GST
+    // recorded on the voucher (nothing collected at the counter), but each
+    // item still carries its real slab (e.g. 5%) on its master record. For
+    // filing, the tax due is worked out backward from that MRP and slab —
+    // this is exactly that calculation, done once here instead of by
+    // re-entering every sale a second time.
+    function reportTaxForSale(t) {
+        if (!Array.isArray(t.items) || !t.items.length) {
+            // Cash-type Sales carry no line items — nothing to recompute
+            // from, so fall back to whatever the voucher itself recorded.
+            return { taxable: t.taxable || 0, tax: t.totalTax || 0 };
+        }
+        let taxable = 0, tax = 0;
+        t.items.forEach(it => {
+            // Uses the master rate as it stood AT THE TIME of this sale
+            // (masterRateAtSale, captured when the line was added) — never
+            // the item's current rate. A rate change in Masters today must
+            // only affect sales made after that change, not recalculate
+            // filings that are already done. Older vouchers posted before
+            // this snapshot existed fall back to the line's own inclRate,
+            // which was the best available figure at the time.
+            const baseRate = (it.masterRateAtSale != null) ? it.masterRateAtSale : (it.inclRate || 0);
+            const mrp = baseRate * (it.qty || 0);
+            const rate = it.gstRate || 0;
+            const lineTaxable = rate > 0 ? mrp / (1 + rate / 100) : mrp;
+            taxable += lineTaxable;
+            tax += (mrp - lineTaxable);
+        });
+        return { taxable, tax };
+    }
+
+    // One-time backfill: stamps each Sales line's masterRateAtSale where it
+    // doesn't already have one, using the item's current rate. Only correct
+    // when that rate has always been what it is now — the confirmation
+    // dialog says so explicitly, since this is a books app and an
+    // irreversible batch change deserves being certain, not just clicked.
+    function countGstBackfillCandidates() {
+        let vouchers = 0, lines = 0;
+        transactions.forEach(t => {
+            if (t.type !== 'Sales' || !Array.isArray(t.items)) return;
+            const need = t.items.some(it => it.masterRateAtSale == null);
+            if (need) {
+                vouchers++;
+                lines += t.items.filter(it => it.masterRateAtSale == null).length;
+            }
+        });
+        return { vouchers, lines };
+    }
+
+    async function runGstBackfill() {
+        const { vouchers, lines } = countGstBackfillCandidates();
+        if (!vouchers) {
+            document.getElementById('backfillGstSummary').innerText = 'Nothing to fix — every sale already has this.';
+            return;
+        }
+        const ok = await confirmAsync(
+            `This will stamp the CURRENT rate from Masters onto ${lines} sale line${lines === 1 ? '' : 's'} ` +
+            `across ${vouchers} past voucher${vouchers === 1 ? '' : 's'} that don't have one yet.\n\n` +
+            `Only continue if you're sure none of those items' rates have changed since these sales were made.`
+        );
+        if (!ok) return;
+
+        let stamped = 0;
+        transactions.forEach(t => {
+            if (t.type !== 'Sales' || !Array.isArray(t.items)) return;
+            t.items.forEach(it => {
+                if (it.masterRateAtSale != null) return;
+                const master = stockItems.find(s => s.id == it.itemId);
+                if (!master) return; // item since deleted — nothing to stamp from
+                it.masterRateAtSale = master.rate;
+                stamped++;
+            });
+        });
+
+        localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
+        syncCloud();
+        logAudit('Edited', { invNo: `${stamped} sale line(s)`, type: 'GST backfill', grandTotal: 0 },
+                  'One-time GST report backfill from current item rates');
+        document.getElementById('backfillGstSummary').innerText =
+            `Done — ${stamped} line(s) updated. Check the GST Liability report to confirm the figures look right.`;
+        showSyncToast('ok', 'Old sales updated for the GST report');
+    }
+
     // ---- GST Liability (dashboard tile drill-down): mini GST return ----
     function onGstPeriodChange() {
         const sel = document.getElementById('gstPeriod').value;
@@ -5268,20 +5372,30 @@
         } else {
             rows.forEach(t => {
                 const isSale = (t.type === 'Sales');
-                if (isSale) { outputTax += t.totalTax; outputTaxable += t.taxable; }
-                else { inputTax += t.totalTax; inputTaxable += t.taxable; }
+                // Sales use the MRP/slab recompute above; Purchases are left
+                // exactly as before — this was only asked for on the sale side.
+                const figures = isSale ? reportTaxForSale(t) : { taxable: t.taxable || 0, tax: t.totalTax || 0 };
+                if (isSale) { outputTax += figures.tax; outputTaxable += figures.taxable; }
+                else { inputTax += figures.tax; inputTaxable += figures.taxable; }
                 const taxColor = isSale ? 'var(--success)' : 'var(--pink)';
                 const taxLabel = isSale ? 'Output' : 'Input';
-                const taxCellText = (t.taxType === 'EXEMPT')
+                // A Sales voucher marked Nil GST at the counter still shows its
+                // real computed liability here — that's the whole point of this
+                // report — with a small note that nothing was actually charged
+                // to the customer. Purchases keep the original Nil GST label.
+                const taxCellText = (t.taxType === 'EXEMPT' && !isSale)
                     ? `<span style="color:var(--text-muted);">Nil GST</span>`
-                    : `\u20B9${t.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})} (${taxLabel})`;
+                    : `\u20B9${figures.tax.toLocaleString('en-IN', {minimumFractionDigits: 2})} (${taxLabel})`
+                      + (t.taxType === 'EXEMPT' && isSale
+                          ? ` <span style="color:var(--text-muted); font-weight:normal;">(Nil at counter)</span>`
+                          : '');
                 body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;" title="Open invoice">
                         <td onclick="printInvoice(${t.id})">${t.date}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.type)}</td>
                         <td onclick="printInvoice(${t.id})">${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${figures.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td onclick="printInvoice(${t.id})" style="color:${taxColor}; font-weight:bold;">${taxCellText}</td>
                     </tr>
                 `);
