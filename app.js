@@ -5363,22 +5363,25 @@
                                   document.getElementById('gstFrom').value,
                                   document.getElementById('gstTo').value);
         const view = document.getElementById('gstView').value; // 'all' | 'taxed' | 'nil'
+        const scope = document.getElementById('gstScope').value; // 'sales' | 'all'
         populateGstSubLedgerOptions();
         const subLedgerFilter = document.getElementById('gstSubLedger').value;
 
         // Same rule the dashboard figure itself uses: Output tax from Sales,
         // Input tax from Purchase only (Raw Purchase is tracked separately
         // and deliberately excluded from the main GST/Purchase totals).
-        let rows = transactions.filter(t => (t.type === 'Sales' || t.type === 'Purchase') && inRange(t.date, range));
+        // Scope decides whether Purchase rows are in the mix at all \u2014
+        // Sales and Purchase used to always be summed together, which
+        // muddies the Sales-only figure a B2C GSTR-1 entry actually needs.
+        const typeFilter = (scope === 'sales') ? (t => t.type === 'Sales') : (t => t.type === 'Sales' || t.type === 'Purchase');
+        let rows = transactions.filter(t => typeFilter(t) && inRange(t.date, range));
         if (view === 'taxed') rows = rows.filter(t => t.taxType !== 'EXEMPT');
         else if (view === 'nil') rows = rows.filter(t => t.taxType === 'EXEMPT');
         if (subLedgerFilter) rows = rows.filter(t => t.subLedger === subLedgerFilter);
         rows = sortByDate(rows, 'gstLiability');
 
         const registerBody = document.getElementById('gstRegisterBody');
-        const registerFoot = document.getElementById('gstRegisterFoot');
         registerBody.innerHTML = '';
-        if (registerFoot) registerFoot.innerHTML = '';
         let outputTax = 0, inputTax = 0, outputTaxable = 0, inputTaxable = 0;
 
         // Header block \u2014 company details plus the period being viewed,
@@ -5395,8 +5398,10 @@
             if (view === 'nil') title += ' \u2014 Nil GST';
             else if (view === 'taxed') title += ' \u2014 Taxed';
             if (subLedgerFilter) title += ` \u2014 ${subLedgerFilter}`;
+            if (scope === 'all') title += ' (incl. Purchases)';
             titleEl.innerText = title;
         }
+
         if (rangeEl) {
             const fmtDate = d => d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
             rangeEl.innerText = range ? `${fmtDate(range.from)} to ${fmtDate(range.to)}` : 'All Time';
@@ -5452,20 +5457,20 @@
                 `);
             });
 
-            const totalTaxable = outputTaxable + inputTaxable;
-            const totalTax = outputTax + inputTax;
-            const totalGrand = totalTaxable + totalTax;
-            if (registerFoot) {
-                registerFoot.innerHTML = `
-                    <tr style="font-weight:700; border-top:2px solid var(--border-strong);">
-                        <td colspan="4" style="text-align:right;">Total</td>
-                        <td style="font-family:'JetBrains Mono',monospace;">\u20B9${fmt(totalTaxable)}</td>
-                        <td style="font-family:'JetBrains Mono',monospace; font-size:0.82rem;">CGST: \u20B9${fmt(totalTax / 2)}<br>SGST: \u20B9${fmt(totalTax / 2)}</td>
-                        <td style="font-family:'JetBrains Mono',monospace;">\u20B9${fmt(totalGrand)}</td>
-                    </tr>
-                `;
-            }
         }
+
+        // Totals live above the table now (see gstTopTotals), not repeated
+        // again down here \u2014 recalculated on every render so they always
+        // match whatever Period / Scope / Summary / Category is selected.
+        const totalTaxable = outputTaxable + inputTaxable;
+        const totalTax = outputTax + inputTax;
+        const totalGrand = totalTaxable + totalTax;
+        const topTaxableEl = document.getElementById('gstTopTaxable');
+        const topTaxEl = document.getElementById('gstTopTax');
+        const topGrandEl = document.getElementById('gstTopGrand');
+        if (topTaxableEl) topTaxableEl.innerText = `\u20B9${fmt(totalTaxable)}`;
+        if (topTaxEl) topTaxEl.innerText = `CGST \u20B9${fmt(totalTax / 2)} + SGST \u20B9${fmt(totalTax / 2)}`;
+        if (topGrandEl) topGrandEl.innerText = `\u20B9${fmt(totalGrand)}`;
 
         const card1 = document.getElementById('gstCard1Label');
         const card2 = document.getElementById('gstCard2Label');
@@ -5495,6 +5500,12 @@
             netEl.innerText = `\u20B9${Math.abs(net).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}${net < 0 ? ' (Credit)' : ''}`;
             netEl.style.color = net < 0 ? 'var(--success)' : 'var(--warning)';
         }
+
+        // Applied last, after either branch above has already set its own
+        // base label, so a Rs.0.00 Input Tax during "Without Purchases"
+        // reads as "deliberately not counted" rather than looking like a
+        // data problem.
+        if (scope === 'sales' && card2) card2.innerText += ' \u2014 excluded';
     }
 
     // ---- Delivery Notes (dispatch records) ----

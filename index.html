@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=42">
+    <link rel="stylesheet" href="styles.css?v=45">
 </head>
 <body>
 <script>
@@ -1428,6 +1428,19 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <option value="custom">Custom...</option>
                 </select>
             </div>
+            <!-- Separate from Taxed/Nil deliberately: this is a different
+                 question (which VOUCHER TYPES are counted) from that one
+                 (which of those vouchers had tax on them). Sales and
+                 Purchase were always summed together before, which is wrong
+                 for a B2C entry on GSTR-1 \u2014 that figure needs to be Sales
+                 alone, never mixed with what you paid on purchases. -->
+            <div style="flex:1; min-width:160px;">
+                <label>Scope</label>
+                <select id="gstScope" onchange="renderGstLiability()">
+                    <option value="sales">Without Purchases (Sales Only)</option>
+                    <option value="all">With Purchases (Sales + Purchase)</option>
+                </select>
+            </div>
             <div style="flex:1; min-width:170px;">
                 <label>Summary</label>
                 <select id="gstView" onchange="renderGstLiability()">
@@ -1466,11 +1479,30 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         </div>
         <!-- Company letterhead — same purpose as before, kept for the
              printed/filing copy. -->
-        <div id="gstRegisterHead" style="text-align:center; margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid var(--border-strong);">
+        <div id="gstRegisterHead" style="text-align:center; margin-bottom:12px; padding-bottom:10px; border-bottom:2px solid var(--border-strong);">
             <div style="font-weight:700; font-size:1.05rem;" id="gstRegBiz">Sarvadharani Seeds</div>
             <div style="font-size:0.78rem; color:var(--text-muted);" id="gstRegAddr"></div>
             <div style="font-weight:600; margin-top:8px; font-size:0.92rem;" id="gstRegTitle">GST Sale</div>
             <div style="font-size:0.78rem; color:var(--text-muted);" id="gstRegRange"></div>
+        </div>
+        <!-- Totals pinned above the table rather than only at the bottom —
+             with hundreds of sales in a period, scrolling past every row
+             just to read the total defeats the point of having one.
+             Recalculated on every render, so it always matches whatever
+             Period / Scope / Summary / Category combination is selected. -->
+        <div id="gstTopTotals" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; background:var(--bg-tint); border-radius:var(--radius-sm); padding:12px 14px;">
+            <div style="flex:1; min-width:110px;">
+                <div style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Taxable</div>
+                <div id="gstTopTaxable" style="font-family:'JetBrains Mono',monospace; font-weight:700;">&#8377;0.00</div>
+            </div>
+            <div style="flex:1; min-width:130px;">
+                <div style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">CGST + SGST</div>
+                <div id="gstTopTax" style="font-family:'JetBrains Mono',monospace; font-weight:700;">&#8377;0.00</div>
+            </div>
+            <div style="flex:1; min-width:110px;">
+                <div style="font-size:0.62rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em;">Total</div>
+                <div id="gstTopGrand" style="font-family:'JetBrains Mono',monospace; font-weight:700;">&#8377;0.00</div>
+            </div>
         </div>
         <!-- Same table shape as the Ledger Statement: Date / Particulars &
              inventory detail / a category column / voucher number / two
@@ -1490,7 +1522,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     </tr>
                 </thead>
                 <tbody id="gstRegisterBody"></tbody>
-                <tfoot id="gstRegisterFoot"></tfoot>
             </table>
         </div>
         <div class="no-print" style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a row to open its invoice. Click a party name to open their ledger statement.</div>
@@ -2806,6 +2837,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=42"></script>
+<script src="app.js?v=45"></script>
 </body>
 </html>

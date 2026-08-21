@@ -976,21 +976,103 @@ table button {
 body.printing-region #ledgerHeaderTotals,
 body.printing-ledger #ledgerHeaderTotals { display: flex !important; }
 
-.pdf-capture-mode {
+/* Every printed/exported page — the PDF capture path (.pdf-capture-mode)
+   and the browser's own print dialog (body.printing-*) — renders strictly
+   black text on white, with no tints or colour accents. Coloured cards and
+   status colours (green Paid, red Due, blue accent, orange warning) look
+   fine on a lit phone screen, but a phone's print pipeline frequently
+   renders light tints and saturated hues as faint grey-on-grey, which is
+   what was making printed pages hard to read. Since colour appears
+   throughout the app as `var(--x)` rather than hard-coded hex, redefining
+   what each variable resolves to inside this scope changes every use of it
+   at once, with nothing else to touch. */
+.pdf-capture-mode,
+body.printing-region,
+body.printing-invoice,
+body.printing-ledger,
+body.printing-formal {
+    --bg-main: #ffffff;
     --bg-card: #ffffff;
-    --bg-tint: #E9EFF7;
-    --text-main: #0F172A;
-    --text-muted: #475569;
-    --border: #C3D0E0;
-    --border-strong: #64748B;
-    --statement-row-alt: #EEF2F7;
+    --bg-input: #ffffff;
+    --bg-tint: #ffffff;
+    --bg-hover: #ffffff;
+    --bg-menu: #ffffff;
+    --bg-header: #ffffff;
+    --statement-bg: #ffffff;
+    --statement-row-alt: #ffffff;
+    --text-main: #000000;
+    --text-muted: #333333;
+    --text-invert: #000000;
+    --accent: #000000;
+    --accent-hover: #000000;
     --accent-soft: #ffffff;
+    --success: #000000;
+    --danger: #000000;
+    --warning: #000000;
+    --pink: #000000;
+    --violet: #000000;
+    --cyan: #000000;
+    --lime: #000000;
+    --orange: #000000;
+    --border: #000000;
+    --border-strong: #000000;
+    --card-shadow: none;
+    --grad-accent: #ffffff;
+    --grad-success: #ffffff;
+    --grad-danger: #ffffff;
+    --danger-bg: #ffffff;
+    --danger-border: #000000;
+    --success-bg: #ffffff;
+    --success-border: #000000;
+    --success-text: #000000;
+    --info-bg: #ffffff;
+    --info-border: #000000;
     background: #ffffff !important;
+    color: #000000 !important;
     overflow: visible !important;
 }
-.pdf-capture-mode table { border: 1px solid #C3D0E0; }
-.pdf-capture-mode thead th { border-bottom: 2px solid #64748B; }
-.pdf-capture-mode tfoot td { border-top: 2px solid #64748B; }
+.pdf-capture-mode *, body.printing-region *, body.printing-invoice *,
+body.printing-ledger *, body.printing-formal * {
+    background-color: transparent !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+.pdf-capture-mode table, body.printing-region table, body.printing-invoice table,
+body.printing-ledger table, body.printing-formal table { border: 1px solid #000000; }
+.pdf-capture-mode th, .pdf-capture-mode td,
+body.printing-region th, body.printing-region td,
+body.printing-invoice th, body.printing-invoice td,
+body.printing-ledger th, body.printing-ledger td,
+body.printing-formal th, body.printing-formal td { border-color: #000000 !important; }
+/* The invoice's own header row is deliberately pinned to a light-blue
+   background with a hardcoded hex (see .invoice-box table thead th above),
+   so it doesn't follow the app theme even normally \u2014 the general var()
+   overrides above never reach a hardcoded colour, so this needs its own
+   explicit override in the same three print contexts. */
+/* .pdf-capture-mode is applied to .invoice-box ITSELF when printing the
+   invoice, not to a wrapper around it, so this must also match the case
+   where the class and .invoice-box are the same element, not just where
+   .invoice-box is a descendant of it. */
+.pdf-capture-mode.invoice-box table thead th,
+.pdf-capture-mode .invoice-box table thead th,
+body.printing-invoice .invoice-box table thead th,
+body.printing-region .invoice-box table thead th {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+.pdf-capture-mode thead th, body.printing-region thead th, body.printing-invoice thead th,
+body.printing-ledger thead th, body.printing-formal thead th { border-bottom: 2px solid #000000; }
+.pdf-capture-mode tfoot td, body.printing-region tfoot td, body.printing-invoice tfoot td,
+body.printing-ledger tfoot td, body.printing-formal tfoot td { border-top: 2px solid #000000; }
+/* Buttons still need to be visibly buttons on a printed page, not
+   invisible transparent boxes — give them a plain outline instead of a
+   filled colour. */
+.pdf-capture-mode button, body.printing-region button, body.printing-invoice button,
+body.printing-ledger button, body.printing-formal button {
+    border: 1px solid #000000 !important;
+    background: #ffffff !important;
+}
 
 /* The Select Party field card gets a backdrop-filter (see the
    ".form-grid > div:has(> label)" rule above), and backdrop-filter
