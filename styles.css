@@ -589,7 +589,14 @@ h3 {
 }
 #invoiceModal .invoice-box { animation: sheetUp 0.22s cubic-bezier(0.32, 0.72, 0, 1); }
 #invoiceModal.sheet-closing .invoice-box { animation: sheetDown 0.18s ease-in forwards; }
-#invoiceModal.sheet-closing { transition: background-color 0.18s ease; background: transparent; }
+/* The dimmed backdrop stays exactly as it always is for the full duration
+   of the close animation, instead of fading itself out separately. Fading
+   the backdrop to transparent WHILE the sheet was still visibly sliding
+   down briefly uncovered whatever panel sat behind the invoice \u2014 its
+   real content became visible and overlapped the still-animating invoice,
+   which is what showed up as garbled double text. Both now disappear at
+   the same instant, together, so there's never a moment where one is gone
+   and the other isn't. */
 
 #editModal .edit-box,
 #globalSearchModal .edit-box,
