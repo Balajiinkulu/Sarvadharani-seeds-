@@ -6427,19 +6427,33 @@
         box.style.transformOrigin = '';
         box.style.marginBottom = '';
         box.style.width = '';
-        // Lay the invoice out at one fixed design width, then scale the whole
-        // block to fit. Letting it reflow into a narrow viewport instead just
-        // crams the columns (item names breaking one letter per line), so the
-        // invoice looked different at every zoom level. Fixed width + scale
-        // means it always looks like the same document, only smaller.
-        const DESIGN_W = 420;
+        box.style.maxWidth = '';
+        // Below this width the table starts cramming (item names breaking
+        // one letter per line at high page-zoom); above it, laying the
+        // invoice out any wider than a document naturally needs just
+        // leaves a wide gap of empty space on a landscape screen. So the
+        // box grows to use whatever room is genuinely available, between
+        // those two bounds \u2014 it only falls back to a fixed width with a
+        // scale-down when there ISN'T enough room to lay out naturally
+        // (heavy pinch-zoom), which is the one case that actually needs it.
+        const MIN_W = 420;
+        const MAX_W = 640;
         const avail = modal.clientWidth - 20;
         if (!avail) return;
-        box.style.width = DESIGN_W + 'px';
+        if (avail >= MIN_W) {
+            // Plenty of room \u2014 portrait or landscape \u2014 lay out naturally at
+            // whatever width fits, capped so it never sprawls absurdly wide
+            // on a tablet-sized screen.
+            box.style.width = Math.min(avail, MAX_W) + 'px';
+            box.classList.remove('inv-fixed');
+            return;
+        }
+        // Genuinely cramped (e.g. the page is pinch-zoomed in): fixed
+        // design width, scaled down as a whole, so columns stay readable
+        // instead of wrapping letter-by-letter.
+        box.style.width = MIN_W + 'px';
         box.classList.add('inv-fixed');
-        box.style.maxWidth = 'none';
-        const scale = Math.min(1, avail / DESIGN_W);
-        if (scale >= 0.999) return;
+        const scale = avail / MIN_W;
         box.style.transformOrigin = 'top center';
         box.style.transform = 'scale(' + scale + ')';
         // A scaled element still reserves its original height, leaving a
@@ -7428,8 +7442,18 @@
             // A4 pages as it takes, instead of one giant single-page PDF —
             // same "print a long report" pattern people expect from a real
             // printer, and it prints/paginates properly if opened on paper.
-            const a4WidthMm = 210;
-            const a4HeightMm = 297;
+            // Portrait was previously hardcoded, which squeezed every wide,
+            // many-column table (Ledger Statement, GST report) into a
+            // narrow ~194mm page no matter how the content was actually
+            // shaped \u2014 seven columns of real numbers got tiny. Pages orient
+            // to whatever the captured content's own proportions call for:
+            // content genuinely wider than it is tall gets the extra ~90mm
+            // of width landscape provides; a naturally tall document (the
+            // invoice, a long single-column list) stays portrait exactly as
+            // it always has, so nothing changes there.
+            const isLandscape = canvas.width > canvas.height;
+            const a4WidthMm = isLandscape ? 297 : 210;
+            const a4HeightMm = isLandscape ? 210 : 297;
             const marginMm = 8;
             const usableWidthMm = a4WidthMm - marginMm * 2;
             const usableHeightMm = a4HeightMm - marginMm * 2;
@@ -7439,7 +7463,7 @@
             const pxPerMm = canvas.width / imgWidthMm;
             const pageHeightPx = usableHeightMm * pxPerMm;
 
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const pdf = new jsPDF({ orientation: isLandscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
             let renderedPx = 0;
             let pageNum = 0;
             while (renderedPx < canvas.height) {
