@@ -8887,22 +8887,18 @@
             const bar = document.createElement('div');
             bar.id = 'extrasBar';
             bar.className = 'extras-bar no-print';
+            // Backup JSON/Excel and Print Size were duplicated here AND in
+            // Admin > Import/Export Data \u2014 removed from this always-visible
+            // strip since Admin is the one real place for them now. Install
+            // app is left as the only thing that can still appear here,
+            // since it's genuinely a one-time, situational prompt rather
+            // than something with a permanent home elsewhere.
             bar.innerHTML = `
-                <button type="button" id="pwaInstallBtn" class="btn-inline extras-btn" style="display:none;" onclick="triggerInstall()">Install app</button>
-                <button type="button" class="btn-inline extras-btn" onclick="backupJSON()">Backup JSON</button>
-                <button type="button" class="btn-inline extras-btn" onclick="backupExcel()">Backup Excel</button>
-                <label class="extras-paper">
-                    <span>Print size</span>
-                    <select class="paperSizeSelect" onchange="setPaperSize(this.value)">
-                        ${Object.entries(PAPER_SIZES).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}
-                    </select>
-                </label>`;
+                <button type="button" id="pwaInstallBtn" class="btn-inline extras-btn" style="display:none;" onclick="triggerInstall()">Install app</button>`;
             const header = container.querySelector('header');
             if (header && header.parentNode) header.parentNode.insertBefore(bar, header.nextSibling);
             else container.insertBefore(bar, container.firstChild);
         }
-        // Sync paper-size select to stored value
-        document.querySelectorAll('.paperSizeSelect').forEach(s => (s.value = getPaperSize()));
         document.body.classList.add('paper-' + getPaperSize());
 
         // iOS: show install button always (no beforeinstallprompt on iOS)

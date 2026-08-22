@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=50">
+    <link rel="stylesheet" href="styles.css?v=51">
 </head>
 <body>
 <script>
@@ -1126,6 +1126,12 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 Downloads every party, item, group, account, voucher and setting as one JSON file &mdash; a complete backup you can keep or move to another device.
             </div>
             <button onclick="exportAllData()" class="btn-success">Export All Data (JSON)</button>
+            <!-- Backup Excel used to only be reachable from the dashboard
+                 toolbar and the weekly-backup nag banner \u2014 meaning once
+                 that nag was dismissed, there was no permanent way to trigger
+                 an Excel backup at all. It lives here now, alongside the
+                 JSON export it always belonged with. -->
+            <button onclick="backupExcel()" class="btn-inline" style="margin-top:8px;">Export as Excel (.xlsx)</button>
         </div>
 
         <div class="card">
@@ -2833,6 +2839,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=50"></script>
+<script src="app.js?v=51"></script>
 </body>
 </html>

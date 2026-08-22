@@ -1337,6 +1337,18 @@ body.printing-ledger button, body.printing-formal button {
     border: none;
     border-radius: var(--radius);
 }
+/* Now that Backup JSON/Excel and Print Size have moved to Admin, this bar
+   usually holds nothing but the (normally hidden) Install app button —
+   :has() collapses its own padding/margin/background when every child is
+   actually hidden, so it doesn't sit there as an empty visible strip most
+   of the time. Falls back gracefully wherever :has() isn't supported: the
+   bar just stays a small, harmless empty strip instead. */
+.extras-bar:not(:has(> *:not([style*="display:none"], [style*="display: none"]))) {
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    min-height: 0;
+}
 .extras-bar .extras-btn { font-size: 0.78rem; }
 .extras-bar .extras-paper {
     margin-left: auto;
