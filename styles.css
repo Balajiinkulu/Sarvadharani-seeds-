@@ -993,9 +993,13 @@ body.printing-ledger #ledgerHeaderTotals { display: flex !important; }
    throughout the app as `var(--x)` rather than hard-coded hex, redefining
    what each variable resolves to inside this scope changes every use of it
    at once, with nothing else to touch. */
-.pdf-capture-mode,
+/* The invoice is deliberately excluded from this black-and-white
+   treatment (:not(.invoice-box), and body.printing-invoice removed from
+   every rule below) \u2014 it keeps its normal colours on both screen and
+   print, same as before. Only reports (GST Liability) and the Ledger
+   Statement print in black and white. */
+.pdf-capture-mode:not(.invoice-box),
 body.printing-region,
-body.printing-invoice,
 body.printing-ledger,
 body.printing-formal {
     --bg-main: #ffffff;
@@ -1038,44 +1042,27 @@ body.printing-formal {
     color: #000000 !important;
     overflow: visible !important;
 }
-.pdf-capture-mode *, body.printing-region *, body.printing-invoice *,
+.pdf-capture-mode:not(.invoice-box) *, body.printing-region *,
 body.printing-ledger *, body.printing-formal * {
     background-color: transparent !important;
     color: #000000 !important;
     box-shadow: none !important;
     text-shadow: none !important;
 }
-.pdf-capture-mode table, body.printing-region table, body.printing-invoice table,
+.pdf-capture-mode:not(.invoice-box) table, body.printing-region table,
 body.printing-ledger table, body.printing-formal table { border: 1px solid #000000; }
-.pdf-capture-mode th, .pdf-capture-mode td,
+.pdf-capture-mode:not(.invoice-box) th, .pdf-capture-mode:not(.invoice-box) td,
 body.printing-region th, body.printing-region td,
-body.printing-invoice th, body.printing-invoice td,
 body.printing-ledger th, body.printing-ledger td,
 body.printing-formal th, body.printing-formal td { border-color: #000000 !important; }
-/* The invoice's own header row is deliberately pinned to a light-blue
-   background with a hardcoded hex (see .invoice-box table thead th above),
-   so it doesn't follow the app theme even normally \u2014 the general var()
-   overrides above never reach a hardcoded colour, so this needs its own
-   explicit override in the same three print contexts. */
-/* .pdf-capture-mode is applied to .invoice-box ITSELF when printing the
-   invoice, not to a wrapper around it, so this must also match the case
-   where the class and .invoice-box are the same element, not just where
-   .invoice-box is a descendant of it. */
-.pdf-capture-mode.invoice-box table thead th,
-.pdf-capture-mode .invoice-box table thead th,
-body.printing-invoice .invoice-box table thead th,
-body.printing-region .invoice-box table thead th {
-    background: #ffffff !important;
-    color: #000000 !important;
-}
-.pdf-capture-mode thead th, body.printing-region thead th, body.printing-invoice thead th,
+.pdf-capture-mode:not(.invoice-box) thead th, body.printing-region thead th,
 body.printing-ledger thead th, body.printing-formal thead th { border-bottom: 2px solid #000000; }
-.pdf-capture-mode tfoot td, body.printing-region tfoot td, body.printing-invoice tfoot td,
+.pdf-capture-mode:not(.invoice-box) tfoot td, body.printing-region tfoot td,
 body.printing-ledger tfoot td, body.printing-formal tfoot td { border-top: 2px solid #000000; }
 /* Buttons still need to be visibly buttons on a printed page, not
    invisible transparent boxes — give them a plain outline instead of a
    filled colour. */
-.pdf-capture-mode button, body.printing-region button, body.printing-invoice button,
+.pdf-capture-mode:not(.invoice-box) button, body.printing-region button,
 body.printing-ledger button, body.printing-formal button {
     border: 1px solid #000000 !important;
     background: #ffffff !important;

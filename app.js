@@ -1502,16 +1502,20 @@
     }
     function closeAppNoticeUI() {
         document.getElementById('appNoticeModal').style.display = 'none';
+        unlockBodyScroll();
     }
     window.alert = function (message) {
         document.getElementById('appNoticeText').textContent = message;
         document.getElementById('appNoticeModal').style.display = 'flex';
+        lockBodyScroll();
         navPushState(closeAppNoticeUI);
     };
 
     let appConfirmResolve = null;
     function closeAppConfirmUI() {
+        const wasOpen = document.getElementById('appConfirmModal').style.display === 'flex';
         document.getElementById('appConfirmModal').style.display = 'none';
+        if (wasOpen) unlockBodyScroll();
         if (appConfirmResolve) { const r = appConfirmResolve; appConfirmResolve = null; r(false); }
     }
     // Fired by the Cancel/OK buttons. Hides + resolves immediately (no
@@ -1520,7 +1524,9 @@
     // still runs closeAppConfirmUI, but by then appConfirmResolve is
     // already null so it's a harmless no-op.
     function resolveAppConfirm(result) {
+        const wasOpen = document.getElementById('appConfirmModal').style.display === 'flex';
         document.getElementById('appConfirmModal').style.display = 'none';
+        if (wasOpen) unlockBodyScroll();
         const r = appConfirmResolve;
         appConfirmResolve = null;
         history.back();
@@ -1531,6 +1537,7 @@
             appConfirmResolve = resolve;
             document.getElementById('appConfirmText').textContent = message;
             document.getElementById('appConfirmModal').style.display = 'flex';
+            lockBodyScroll();
             navPushState(closeAppConfirmUI);
         });
     }
@@ -1605,6 +1612,46 @@
     // saved without having to look. Wrapped in a try/catch and a support
     // check because iOS Safari doesn't implement the Vibration API at all —
     // there it simply does nothing rather than throwing.
+    // iOS Safari has a well-known class of bug where a position:fixed
+    // overlay can fail to repaint properly over a background that's still
+    // independently scrollable underneath it \u2014 the fixed layer visually
+    // "loses" its grip and whatever's behind bleeds through, especially in
+    // an installed (standalone) PWA. This showed up as the invoice popup
+    // overlapping with the report open behind it. The standard, reliable
+    // fix is to make the background genuinely NOT scrollable the moment any
+    // modal is open \u2014 not just visually covered \u2014 so there's nothing left
+    // for iOS to mis-render. Plain `overflow:hidden` on body is known to
+    // still let iOS rubber-band scroll through in some cases, so this pins
+    // the body itself as position:fixed at its current scroll offset, which
+    // is the technique that actually holds on iOS, and restores the exact
+    // scroll position on unlock. A depth counter means nested modals (e.g.
+    // a confirm dialog opened from inside the edit modal) don't unlock the
+    // background until the outermost one has actually closed.
+    let __scrollLockDepth = 0;
+    let __scrollLockY = 0;
+    function lockBodyScroll() {
+        if (__scrollLockDepth === 0) {
+            __scrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+            document.body.style.position = 'fixed';
+            document.body.style.top = (-__scrollLockY) + 'px';
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+        }
+        __scrollLockDepth++;
+    }
+    function unlockBodyScroll() {
+        __scrollLockDepth = Math.max(0, __scrollLockDepth - 1);
+        if (__scrollLockDepth === 0) {
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+            window.scrollTo(0, __scrollLockY);
+        }
+    }
+
     function haptic(kind) {
         try {
             if (!navigator.vibrate) return;
@@ -4318,6 +4365,7 @@
 
         recomputeEditTotal();
         document.getElementById('editModal').style.display = 'flex';
+        lockBodyScroll();
     }
 
     // Lists every payment linked to the invoice being edited, with the
@@ -4523,6 +4571,7 @@
     function closeEditModal() { history.back(); }
     function closeEditModalUI() {
         document.getElementById('editModal').style.display = 'none';
+        unlockBodyScroll();
     }
 
     function recomputeEditTotal() {
@@ -6443,6 +6492,7 @@
     function closeInvoiceModalUI() {
         const m = document.getElementById('invoiceModal');
         if (!m) return;
+        unlockBodyScroll();
         // Let the sheet slide back down before hiding it. If the browser
         // can't run the animation (reduced motion, or the element is
         // already hidden), fall through to hiding immediately so the modal
@@ -6680,7 +6730,8 @@
         const ewayBtn = document.getElementById('ewayBtn');
         if (ewayBtn) ewayBtn.style.display = (txn.type === 'Sales') ? '' : 'none';
 
-        document.getElementById('invoiceModal').style.display = 'flex';  
+        document.getElementById('invoiceModal').style.display = 'flex';
+        if (!suppressInvoiceModalHistory) lockBodyScroll();  
         // Let layout settle, then shrink to fit if page zoom made it wider
         // than the screen.
         setTimeout(fitInvoiceToScreen, 30);
@@ -6798,6 +6849,7 @@
     function openGlobalSearch() {
         navPushState(closeGlobalSearchUI);
         document.getElementById('globalSearchModal').style.display = 'flex';
+        lockBodyScroll();
         const input = document.getElementById('globalSearchInput');
         input.value = '';
         renderGlobalSearchResults();
@@ -6806,6 +6858,7 @@
     function closeGlobalSearch() { history.back(); }
     function closeGlobalSearchUI() {
         document.getElementById('globalSearchModal').style.display = 'none';
+        unlockBodyScroll();
     }
     function renderGlobalSearchResults() {
         const raw = document.getElementById('globalSearchInput').value.trim();
