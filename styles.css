@@ -1577,6 +1577,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
        captured image even though the panel around them wasn't clipping
        anything. Every column now makes it into the PDF, not just whichever
        ones happened to be on screen at the time. */
+    /* Same self-reference bug as the invoice box: gstPrintArea (and any
+       other dedicated print container) now carries BOTH classes on the
+       SAME element, not table-responsive nested as a descendant of a
+       pdf-capture-mode ancestor \u2014 a plain descendant selector doesn't
+       match an element against itself, so the unclip silently didn't
+       apply and the table stayed clipped. */
+    .pdf-capture-mode.table-responsive,
     .pdf-capture-mode .table-responsive,
     body.printing-region .table-responsive {
         overflow: visible !important;
