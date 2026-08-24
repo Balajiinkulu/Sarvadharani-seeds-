@@ -1388,7 +1388,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <button type="button" data-select-togglebtn="salesStatement" onclick="toggleSelectMode('salesStatement')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="salesStatement" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="salesStatement" onclick="printSelected('salesStatement', salesStatementRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
-                <button onclick="printRegion('panelSalesStatement','Sales Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
+                <button onclick="printAllRows('panelSalesStatement','Sales Statement','salesStatement',renderSalesStatement)" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button type="button" data-sort-toggle="salesStatement" onclick="toggleSortDir('salesStatement', renderSalesStatement)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
@@ -1565,7 +1565,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <button type="button" data-select-togglebtn="purchaseReport" onclick="toggleSelectMode('purchaseReport')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="purchaseReport" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="purchaseReport" onclick="printSelected('purchaseReport', purchaseReportRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
-                <button onclick="printRegion('panelPurchaseReport','Purchase Report')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
+                <button onclick="printAllRows('panelPurchaseReport','Purchase Report','purchaseReport',renderPurchaseReport)" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button type="button" data-sort-toggle="purchaseReport" onclick="toggleSortDir('purchaseReport', renderPurchaseReport)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
@@ -2247,7 +2247,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <select id="stockGroupFilter" onchange="pageStateFor('stockSummary').page = 1; renderStockSummary();" style="width:auto; padding:8px 10px; font-size:0.85rem;">
                 <option value="">All Categories</option>
             </select>
-            <button onclick="printRegion('panelStock','Stock Summary')" class="btn-success" style="width:auto; padding:8px 14px; font-size:0.8rem;">Save as PDF</button>
+            <button onclick="printAllRows('panelStock','Stock Summary','stockSummary',renderStockSummary)" class="btn-success" style="width:auto; padding:8px 14px; font-size:0.8rem;">Save as PDF</button>
             <button onclick="resetAllOpeningQuantities()" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--warning); border-color:rgba(255,255,255,0.3);" title="Fix items where Opening Qty was set incorrectly">Fix Opening Qty</button>
         </div>
         <div class="table-responsive">
@@ -2326,7 +2326,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <button type="button" data-select-togglebtn="payments" onclick="toggleSelectMode('payments')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="payments" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="payments" onclick="printSelected('payments', paymentsRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
-                <button onclick="printRegion('panelPayments','Payments Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
+                <button onclick="printAllRows('panelPayments','Payments Statement','payments',()=>renderCashList('Payment'))" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button type="button" data-sort-toggle="payments" onclick="toggleSortDir('payments', () => renderCashList('Payment'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
@@ -2379,7 +2379,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <button type="button" data-select-togglebtn="receipts" onclick="toggleSelectMode('receipts')" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                 <span data-select-count="receipts" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                 <button type="button" data-select-printbtn="receipts" onclick="printSelected('receipts', receiptsRowOrder)" disabled style="display:none; width:auto; padding:9px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
-                <button onclick="printRegion('panelReceipts','Receipts Statement')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
+                <button onclick="printAllRows('panelReceipts','Receipts Statement','receipts',()=>renderCashList('Receipt'))" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button type="button" data-sort-toggle="receipts" onclick="toggleSortDir('receipts', () => renderCashList('Receipt'))" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
@@ -2846,6 +2846,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=53"></script>
+<script src="app.js?v=55"></script>
 </body>
 </html>

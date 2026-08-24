@@ -7413,8 +7413,24 @@
         const prevCaptureWidth = node.style.width;
         const prevCaptureMaxWidth = node.style.maxWidth;
         const prevCaptureShrink = node.style.flexShrink;
-        node.style.width = '780px';
+        // 780px is a MINIMUM, not a hard cap. pdf-capture-mode is already
+        // applied above, which is what unclips a wide report table to its
+        // true content width (see the .table-responsive rule) \u2014 reading
+        // scrollWidth now, before forcing any width, captures that true
+        // size. Forcing every document down to exactly 780px regardless
+        // was fine for the invoice (which never needed more) but silently
+        // cropped a wider report's table: content past 780px was still
+        // visually spilling out on screen thanks to overflow:visible, but
+        // html2canvas was only ever told to capture 780px, so those extra
+        // columns just never made it into the PDF at all.
+        // max-width cleared FIRST — measuring scrollWidth before this
+        // would risk reading a value still constrained by whatever
+        // max-width the node already had, undercounting the true content
+        // width this is meant to capture.
         node.style.maxWidth = 'none';
+        node.style.width = '';
+        const naturalWidth = node.scrollWidth;
+        node.style.width = Math.max(780, naturalWidth) + 'px';
         // .invoice-box is a flex child of #invoiceModal, and flex items
         // shrink to fit their container by default EVEN WITH an explicit
         // width set \u2014 without this, the 780px above was being squeezed
@@ -7499,6 +7515,22 @@
             const pdf = new jsPDF({ orientation: isLandscape ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
             let renderedPx = 0;
             let pageNum = 0;
+            // Most reports (a short GST statement, a small ledger) fit
+            // entirely on one page \u2014 pinning that single page's content
+            // to the top-left left a large dead strip of blank paper below
+            // it, which read as lopsided rather than centred. When the
+            // whole document fits on one page, it's centred both ways
+            // instead; a document that genuinely spans several pages keeps
+            // each page filled edge-to-edge as before, since centring only
+            // makes sense once there's spare room to centre within.
+            const fitsOnOnePage = canvas.height <= pageHeightPx;
+            // For centring specifically, use the page's TRUE usable height
+            // (no bottom gutter) \u2014 the gutter exists to stop a blind
+            // slice-cut from landing mid-content across multiple pages,
+            // which isn't a concern once the whole document fits on one
+            // page with room to spare; using the gutter-reduced height here
+            // just made the centring lopsided by that same 6mm.
+            const centerHeightMm = a4HeightMm - marginMm * 2;
             while (renderedPx < canvas.height) {
                 const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedPx);
 
@@ -7512,8 +7544,30 @@
                 const sliceData = sliceCanvas.toDataURL('image/png');
                 const sliceHeightMm = (sliceHeightPx * imgWidthMm) / canvas.width;
 
+                let xMm = marginMm, yMm = marginMm, wMm = imgWidthMm;
+                if (fitsOnOnePage) {
+                    // Re-fit to whichever dimension is the tighter constraint,
+                    // then centre in both directions \u2014 a short, narrow
+                    // report shouldn't be stretched edge-to-edge just because
+                    // that's the default for a full page of content.
+                    const byWidth = imgWidthMm;
+                    const byWidthHeight = sliceHeightMm;
+                    const byHeight = centerHeightMm;
+                    const byHeightWidth = (canvas.width * byHeight) / canvas.height;
+                    if (byHeightWidth <= usableWidthMm) {
+                        wMm = byHeightWidth;
+                        xMm = marginMm + (usableWidthMm - wMm) / 2;
+                        yMm = marginMm;
+                    } else {
+                        wMm = byWidth;
+                        xMm = marginMm;
+                        yMm = marginMm + (centerHeightMm - byWidthHeight) / 2;
+                    }
+                }
+                const finalHeightMm = fitsOnOnePage ? (sliceHeightMm * wMm / imgWidthMm) : sliceHeightMm;
+
                 if (pageNum > 0) pdf.addPage();
-                pdf.addImage(sliceData, 'PNG', marginMm, marginMm, imgWidthMm, sliceHeightMm);
+                pdf.addImage(sliceData, 'PNG', xMm, yMm, wMm, finalHeightMm);
 
                 renderedPx += sliceHeightPx;
                 pageNum++;
@@ -7555,6 +7609,29 @@
         }
     }
 
+    // Reports with on-screen pagination (Stock Summary, Payments/Receipts,
+    // Sales Statement, Purchase Report, Ledger) only ever have the CURRENT
+    // page's rows in the DOM \u2014 "Save as PDF" was capturing exactly that,
+    // silently leaving out everything past the first page. This expands to
+    // show every row matching whatever period/filter is selected, waits
+    // for the actual capture to fully finish, then restores the normal
+    // paginated view \u2014 the on-screen list is never permanently changed,
+    // only during the moment of export.
+    async function printAllRows(elementId, title, listKey, rerenderFn) {
+        const state = pageStateFor(listKey);
+        const savedPage = state.page, savedSize = state.pageSize;
+        state.page = 1;
+        state.pageSize = 999999;
+        rerenderFn();
+        try {
+            await printRegion(elementId, title);
+        } finally {
+            state.page = savedPage;
+            state.pageSize = savedSize;
+            rerenderFn();
+        }
+    }
+
     function printRegion(elementId, title) {
         if (!isAdmin() && !hasPermission('exportPrint')) { alert("Only an admin, or a user with 'Export / print' turned on, can print or export."); return; }
         const el = document.getElementById(elementId);
@@ -7570,7 +7647,7 @@
             window.removeEventListener('afterprint', cleanup);
         };
         window.addEventListener('afterprint', cleanup);
-        smartPrint(el, title || 'Report', () => {
+        return smartPrint(el, title || 'Report', () => {
             window.print();
             setTimeout(cleanup, 1000);
         }).then(() => { if (isStandaloneApp()) cleanup(); });
@@ -7771,23 +7848,38 @@
         downloadCSV('ledger-' + who.replace(/[^a-z0-9]+/gi, '-').toLowerCase(), rows);
     }
 
-    function printLedger() {
+    async function printLedger() {
         if (!isAdmin() && !hasPermission('exportPrint')) return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
         const ledgerEl = document.getElementById('ledgerPrintArea');
         if (ledgerEl.style.display !== 'block') {
             return alert("Please view a party's ledger statement first.");
         }
+        // Same fix as the other reports: the ledger paginates on screen too,
+        // so without this, only whatever page you happened to be viewing
+        // got captured \u2014 a party with more transactions than fit on one
+        // page would silently lose everything past it.
+        const state = pageStateFor('ledgerStatement');
+        const savedPage = state.page, savedSize = state.pageSize;
+        state.page = 1;
+        state.pageSize = 999999;
+        if (lastLedger) openLedgerStatement(lastLedger.kind, lastLedger.id);
         document.body.classList.add('printing-ledger');
         const cleanup = () => {
             document.body.classList.remove('printing-ledger');
             window.removeEventListener('afterprint', cleanup);
         };
         window.addEventListener('afterprint', cleanup);
-        smartPrint(ledgerEl, 'Ledger', () => {
-            window.print();
-            // Fallback for browsers that don't fire afterprint reliably
-            setTimeout(cleanup, 1000);
-        }).then(() => { if (isStandaloneApp()) cleanup(); });
+        try {
+            await smartPrint(ledgerEl, 'Ledger', () => {
+                window.print();
+                // Fallback for browsers that don't fire afterprint reliably
+                setTimeout(cleanup, 1000);
+            }).then(() => { if (isStandaloneApp()) cleanup(); });
+        } finally {
+            state.page = savedPage;
+            state.pageSize = savedSize;
+            if (lastLedger) openLedgerStatement(lastLedger.kind, lastLedger.id);
+        }
     }
 
     // ================================================================
