@@ -1012,7 +1012,11 @@ body.printing-formal {
     --statement-bg: #ffffff;
     --statement-row-alt: #ffffff;
     --text-main: #000000;
-    --text-muted: #333333;
+    /* Darker than the on-screen muted grey \u2014 a phone's own print/share
+       pipeline has repeatedly washed out lighter tones in this app before,
+       so secondary text (sub-lines, labels) needs real contrast here too,
+       not just the primary heading text. */
+    --text-muted: #1a1a1a;
     --text-invert: #000000;
     --accent: #000000;
     --accent-hover: #000000;

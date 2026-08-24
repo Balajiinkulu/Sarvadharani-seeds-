@@ -7402,6 +7402,25 @@
         node.classList.remove('screen-view');
         node.classList.add('pdf-capture-mode');
         node.style.overflow = 'visible';
+        // Lay the document out at a proper page width for the capture,
+        // rather than whatever narrow width it happens to occupy on a
+        // phone screen. Capturing at ~390px forced every table column to
+        // squeeze, which is what made printed text look cramped and
+        // congested inside its boxes \u2014 the PDF then just scaled that
+        // already-squashed layout up to A4. A4's usable width is ~194mm
+        // \u2248 750px at 96dpi, so this lays out the way a desktop browser
+        // would before printing. Restored immediately after capture.
+        const prevCaptureWidth = node.style.width;
+        const prevCaptureMaxWidth = node.style.maxWidth;
+        const prevCaptureShrink = node.style.flexShrink;
+        node.style.width = '780px';
+        node.style.maxWidth = 'none';
+        // .invoice-box is a flex child of #invoiceModal, and flex items
+        // shrink to fit their container by default EVEN WITH an explicit
+        // width set \u2014 without this, the 780px above was being squeezed
+        // straight back down to whatever the phone's own screen width was,
+        // which is exactly the layout that was congesting the text.
+        node.style.flexShrink = '0';
 
         try {
             // The logo (and any other <img>) is now a real file rather than
@@ -7426,8 +7445,15 @@
             // not just whatever fits in one screen's height — without this,
             // long content (e.g. a ledger with many rows) gets cut off after
             // one viewport's worth.
+            // scale:3 rather than 2 \u2014 noticeably sharper text and figures on
+            // a printed page, at the cost of a larger file. Capped so a very
+            // long report (hundreds of ledger rows) can't produce a canvas
+            // big enough to exhaust memory on a phone and fail outright:
+            // beyond ~7000px tall the extra sharpness isn't visible anyway
+            // once it's sliced across pages.
+            const targetScale = (node.scrollHeight > 7000) ? 2 : 3;
             const canvas = await html2canvas(node, {
-                scale: 2,
+                scale: targetScale,
                 backgroundColor: '#ffffff',
                 useCORS: true,
                 width: node.scrollWidth,
@@ -7456,7 +7482,14 @@
             const a4HeightMm = isLandscape ? 210 : 297;
             const marginMm = 8;
             const usableWidthMm = a4WidthMm - marginMm * 2;
-            const usableHeightMm = a4HeightMm - marginMm * 2;
+            // A few mm of breathing room at the foot of each page. The
+            // slice boundary is a blind pixel cut \u2014 it has no idea whether
+            // it's landing in whitespace or straight through the Authorized
+            // Signatory line, which is exactly what was clipping it. Ending
+            // each page slightly short means a cut never lands flush
+            // against the very bottom of the content.
+            const bottomGutterMm = 6;
+            const usableHeightMm = a4HeightMm - marginMm * 2 - bottomGutterMm;
 
             const imgWidthMm = usableWidthMm;
             const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
@@ -7513,6 +7546,9 @@
         } finally {
             noPrintEls.forEach((el, i) => { el.style.display = prevDisplay[i]; });
             node.classList.remove('pdf-capture-mode');
+            node.style.width = prevCaptureWidth;
+            node.style.maxWidth = prevCaptureMaxWidth;
+            node.style.flexShrink = prevCaptureShrink;
             if (wasScreenView) node.classList.add('screen-view');
             restoreInvoiceScale(prevScale);
             node.style.overflow = prevOverflow;
