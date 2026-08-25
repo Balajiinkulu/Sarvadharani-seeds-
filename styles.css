@@ -228,6 +228,63 @@ table td, table th {
 .invoice-box.inv-fixed table th:nth-child(5), .invoice-box.inv-fixed table td:nth-child(5) { width: 20%; }
 .invoice-box.inv-fixed table th:nth-child(6), .invoice-box.inv-fixed table td:nth-child(6) { width: 21%; }
 
+/* Invoices panel — status tabs and invoice cards. */
+.inv-tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+}
+.inv-tab {
+    width: auto;
+    flex: none;
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 9px 14px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-radius: 0;
+    position: relative;
+    white-space: nowrap;
+    min-height: 0;
+}
+.inv-tab.active { color: var(--accent); }
+.inv-tab.active::after {
+    content: '';
+    position: absolute;
+    left: 10px; right: 10px; bottom: -1px;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+}
+.inv-card {
+    background: var(--bg-tint);
+    border-radius: var(--radius-sm);
+    padding: 11px 12px;
+    margin-bottom: 8px;
+}
+.inv-card.tappable { cursor: pointer; }
+.inv-card .r1 { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.inv-card .who { font-size: 0.86rem; font-weight: 600; color: var(--text-main); }
+.inv-card .amt { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.9rem; white-space: nowrap; }
+.inv-card .r2 { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
+.inv-card .meta { font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+.inv-card .due { font-size: 0.7rem; color: var(--text-muted); margin-top: 5px; }
+.inv-card .due b { font-family: 'JetBrains Mono', monospace; }
+.inv-badge {
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+.inv-badge.unpaid { background: rgba(220, 38, 38, 0.16); color: var(--danger); }
+.inv-badge.partial { background: rgba(217, 119, 6, 0.18); color: var(--warning); }
+.inv-badge.paid { background: rgba(22, 163, 74, 0.16); color: var(--success); }
+
 /* GST register row styling. These were previously repeated as inline
    style="..." attributes on every cell of every row \u2014 on a 3000-row
    period that generated ~2.5MB of HTML (~845 bytes per row), which is what

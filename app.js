@@ -892,6 +892,143 @@
         return Math.max(0, txn.grandTotal - settled);
     }
 
+    // ---- Invoices panel ----
+    let invoiceFilter = 'unpaid';
+
+    function setInvoiceFilter(f) {
+        invoiceFilter = f;
+        document.querySelectorAll('#invTabs .inv-tab').forEach(b => {
+            b.classList.toggle('active', b.dataset.invfilter === f);
+        });
+        // Jumping filters while on page 3 of the previous one would land on
+        // an empty page, so reset to the first page on every switch.
+        pageStateFor('invoicesList').page = 1;
+        renderInvoicesList();
+    }
+
+    // Entry point from the two dashboard cards. Pending to Receive and
+    // Pending to Pay both land on the Invoices list, pre-set to the right
+    // side of the books and filtered to what's actually outstanding \u2014
+    // which is the question the card was answering in the first place.
+    function openInvoicesFor(kind) {
+        openPanel('panelInvoices');
+        const kindSel = document.getElementById('invKind');
+        const periodSel = document.getElementById('invPeriod');
+        if (kindSel) kindSel.value = kind;
+        // A dashboard figure counts everything outstanding regardless of
+        // date, so the list has to match it or the totals won't agree.
+        if (periodSel) periodSel.value = 'all';
+        pageStateFor('invoicesList').page = 1;
+        onInvoicePeriodChange();
+        setInvoiceFilter('unpaid');
+    }
+
+    function onInvoiceKindChange() {
+        pageStateFor('invoicesList').page = 1;
+        renderInvoicesList();
+    }
+
+    function onInvoicePeriodChange() {
+        document.getElementById('invCustomWrap').style.display =
+            (document.getElementById('invPeriod').value === 'custom') ? 'block' : 'none';
+        pageStateFor('invoicesList').page = 1;
+        renderInvoicesList();
+    }
+
+    function renderInvoicesList() {
+        const list = document.getElementById('invoicesList');
+        const summary = document.getElementById('invoicesSummary');
+        if (!list) return;
+
+        const kind = document.getElementById('invKind').value;   // 'Sales' | 'Purchase'
+        const range = periodRange(document.getElementById('invPeriod').value,
+                                  document.getElementById('invFrom').value,
+                                  document.getElementById('invTo').value);
+
+        // Newest first, with how much is still owed on each — reusing
+        // invoiceOutstanding() so this list can never disagree with the
+        // figures shown elsewhere in the app.
+        const all = transactions
+            .filter(t => t.type === kind && inRange(t.date, range))
+            .map(t => {
+                const due = invoiceOutstanding(t);
+                const total = Number(t.grandTotal) || 0;
+                const received = Math.max(0, total - due);
+                let status;
+                if (due <= 0.004) status = 'paid';           // tolerance for float dust
+                else if (received > 0.004) status = 'partial';
+                else status = 'unpaid';
+                return { txn: t, total, due, received, status };
+            })
+            .sort((a, b) => String(b.txn.date).localeCompare(String(a.txn.date)) || (b.txn.id - a.txn.id));
+
+        const rows = (invoiceFilter === 'all') ? all : all.filter(r => r.status === invoiceFilter);
+
+        const isPurchase = (kind === 'Purchase');
+        const totalDue = rows.reduce((s, r) => s + r.due, 0);
+        summary.innerText = rows.length === 0
+            ? ''
+            : `${rows.length} ${isPurchase ? 'purchase' : 'invoice'}${rows.length === 1 ? '' : 's'}`
+              + (totalDue > 0.004 ? ` \u00b7 \u20B9${money(totalDue)} still ${isPurchase ? 'to pay' : 'due'}` : '');
+
+        if (rows.length === 0) {
+            const noun = isPurchase ? 'purchases' : 'invoices';
+            const msg = invoiceFilter === 'unpaid' ? `No unpaid ${noun} \u2014 everything is settled.`
+                      : invoiceFilter === 'partial' ? `No part-paid ${noun}.`
+                      : invoiceFilter === 'paid' ? `No fully-paid ${noun} yet.`
+                      : `No ${isPurchase ? 'purchase' : 'sales'} ${isPurchase ? 'vouchers' : 'invoices'} in this period.`;
+            list.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:26px 0;">${msg}</div>`;
+            renderPaginationControls('invoicesList', 0, renderInvoicesList);
+            return;
+        }
+
+        const pageRows = paginateRows('invoicesList', rows);
+        list.innerHTML = pageRows.map(r => {
+            const t = r.txn;
+            const badge = r.status === 'paid' ? 'paid' : r.status === 'partial' ? 'partial' : 'unpaid';
+            const label = r.status === 'paid' ? 'PAID' : r.status === 'partial' ? 'PARTIAL' : 'UNPAID';
+            const dueLine = r.status === 'paid'
+                ? (isPurchase ? 'Fully paid' : 'Fully received')
+                : (r.received > 0.004
+                    ? `${isPurchase ? 'Paid' : 'Received'} \u20B9${money(r.received)} \u00b7 Due <b style="color:var(--danger);">\u20B9${money(r.due)}</b>`
+                    : `Due <b style="color:var(--danger);">\u20B9${money(r.due)}</b>`);
+            return `
+                <div class="inv-card tappable" onclick="openInvoiceFromList(${t.id})" title="${r.status === 'paid' ? 'Open invoice' : 'Record a payment'}">
+                    <div class="r1">
+                        <span class="who">${escapeHtml(t.partyName || t.accountName || 'Retail Sale')}</span>
+                        <span class="amt">\u20B9${money(r.total)}</span>
+                    </div>
+                    <div class="r2">
+                        <span class="meta">${escapeHtml(t.invNo || '')} \u00b7 ${escapeHtml(t.date || '')}</span>
+                        <span class="inv-badge ${badge}">${label}</span>
+                    </div>
+                    <div class="due">${dueLine}</div>
+                </div>`;
+        }).join('');
+
+        renderPaginationControls('invoicesList', rows.length, renderInvoicesList);
+    }
+
+    // A fully-paid invoice has nothing to add, so it just opens to view;
+    // anything still owing goes straight to the edit screen with the Add
+    // Payment row already open and the outstanding balance pre-filled.
+    function openInvoiceFromList(txnId) {
+        const txn = transactions.find(t => t.id == txnId);
+        if (!txn) return;
+        if (invoiceOutstanding(txn) <= 0.004) {
+            printInvoice(txnId);
+            return;
+        }
+        openEditModal(txnId);
+        // openEditModal renders the linked-payments panel synchronously, so
+        // the Add Payment control exists by now; the short delay just lets
+        // the modal finish opening before the keyboard is summoned.
+        setTimeout(() => {
+            const openBtn = document.getElementById('editAddPayOpen');
+            if (openBtn && openBtn.style.display !== 'none') openAddPayment();
+        }, 260);
+    }
+
     // ---- Recent Transactions (dashboard widget) ----
     // Shows the last few posted vouchers of any type, newest first.
     // Read-only summary — rows do not open or navigate anywhere.
@@ -1775,6 +1912,7 @@
         // render() skips hidden panels, they refresh as they open.
         if (id === 'panelStock') renderStockSummary();
         if (id === 'panelStockGroup' || id === 'panelLedgerGroup' || id === 'panelGroupStock') renderGroupTables();
+        if (id === 'panelInvoices') { onInvoicePeriodChange(); setInvoiceFilter(invoiceFilter); }
         if (id === 'panelAuditTrail') renderAuditTrail();
         if (id === 'panelBackfillGst') {
             const { vouchers, lines } = countGstBackfillCandidates();

@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=55">
+    <link rel="stylesheet" href="styles.css?v=56">
 </head>
 <body>
 <script>
@@ -219,11 +219,11 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
     <!-- Dashboard Metrics -->
     <div class="dashboard-summary" id="homeDashboardSummary" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));">
-        <div class="summary-card" onclick="openPanel('panelPendingReceivable')" style="cursor:pointer;" title="View pending sales invoices">
+        <div class="summary-card" onclick="openInvoicesFor('Sales')" style="cursor:pointer;" title="View unpaid sales invoices">
             <div>Pending to Receive (Sales)</div>
             <div id="statReceivable" style="color: var(--success);">&#8377;0.00</div>
         </div>
-        <div class="summary-card" onclick="openPanel('panelPendingPayable')" style="cursor:pointer;" title="View pending purchase invoices">
+        <div class="summary-card" onclick="openInvoicesFor('Purchase')" style="cursor:pointer;" title="View unpaid purchase invoices">
             <div>Pending to Pay (Purchase)</div>
             <div id="statPayable" style="color: var(--danger);">&#8377;0.00</div>
         </div>
@@ -240,6 +240,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="dash-menu-item" onclick="openGroup('groupMasters')">Masters</div>
             <div class="dash-menu-item" onclick="openGroup('groupTransactions')">Transactions</div>
             <div class="dash-menu-item" onclick="openGroup('groupReports')">Reports</div>
+            <div class="dash-menu-item" onclick="openPanel('panelInvoices')">Invoices</div>
             <div class="dash-menu-item" onclick="openPanel('panelLedger')">Ledger</div>
             <div class="dash-menu-item" onclick="openGroup('groupSettings')">Admin</div>
         </div>
@@ -1306,6 +1307,55 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     </div>
 
     <!-- Pending to Receive (drill-down from dashboard tile) -->
+    <!-- Invoices — every Sales invoice grouped by how much has actually
+         been received against it. Tapping an Unpaid or Partial row goes
+         straight to recording a payment, since that's the usual reason for
+         opening this list; a fully Paid row just opens the invoice to view. -->
+    <div class="panel" id="panelInvoices">
+        <div class="panel-head"><h3>Invoices</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+            Tap an unpaid or partly-paid invoice to record a payment against it.
+        </div>
+        <!-- Sales vs Purchase share this screen because the question is the
+             same either way: what's still outstanding. Sales shows what
+             customers owe you; Purchase shows what you owe suppliers. -->
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:14px;">
+            <div style="flex:1; min-width:150px;">
+                <label>Type</label>
+                <select id="invKind" onchange="onInvoiceKindChange()">
+                    <option value="Sales" selected>Sales (customers owe me)</option>
+                    <option value="Purchase">Purchase (I owe suppliers)</option>
+                </select>
+            </div>
+            <div style="flex:1; min-width:150px;">
+                <label>Period</label>
+                <select id="invPeriod" onchange="onInvoicePeriodChange()">
+                    <option value="thisMonth">This Month</option>
+                    <option value="lastMonth">Last Month</option>
+                    <option value="thisYear">This Year</option>
+                    <option value="all" selected>All Time</option>
+                    <option value="custom">Custom...</option>
+                </select>
+            </div>
+            <div id="invCustomWrap" style="display:none; flex:2; min-width:220px;">
+                <label>From &ndash; To</label>
+                <div style="display:flex; gap:6px;">
+                    <input type="date" id="invFrom" onchange="renderInvoicesList()">
+                    <input type="date" id="invTo" onchange="renderInvoicesList()">
+                </div>
+            </div>
+        </div>
+        <div class="inv-tabs" id="invTabs">
+            <button type="button" class="inv-tab active" data-invfilter="unpaid" onclick="setInvoiceFilter('unpaid')">Unpaid</button>
+            <button type="button" class="inv-tab" data-invfilter="partial" onclick="setInvoiceFilter('partial')">Partial</button>
+            <button type="button" class="inv-tab" data-invfilter="paid" onclick="setInvoiceFilter('paid')">Paid</button>
+            <button type="button" class="inv-tab" data-invfilter="all" onclick="setInvoiceFilter('all')">All</button>
+        </div>
+        <div id="invoicesSummary" style="font-size:0.8rem; color:var(--text-muted); margin:10px 2px 12px;"></div>
+        <div id="invoicesList"></div>
+        <div data-page-controls="invoicesList" data-page-anchor="invoicesList"></div>
+    </div>
+
     <div class="panel" id="panelPendingReceivable">
         <div class="panel-head"><h3>Pending to Receive</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
         <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:16px;">
@@ -2847,6 +2897,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=56"></script>
+<script src="app.js?v=59"></script>
 </body>
 </html>
