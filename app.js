@@ -4564,7 +4564,13 @@
                 const preferred = opts.find(a => (a.name || '').toUpperCase() === 'CASH SALE')
                                || opts.find(a => a.type === 'Cash');
                 if (preferred) accSel.value = preferred.id;
-                document.getElementById('editAddPayAmount').value = due.toFixed(2);
+                // Left blank rather than pre-filled with the full balance —
+                // a stray tap on the confirm button used to be enough to
+                // record the whole amount due, even for a partial payment.
+                // The balance is still shown right above the field, so
+                // typing it back in when that's genuinely what came in
+                // takes one glance, not a lookup elsewhere.
+                document.getElementById('editAddPayAmount').value = '';
                 closeAddPayment();
             }
         }
