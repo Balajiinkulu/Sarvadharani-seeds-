@@ -17,7 +17,10 @@
        differentiation (hover states, input cards), never as a color. */
     --bg-main: #FFFFFF;
     --bg-card: #FFFFFF;
-    --bg-input: #FFFFFF;
+    /* Ice-blue like every other raised surface. This stayed pure white when
+       the palette changed, so dropdowns and text fields read as detached
+       white boxes sitting on the tinted cards around them. */
+    --bg-input: #EAF9FF;
     --bg-tint: #DFF7FF;
     --bg-hover: #C9EFFB;
     --bg-menu: #FFFFFF;
@@ -79,7 +82,9 @@
 body.dark-mode {
     --bg-main: #121212;
     --bg-card: #1E1E1E;
-    --bg-input: #2A2A2A;
+    /* Matches the cool blue-grey tint dark mode uses elsewhere, rather than
+       a neutral grey that looked out of place beside it. */
+    --bg-input: #1B2733;
     --bg-tint: #16202B;
     --bg-header: #0D0D0D;
     --bg-hover: #1F2E3D;
