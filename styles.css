@@ -491,7 +491,7 @@ h3 {
     background: var(--bg-hover);
 }
 .summary-card > div:first-child {
-    font-size: 0.7rem;
+    font-size: 0.76rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--text-muted);
@@ -499,7 +499,7 @@ h3 {
     margin-bottom: 8px;
 }
 .summary-card > div:nth-child(2) {
-    font-size: 1.6rem;
+    font-size: 1.78rem;
     font-weight: 600;
     color: var(--text-main);
     line-height: 1.15;
@@ -571,7 +571,7 @@ h3 {
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 54px;
+    min-height: 58px;
     line-height: 1.25;
     background: var(--bg-tint);
     border: none;
@@ -579,7 +579,7 @@ h3 {
     padding: 10px;
     font-family: 'IBM Plex Sans', sans-serif;
     font-weight: 600;
-    font-size: 0.88rem;
+    font-size: 0.96rem;
     color: var(--text-main);
     cursor: pointer;
     transition: background-color 160ms ease;
@@ -610,9 +610,9 @@ h3 {
 }
 .recent-txn-row:last-child { margin-bottom: 0; }
 .recent-txn-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.recent-txn-party { font-weight: 600; font-size: 0.88rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.recent-txn-meta { font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.02em; }
-.recent-txn-amt { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.9rem; color: var(--text-main); white-space: nowrap; }
+.recent-txn-party { font-weight: 600; font-size: 0.95rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-txn-meta { font-size: 0.78rem; color: var(--text-muted); letter-spacing: 0.02em; }
+.recent-txn-amt { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.97rem; color: var(--text-main); white-space: nowrap; }
 .recent-txn-empty { color: var(--text-muted); font-size: 0.85rem; padding: 8px 2px; }
 
 /* Sub-menu and panels are hidden by default; JS toggles .active */
@@ -1883,6 +1883,26 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     box-shadow: 0 20px 50px -15px rgba(10,10,8,0.5);
     padding: 34px 30px 30px;
     margin: auto;
+    /* Previously the card's height came entirely from its own content, so
+       a smaller phone text-size setting shrank the card along with the
+       text \u2014 the login screen was designed to sit that small, but it
+       read as broken rather than intentional. A real minimum height (with
+       a cap so it doesn't overshoot on a short landscape screen) keeps the
+       card substantial regardless of text size, and the fields spread out
+       to fill it rather than leaving a dead gap at the bottom. */
+    min-height: min(680px, 78vh);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-sizing: border-box;
+}
+.login-card > form,
+.login-card .login-fields {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    flex: 1;
+    gap: 18px;
 }
 .login-brand {
     text-align: center;
