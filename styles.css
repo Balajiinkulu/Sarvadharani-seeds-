@@ -228,6 +228,18 @@ table td, table th {
 .invoice-box.inv-fixed table th:nth-child(5), .invoice-box.inv-fixed table td:nth-child(5) { width: 20%; }
 .invoice-box.inv-fixed table th:nth-child(6), .invoice-box.inv-fixed table td:nth-child(6) { width: 21%; }
 
+/* GST register row styling. These were previously repeated as inline
+   style="..." attributes on every cell of every row \u2014 on a 3000-row
+   period that generated ~2.5MB of HTML (~845 bytes per row), which is what
+   made this report take ~900ms to render while every other report managed
+   under 150ms. As classes, the same styling costs a few bytes per row. */
+.gst-mono { font-family: 'JetBrains Mono', monospace; }
+.gst-mono-b { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+.gst-mono-sm { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
+.gst-nowrap { white-space: nowrap; }
+.gst-itemline { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+#gstRegisterBody tr { cursor: pointer; }
+
 /* Invoice chips in Pending to Receive / Pay. Sized to a real finger
    target (~34px tall, generous padding) so several invoices on one row
    can be tapped accurately, instead of the tight comma-separated run of

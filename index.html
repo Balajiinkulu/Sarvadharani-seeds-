@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=54">
+    <link rel="stylesheet" href="styles.css?v=55">
 </head>
 <body>
 <script>
@@ -1474,7 +1474,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </div>
             </div>
             <div style="display:flex; gap:6px;">
-                <button onclick="printRegion('gstPrintArea','GST Liability')" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
+                <button onclick="printAllRows('gstPrintArea','GST Liability','gstLiability',renderGstLiability)" class="btn-success" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
                 <button type="button" data-sort-toggle="gstLiability" onclick="toggleSortDir('gstLiability', renderGstLiability)" style="width:auto; padding:9px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">&#8681; Newest first</button>
             </div>
         </div>
@@ -1533,6 +1533,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <tbody id="gstRegisterBody"></tbody>
             </table>
         </div>
+        <div class="no-print" data-page-controls="gstLiability" data-page-anchor="gstLiability"></div>
         <div class="no-print" style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a row to open its invoice. Click a party name to open their ledger statement.</div>
     </div>
 
@@ -2846,6 +2847,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=55"></script>
+<script src="app.js?v=56"></script>
 </body>
 </html>

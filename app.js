@@ -976,9 +976,9 @@
                     <tr style="cursor:pointer;" title="Open party ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
                         <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
                         <td class="inv-chip-cell" style="white-space:normal;">${invoiceLinks}</td>
-                        <td>\u20B9${r.totalInvoiced.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td>\u20B9${money(r.totalInvoiced)}</td>
                         <td style="color:var(--text-muted);">\u20B9${received.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                        <td style="color:var(--success); font-weight:bold;">\u20B9${r.totalDue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="color:var(--success); font-weight:bold;">\u20B9${money(r.totalDue)}</td>
                     </tr>
                 `);
             });
@@ -1027,9 +1027,9 @@
                     <tr style="cursor:pointer;" title="Open vendor ledger" onclick="openPartyLedgerFromReport(${r.partyId})">
                         <td style="color:var(--accent); text-decoration:underline;">${escapeHtml(r.partyName)}</td>
                         <td class="inv-chip-cell" style="white-space:normal;">${invoiceLinks}</td>
-                        <td>\u20B9${r.totalInvoiced.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td>\u20B9${money(r.totalInvoiced)}</td>
                         <td style="color:var(--text-muted);">\u20B9${paid.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                        <td style="color:var(--danger); font-weight:bold;">\u20B9${r.totalDue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="color:var(--danger); font-weight:bold;">\u20B9${money(r.totalDue)}</td>
                     </tr>
                 `);
             });
@@ -1067,6 +1067,18 @@
     // ================================================================
     const listPageState = {}; // { [listKey]: { page: 1, pageSize: 25 } }
     const DEFAULT_PAGE_SIZE = 25;
+
+    // Money formatter that survives bad data. Vouchers can legitimately
+    // arrive with a null/undefined/NaN amount \u2014 from a partially-synced
+    // record, an older import, or a voucher type that never sets a given
+    // field \u2014 and calling .toLocaleString() straight on those throws,
+    // which took down the whole report render rather than just showing a
+    // blank cell. Anything unusable formats as 0.00 instead of crashing.
+    function money(v, opts) {
+        const n = Number(v);
+        return (isFinite(n) ? n : 0).toLocaleString('en-IN',
+            Object.assign({ minimumFractionDigits: 2, maximumFractionDigits: 2 }, opts || {}));
+    }
 
     function pageStateFor(listKey) {
         if (!listPageState[listKey]) listPageState[listKey] = { page: 1, pageSize: DEFAULT_PAGE_SIZE };
@@ -2427,8 +2439,8 @@
                 <tr>
                     <td>${escapeHtml(r.name)}</td>
                     <td style="color:var(--text-muted);">${escapeHtml(r.group)}</td>
-                    <td style="color:var(--success);">${r.dr > 0 ? '\u20B9' + r.dr.toLocaleString('en-IN', {minimumFractionDigits: 2}) : '-'}</td>
-                    <td style="color:var(--danger);">${r.cr > 0 ? '\u20B9' + r.cr.toLocaleString('en-IN', {minimumFractionDigits: 2}) : '-'}</td>
+                    <td style="color:var(--success);">${r.dr > 0 ? '\u20B9' + money(r.dr) : '-'}</td>
+                    <td style="color:var(--danger);">${r.cr > 0 ? '\u20B9' + money(r.cr) : '-'}</td>
                 </tr>
             `).join('');
         }
@@ -3028,7 +3040,7 @@
                 <tr>
                     <td>${escapeHtml(it.name)}</td>
                     <td>${it.qty} ${escapeHtml(it.uom)}</td>
-                    <td>\u20B9${it.inclRate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td>\u20B9${money(it.inclRate)}</td>
                     <td>\u20B9${taxDetails.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td>\u20B9${taxDetails.taxAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})} (${it.gstRate}%)</td>
                     <td>\u20B9${taxDetails.lineTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
@@ -4055,7 +4067,7 @@
                     <td>${escapeHtml(typeLabel)}</td>
                     <td>${escapeHtml(t.invNo)}</td>
                     <td>${escapeHtml(t.partyName || '-')}</td>
-                    <td>\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td>\u20B9${money(t.grandTotal)}</td>
                     <td><button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button></td>
                 </tr>
             `);
@@ -4939,7 +4951,7 @@
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.accountName || 'Cash')}</td>
                         <td onclick="printInvoice(${invOpenId})">${ref}</td>
-                        <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
                         <td style="display:flex; gap:6px;"><button onclick="event.stopPropagation(); deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
                     </tr>
                 `);
@@ -5040,7 +5052,7 @@
                         <td onclick="printInvoice(${openId})">${escapeHtml(t.accountName || 'Cash')}</td>
                         <td onclick="printInvoice(${invOpenId})">${ref}</td>
                         <td onclick="printInvoice(${invOpenId})" style="white-space:normal; max-width:260px;">${inventoryHtml}</td>
-                        <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${openId})" style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
                     </tr>
                 `);
             });
@@ -5165,7 +5177,7 @@
                         <td>${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td style="white-space:normal; max-width:280px;">${itemList}</td>
-                        <td style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
                     </tr>
                 `);
             });
@@ -5221,9 +5233,9 @@
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td onclick="printInvoice(${t.id})">${cat}</td>
                         <td onclick="printInvoice(${t.id})">${itemsDetail}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${money(t.taxable)}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${money(t.totalTax)}</td>
+                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
                         <td class="no-print" style="display:flex; gap:6px;">
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${t.id})" class="btn-danger" style="padding:3px 9px; font-size:0.7rem;">Delete</button>
                         </td>
@@ -5282,9 +5294,9 @@
                         <td onclick="printInvoice(${t.id})">${typeLabel}</td>
                         <td onclick="printInvoice(${t.id})">${cat}</td>
                         <td onclick="printInvoice(${t.id})">${t.items ? t.items.length : 0}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                        <td onclick="printInvoice(${t.id})">\u20B9${t.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${money(t.taxable)}</td>
+                        <td onclick="printInvoice(${t.id})">\u20B9${money(t.totalTax)}</td>
+                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
                         <td class="no-print" style="display:flex; gap:6px;">
                             <button onclick="event.stopPropagation(); deleteVoucherSmart(${t.id})" class="btn-danger" style="padding:3px 9px; font-size:0.7rem;">Delete</button>
                         </td>
@@ -5464,11 +5476,31 @@
                             : 'No GST-contributing transactions in this period.';
             registerBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px 0;">${emptyMsg}</td></tr>`;
         } else {
+            // Rows are accumulated into an array and written to the DOM in a
+            // single assignment at the end. Calling insertAdjacentHTML once
+            // per row forces the browser to re-parse and re-lay-out the whole
+            // table on every single iteration \u2014 on a 3000-row period that
+            // made this report take ~1.5s while every other report rendered
+            // in under 150ms.
+            // Totals must reflect EVERY row in the period, not just the page
+            // being viewed, so they're accumulated over the full set first.
             rows.forEach(t => {
                 const isSale = (t.type === 'Sales');
+                const f = isSale ? reportTaxForSale(t) : { taxable: t.taxable || 0, tax: t.totalTax || 0 };
+                if (isSale) { outputTax += f.tax; outputTaxable += f.taxable; }
+                else { inputTax += f.tax; inputTaxable += f.taxable; }
+            });
+
+            // Only the current page is rendered to the DOM. Rendering all
+            // 3000 rows of a busy period took ~900ms; every other report
+            // already paginates the same way, and "Save as PDF" temporarily
+            // expands to every row (see printAllRows) so the exported file
+            // still contains the complete period.
+            const rowHtml = [];
+            const pageRows = paginateRows('gstLiability', rows);
+            pageRows.forEach(t => {
+                const isSale = (t.type === 'Sales');
                 const figures = isSale ? reportTaxForSale(t) : { taxable: t.taxable || 0, tax: t.totalTax || 0 };
-                if (isSale) { outputTax += figures.tax; outputTaxable += figures.taxable; }
-                else { inputTax += figures.tax; inputTaxable += figures.taxable; }
 
                 const partyDisplay = t.partyName || (t.accountName || 'Retail Sale');
 
@@ -5480,9 +5512,7 @@
                         const lineRate = it.gstRate || 0;
                         const lineAmt = lineRate > 0 ? mrpAmt / (1 + lineRate / 100) : mrpAmt;
                         const exRate = (it.qty || 0) > 0 ? lineAmt / it.qty : lineAmt;
-                        return `<div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">
-                            \u21B3 ${escapeHtml(it.name)} : ${it.qty} ${escapeHtml(it.uom || '')} @ \u20B9${fmt(exRate)}
-                        </div>`;
+                        return `<div class="gst-itemline">\u21B3 ${escapeHtml(it.name)} : ${it.qty} ${escapeHtml(it.uom || '')} @ \u20B9${fmt(exRate)}</div>`;
                     }).join('');
                 }
 
@@ -5493,19 +5523,11 @@
 
                 const rowTotal = figures.taxable + figures.tax;
 
-                registerBody.insertAdjacentHTML('beforeend', `
-                    <tr style="cursor:pointer;" onclick="printInvoice(${t.id})" title="Open invoice">
-                        <td style="white-space:nowrap;">${escapeHtml(t.date)}</td>
-                        <td><strong>${escapeHtml(partyDisplay)}</strong>${itemLines}</td>
-                        <td>${escapeHtml(t.subLedger || '\u2014')}</td>
-                        <td>${escapeHtml(t.invNo)}</td>
-                        <td style="font-family:'JetBrains Mono',monospace;">\u20B9${fmt(figures.taxable)}</td>
-                        <td style="font-family:'JetBrains Mono',monospace; font-size:0.82rem;">${taxCell}</td>
-                        <td style="font-family:'JetBrains Mono',monospace; font-weight:700;">\u20B9${fmt(rowTotal)}</td>
-                    </tr>
-                `);
+                rowHtml.push(`<tr onclick="printInvoice(${t.id})" title="Open invoice"><td class="gst-nowrap">${escapeHtml(t.date)}</td><td><strong>${escapeHtml(partyDisplay)}</strong>${itemLines}</td><td>${escapeHtml(t.subLedger || '\u2014')}</td><td>${escapeHtml(t.invNo)}</td><td class="gst-mono">\u20B9${fmt(figures.taxable)}</td><td class="gst-mono-sm">${taxCell}</td><td class="gst-mono-b">\u20B9${fmt(rowTotal)}</td></tr>`);
             });
-
+            // Single DOM write for the whole table.
+            registerBody.innerHTML = rowHtml.join('');
+            renderPaginationControls('gstLiability', rows.length, renderGstLiability);
         }
 
         // Totals live above the table now (see gstTopTotals), not repeated
@@ -5599,7 +5621,7 @@
                         <td>${escapeHtml(t.partyName)}</td>
                         <td style="white-space:normal; max-width:280px;">${itemList}${narrationHint}</td>
                         <td style="white-space:normal;">${transportHtml}</td>
-                        <td style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
                         <td class="no-print" style="display:flex; gap:6px;">
                             <button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.72rem;">Print</button>
                             <button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.72rem; width:auto;">Edit</button>
@@ -6094,7 +6116,7 @@
                         <td onclick="printInvoice(${t.id})">${escapeHtml(line.name || '-')}</td>
                         <td onclick="printInvoice(${t.id})">${line.qty || 0} ${escapeHtml(line.uom || '')}</td>
                         <td onclick="printInvoice(${t.id})">\u20B9${(line.inclRate || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
                     </tr>
                 `);
             });
@@ -6296,7 +6318,7 @@
                     <td>${escapeHtml(t.invNo)}</td>
                     <td style="color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                     <td style="white-space:normal; max-width:280px;">${itemList}</td>
-                    <td style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
                     <td style="display:flex; gap:6px;">
                         <button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.72rem;">Invoice</button>
                         <button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.72rem; width:auto;">Edit</button>
@@ -6338,7 +6360,7 @@
                         <td>${escapeHtml(t.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td><button onclick="toggleOptItems(${t.id})" style="width:auto; padding:3px 10px; font-size:0.72rem; background:rgba(139,124,255,0.2); color:var(--text-main);">${t.items.length} item(s) &#9662;</button></td>
-                        <td style="font-weight:bold;">\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
                         <td style="display:flex; gap:6px;"><button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.72rem;">Invoice</button><button onclick="openEditModal(${t.id})" style="padding:4px 10px; font-size:0.72rem; width:auto;">Edit</button><button onclick="deleteOptional(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.72rem;">Delete</button></td>
                     </tr>
                 `);
@@ -6590,7 +6612,7 @@
             itemsHtml = `
                 <tr>
                     <td style="border:1px solid #cbd5e1; padding:6px;" colspan="5">${escapeHtml(desc)}</td>
-                    <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${money(txn.grandTotal)}</td>
                 </tr>
             `;
         } else if (isCash) {
@@ -6600,7 +6622,7 @@
             itemsHtml = `
                 <tr>
                     <td style="border:1px solid #cbd5e1; padding:6px;" colspan="5">${escapeHtml(desc)}</td>
-                    <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td style="border:1px solid #cbd5e1; padding:6px;">\u20B9${money(txn.grandTotal)}</td>
                 </tr>
             `;
         } else {
@@ -6643,11 +6665,11 @@
             taxText = 'Optional voucher — off the main books. No GST recorded.';
         } else {
             if (txn.taxType === 'EXEMPT') {
-                taxText = `Taxable Value: \u20B9${txn.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}<br>Nil GST \u2014 no tax charged on this voucher.`;
+                taxText = `Taxable Value: \u20B9${money(txn.taxable)}<br>Nil GST \u2014 no tax charged on this voucher.`;
             } else {
-                taxText = `Taxable Value: \u20B9${txn.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}<br>`;
+                taxText = `Taxable Value: \u20B9${money(txn.taxable)}<br>`;
                 if (txn.taxType === 'INTER') {
-                    taxText += `IGST: \u20B9${txn.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+                    taxText += `IGST: \u20B9${money(txn.totalTax)}`;
                 } else {
                     taxText += `CGST: \u20B9${(txn.totalTax/2).toLocaleString('en-IN', {minimumFractionDigits: 2})} | SGST: \u20B9${(txn.totalTax/2).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
                 }
@@ -6655,7 +6677,7 @@
         }
 
         document.getElementById('invTaxBreakdown').innerHTML = taxText;  
-        document.getElementById('invGrandTotal').innerText = `\u20B9${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;  
+        document.getElementById('invGrandTotal').innerText = `\u20B9${money(txn.grandTotal)}`;  
 
         // Paid / Balance Due — only for real Sales and Purchase invoices,
         // where "money owed against this invoice" is a meaningful concept.
@@ -7997,7 +8019,7 @@
                                 ${escapeHtml(txn.partyName || 'Cash Party')}${refLine}
                             </div>
                         </td>
-                        <td class="right" style="vertical-align:top;">\u20B9${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td class="right" style="vertical-align:top;">\u20B9${money(txn.grandTotal)}</td>
                     </tr>
                     <tr>
                         <td colspan="2" style="height:60px;"></td>
@@ -8017,7 +8039,7 @@
                             <span class="bold">Amount (in words) :</span><br>
                             INR ${numberToWordsIndian(txn.grandTotal)} Only
                         </td>
-                        <td class="right bold" style="vertical-align:bottom; font-size:14px;">&#8377; ${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td class="right bold" style="vertical-align:bottom; font-size:14px;">&#8377; ${money(txn.grandTotal)}</td>
                     </tr>
                 </table>
 
@@ -8103,7 +8125,7 @@
                     ${itemRows}
                     <tr>
                         <td colspan="5" class="right bold no-border">Total</td>
-                        <td class="right bold">\u20B9${txn.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td class="right bold">\u20B9${money(txn.grandTotal)}</td>
                     </tr>
                 </table>
                 </div>
@@ -8125,12 +8147,12 @@
                         <th class="small">Total Tax</th>
                     </tr>
                     <tr>
-                        <td class="right">${txn.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td class="right">${money(txn.taxable)}</td>
                         <td class="center small">${isIntra ? (txn.items[0] ? (txn.items[0].gstRate / 2) : 0) : 0}%</td>
                         <td class="right">${isIntra ? halfTax.toLocaleString('en-IN', {minimumFractionDigits: 2}) : '0.00'}</td>
                         <td class="center small">${isIntra ? (txn.items[0] ? (txn.items[0].gstRate / 2) : 0) : 0}%</td>
                         <td class="right">${isIntra ? halfTax.toLocaleString('en-IN', {minimumFractionDigits: 2}) : '0.00'}</td>
-                        <td class="right bold">${txn.totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td class="right bold">${money(txn.totalTax)}</td>
                     </tr>
                 </table>
 
@@ -8304,8 +8326,8 @@
                         <td onclick="printInvoice(${r.openId})">${escapeHtml(r.invNo)}</td>
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${r.partyId})" title="Open party ledger">${escapeHtml(r.party)}</td>
                         <td onclick="printInvoice(${r.openId})">${r.qty} ${escapeHtml(r.uom)}</td>
-                        <td onclick="printInvoice(${r.openId})">\u20B9${r.rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                        <td onclick="printInvoice(${r.openId})" style="font-weight:bold;">\u20B9${r.amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        <td onclick="printInvoice(${r.openId})">\u20B9${money(r.rate)}</td>
+                        <td onclick="printInvoice(${r.openId})" style="font-weight:bold;">\u20B9${money(r.amount)}</td>
                     </tr>
                 `);
             });
@@ -8538,7 +8560,7 @@
                     <td><strong>${typeLabel}</strong></td>  
                     <td>${partyCol}</td>  
                     <td>${detailCol}${narrationHint}</td>  
-                    <td>\u20B9${t.grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>  
+                    <td>\u20B9${money(t.grandTotal)}</td>  
                     <td style="display:flex; gap:6px;">
                         ${actionBtn}
                         <button onclick="deleteTransaction(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
