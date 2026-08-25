@@ -273,6 +273,14 @@ table td, table th {
 .inv-card .meta { font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
 .inv-card .due { font-size: 0.7rem; color: var(--text-muted); margin-top: 5px; }
 .inv-card .due b { font-family: 'JetBrains Mono', monospace; }
+.inv-narr {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px dashed var(--border);
+}
 .inv-badge {
     font-size: 0.6rem;
     font-weight: 700;
@@ -1857,7 +1865,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     align-items: center;
     justify-content: center;
     padding: 28px 18px;
-    background: var(--bg-header);
+    /* A flat colour here reads as an empty/broken screen once the login
+       card shrinks \u2014 the card's own height follows the text, but this
+       container always spans the full screen height regardless, so a
+       smaller phone text-size setting leaves a growing blank area around
+       it. A subtle gradient reads as deliberate atmosphere instead of
+       missing content, at any card size. */
+    background: radial-gradient(ellipse at 50% 30%, #22301F 0%, var(--bg-header) 55%, #0E120D 100%);
     overflow-y: auto;
 }
 .login-card {

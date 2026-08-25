@@ -1003,6 +1003,7 @@
                         <span class="inv-badge ${badge}">${label}</span>
                     </div>
                     <div class="due">${dueLine}</div>
+                    ${t.narration ? `<div class="inv-narr">${escapeHtml(t.narration)}</div>` : ''}
                 </div>`;
         }).join('');
 
