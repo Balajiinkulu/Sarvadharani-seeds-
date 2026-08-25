@@ -1022,12 +1022,17 @@
         }
         openEditModal(txnId);
         // openEditModal renders the linked-payments panel synchronously, so
-        // the Add Payment control exists by now; the short delay just lets
-        // the modal finish opening before the keyboard is summoned.
+        // the control exists immediately — no need to wait for it. What
+        // needed the delay was the modal's own entrance animation (0.16s);
+        // waiting past that means the row appears onto an already-settled
+        // screen instead of animating in on top of a still-moving one.
+        // autoFocus is explicitly false here — see openAddPayment() — so
+        // the amount field is visible and ready, but nothing pops the
+        // keyboard up until you actually tap it.
         setTimeout(() => {
             const openBtn = document.getElementById('editAddPayOpen');
-            if (openBtn && openBtn.style.display !== 'none') openAddPayment();
-        }, 260);
+            if (openBtn && openBtn.style.display !== 'none') openAddPayment(false);
+        }, 200);
     }
 
     // ---- Recent Transactions (dashboard widget) ----
@@ -4419,10 +4424,16 @@
         document.getElementById('editTitle').innerText = `Edit ${txn.invNo}`;
         document.getElementById('editDate').value = txn.date;
 
-        // Party dropdown
+        // Party dropdown — built as one string and written once. With
+        // insertAdjacentHTML called per party, this repopulated the whole
+        // list one row at a time on EVERY edit-modal open, regardless of
+        // which voucher — the same pattern that caused the GST report to
+        // take 65x longer than it needed to; here it's smaller in scale
+        // but happens far more often, since it runs on every single edit.
         const pSel = document.getElementById('editParty');
-        pSel.innerHTML = '<option value="">-- Choose Party --</option>';
-        parties.forEach(p => pSel.insertAdjacentHTML('beforeend', `<option value="${p.id}">${escapeHtml(p.name)} (${p.type})</option>`));
+        let pHtml = '<option value="">-- Choose Party --</option>';
+        parties.forEach(p => { pHtml += `<option value="${p.id}">${escapeHtml(p.name)} (${p.type})</option>`; });
+        pSel.innerHTML = pHtml;
         pSel.value = txn.partyId || '';
 
         const isCash = (txn.type === 'Payment' || txn.type === 'Receipt' || isCustomNoPartyType(txn.type));
@@ -4472,8 +4483,9 @@
             // "Add Item" picker — every stock item, current master rate
             // auto-filled as a starting point once one is chosen.
             const addSel = document.getElementById('editAddItemSelect');
-            addSel.innerHTML = '<option value="">-- Select Item --</option>';
-            stockItems.forEach(s => addSel.insertAdjacentHTML('beforeend', `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.uom)})</option>`));
+            let addHtml = '<option value="">-- Select Item --</option>';
+            stockItems.forEach(s => { addHtml += `<option value="${s.id}">${escapeHtml(s.name)} (${escapeHtml(s.uom)})</option>`; });
+            addSel.innerHTML = addHtml;
             document.getElementById('editAddItemQty').value = '1';
             document.getElementById('editAddItemRate').value = '';
         }
@@ -4607,7 +4619,20 @@
     // against a row that was no longer there, leaving the modal stuck.
     let addPayCleanup = null;
 
-    function openAddPayment() {
+    // autoFocus defaults to true — tapping "+ Add Payment" yourself is a
+    // deliberate action with nothing else competing for attention, so
+    // summoning the keyboard immediately feels right there. But when this
+    // is triggered automatically right after opening a voucher (tapping an
+    // invoice straight from the Invoices list), autoFocus is passed false:
+    // the row still appears expanded and ready, but the keyboard doesn't
+    // pop up on its own. Auto-focusing there meant the keyboard sliding up,
+    // the modal's own entrance animation, and a smooth-scroll to centre the
+    // row were all fighting for the screen within the same ~300ms window —
+    // which is what read as laggy and stuck. Tapping the amount field
+    // yourself brings the keyboard up on its own, once the screen has
+    // actually settled.
+    function openAddPayment(autoFocus) {
+        if (autoFocus === undefined) autoFocus = true;
         // Never stack two sessions: re-opening without closing used to leave
         // the previous listeners attached.
         if (addPayCleanup) addPayCleanup();
@@ -4620,6 +4645,16 @@
         const modalEl = document.getElementById('editModal');
         const amt = document.getElementById('editAddPayAmount');
         if (!modalEl || !amt) return;
+
+        if (!autoFocus) {
+            // Just reveal the row, calmly, in place — no keyboard, no
+            // padding reservation, no scroll animation to fight with
+            // whatever the screen is already doing.
+            const row = document.getElementById('editAddPayRow');
+            if (row) row.scrollIntoView({ block: 'center', behavior: 'auto' });
+            return;
+        }
+
         modalEl.classList.add('kbd-space');
 
         let timer = null;
@@ -5843,8 +5878,9 @@
     // ================================================================
     function populateRawPurchaseDropdowns() {
         const pSel = document.getElementById('rpParty');
-        pSel.innerHTML = '<option value="">-- Choose Vendor --</option>';
-        parties.forEach(p => pSel.insertAdjacentHTML('beforeend', `<option value="${p.id}">${escapeHtml(p.name)} (${p.type})</option>`));
+        let rpHtml = '<option value="">-- Choose Vendor --</option>';
+        parties.forEach(p => { rpHtml += `<option value="${p.id}">${escapeHtml(p.name)} (${p.type})</option>`; });
+        pSel.innerHTML = rpHtml;
 
         const iSel = document.getElementById('rpItem');
         iSel.innerHTML = '<option value="">-- Select Raw Item --</option>';
