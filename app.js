@@ -7692,26 +7692,81 @@
             // invoice, automatically stepping down for a long report so the
             // whole thing survives the capture. Better slightly softer text
             // than a report missing half its rows.
-            const MAX_CANVAS_AREA = 14000000;   // safely under the ~16.7M limit
-            const MAX_CANVAS_SIDE = 8000;
+            // Safari caps a single canvas at roughly 16.7M pixels of area
+            // AND about 8192px on a side. A long report blows past the
+            // height cap even at 1x, and it does so SILENTLY — the lower
+            // part just comes back blank, which is why a month's report
+            // kept stopping at the same invoice no matter what scale was
+            // used. Simply scaling down far enough to fit would make the
+            // text illegible, so instead the page is captured in several
+            // vertical CHUNKS, each safely inside the limits, and stitched
+            // together afterwards. Every row is captured at full quality
+            // regardless of how long the report is.
+            const MAX_CANVAS_AREA = 14000000;
+            const MAX_CANVAS_SIDE = 7500;
             const srcW = node.scrollWidth || 1;
             const srcH = node.scrollHeight || 1;
-            let targetScale = 3;
-            targetScale = Math.min(targetScale, Math.sqrt(MAX_CANVAS_AREA / (srcW * srcH)));
-            targetScale = Math.min(targetScale, MAX_CANVAS_SIDE / srcW, MAX_CANVAS_SIDE / srcH);
-            // Never go below 1x — past that the text stops being legible,
-            // and at that point the document is better off printed by the
-            // browser than exported as an unreadable image.
+
+            // Quality first: pick the scale a SHORT document would get, then
+            // let chunking absorb the length instead of sacrificing sharpness.
+            let targetScale = Math.min(3, MAX_CANVAS_SIDE / srcW,
+                                       Math.sqrt(MAX_CANVAS_AREA / (srcW * Math.min(srcH, 2000))));
             targetScale = Math.max(1, targetScale);
-            const canvas = await html2canvas(node, {
-                scale: targetScale,
-                backgroundColor: '#ffffff',
-                useCORS: true,
-                width: node.scrollWidth,
-                height: node.scrollHeight,
-                windowWidth: node.scrollWidth,
-                windowHeight: node.scrollHeight
-            });
+
+            // Tallest slice of the ORIGINAL page that still yields a legal
+            // canvas once scaled up.
+            const maxChunkSrcH = Math.max(200, Math.floor(Math.min(
+                MAX_CANVAS_SIDE / targetScale,
+                MAX_CANVAS_AREA / (srcW * targetScale * targetScale)
+            )));
+
+            const chunks = [];
+            for (let y = 0; y < srcH; y += maxChunkSrcH) {
+                const h = Math.min(maxChunkSrcH, srcH - y);
+                const chunkCanvas = await html2canvas(node, {
+                    scale: targetScale,
+                    backgroundColor: '#ffffff',
+                    useCORS: true,
+                    x: 0,
+                    y: y,
+                    width: srcW,
+                    height: h,
+                    windowWidth: srcW,
+                    windowHeight: srcH
+                });
+                chunks.push(chunkCanvas);
+            }
+
+            // Deliberately NOT stitched into one tall canvas — that would
+            // just recreate the same over-limit canvas this chunking exists
+            // to avoid. Instead the chunks stay separate, and each PDF page
+            // is drawn from whichever chunk(s) it spans. `virtualCanvas`
+            // presents the combined dimensions so the pagination maths below
+            // is unchanged, while drawRegion() does the real work of pulling
+            // the right pixels from the right chunk.
+            const chunkTops = [];
+            let runningTop = 0;
+            chunks.forEach(ch => { chunkTops.push(runningTop); runningTop += ch.height; });
+            const virtualCanvas = { width: chunks[0].width, height: runningTop };
+
+            // Copies the horizontal band [srcY, srcY+srcH) of the whole
+            // document into destCtx at y=0, crossing chunk seams as needed.
+            const drawRegion = (destCtx, srcY, srcH) => {
+                for (let i = 0; i < chunks.length; i++) {
+                    const ch = chunks[i];
+                    const top = chunkTops[i];
+                    const bottom = top + ch.height;
+                    if (bottom <= srcY || top >= srcY + srcH) continue;
+                    const from = Math.max(srcY, top);
+                    const to = Math.min(srcY + srcH, bottom);
+                    destCtx.drawImage(
+                        ch,
+                        0, from - top, ch.width, to - from,
+                        0, from - srcY, ch.width, to - from
+                    );
+                }
+            };
+            const canvas = virtualCanvas;
             // Guard against a blank capture. html2canvas can hand back a
             // correctly-sized but entirely empty canvas (a backgrounded tab
             // on iOS being the classic cause), which previously sailed
@@ -7722,16 +7777,24 @@
             // rather than handing over an empty file.
             let looksBlank = true;
             try {
-                const probe = canvas.getContext('2d');
-                const step = Math.max(1, Math.floor(Math.min(canvas.width, canvas.height) / 24));
+                // Scan EVERY chunk, on a fine grid, and stop the moment any
+                // variation is found. Sampling only the first chunk on a
+                // coarse grid risked declaring a real report blank just
+                // because its top strip happened to be sparse — a false
+                // positive here throws away a perfectly good export.
                 let first = null;
                 outer:
-                for (let y = 0; y < canvas.height; y += step) {
-                    for (let x = 0; x < canvas.width; x += step) {
-                        const d = probe.getImageData(x, y, 1, 1).data;
-                        const key = d[0] + ',' + d[1] + ',' + d[2] + ',' + d[3];
-                        if (first === null) { first = key; continue; }
-                        if (key !== first) { looksBlank = false; break outer; }
+                for (let ci = 0; ci < chunks.length; ci++) {
+                    const ch = chunks[ci];
+                    const probe = ch.getContext('2d');
+                    const step = Math.max(1, Math.floor(Math.min(ch.width, ch.height) / 60));
+                    for (let y = 0; y < ch.height; y += step) {
+                        for (let x = 0; x < ch.width; x += step) {
+                            const d = probe.getImageData(x, y, 1, 1).data;
+                            const key = d[0] + ',' + d[1] + ',' + d[2] + ',' + d[3];
+                            if (first === null) { first = key; continue; }
+                            if (key !== first) { looksBlank = false; break outer; }
+                        }
                     }
                 }
             } catch (e) {
@@ -7745,7 +7808,6 @@
                 return;
             }
 
-            const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
 
             // Slice the (possibly very tall) captured image across as many
@@ -7840,10 +7902,10 @@
                 const sliceCanvas = document.createElement('canvas');
                 sliceCanvas.width = canvas.width;
                 sliceCanvas.height = sliceHeightPx;
-                sliceCanvas.getContext('2d').drawImage(
-                    canvas, 0, renderedPx, canvas.width, sliceHeightPx,
-                    0, 0, canvas.width, sliceHeightPx
-                );
+                const sctx = sliceCanvas.getContext('2d');
+                sctx.fillStyle = '#ffffff';
+                sctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                drawRegion(sctx, renderedPx, sliceHeightPx);
                 const sliceData = sliceCanvas.toDataURL('image/png');
                 const sliceHeightMm = (sliceHeightPx * imgWidthMm) / canvas.width;
 
