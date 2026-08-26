@@ -1470,6 +1470,13 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
 .invoice-box #invCardView { display: none; }
 .invoice-box.screen-view #invCardView { display: block; }
 .invoice-box.screen-view #invPaperView { display: none; }
+/* The formal tax-invoice layout is a PRINT document, not a screen view.
+   Without this it rendered underneath the compact card, so tapping an
+   invoice showed the summary card and the full tax invoice stacked
+   together. !important because the JS sets an inline display on this
+   element when choosing between the formal and classic layouts — that
+   choice still matters for printing, but on screen the card always wins. */
+.invoice-box.screen-view #invFormalView { display: none !important; }
 
 #invCardView .ivc-hd { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 #invCardView .ivc-biz { font-weight: 700; font-size: 0.82rem; color: #111; }
