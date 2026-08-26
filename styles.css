@@ -1065,21 +1065,11 @@ table button {
 body.printing-region #ledgerHeaderTotals,
 body.printing-ledger #ledgerHeaderTotals { display: flex !important; }
 
-/* Every printed/exported page — the PDF capture path (.pdf-capture-mode)
-   and the browser's own print dialog (body.printing-*) — renders strictly
-   black text on white, with no tints or colour accents. Coloured cards and
-   status colours (green Paid, red Due, blue accent, orange warning) look
-   fine on a lit phone screen, but a phone's print pipeline frequently
-   renders light tints and saturated hues as faint grey-on-grey, which is
-   what was making printed pages hard to read. Since colour appears
-   throughout the app as `var(--x)` rather than hard-coded hex, redefining
-   what each variable resolves to inside this scope changes every use of it
-   at once, with nothing else to touch. */
-/* The invoice is deliberately excluded from this black-and-white
-   treatment (:not(.invoice-box), and body.printing-invoice removed from
-   every rule below) \u2014 it keeps its normal colours on both screen and
-   print, same as before. Only reports (GST Liability) and the Ledger
-   Statement print in black and white. */
+/* Printed/exported pages render on white paper with dark, readable text —
+   but keep the app's own colours (green Paid, red Due, blue accents) rather
+   than being forced to pure black-and-white. The colour tokens below just
+   pin backgrounds to white and darken text enough to stay legible in print;
+   the semantic status colours are deliberately left alone. */
 .pdf-capture-mode:not(.invoice-box),
 body.printing-region,
 body.printing-ledger,
@@ -1087,72 +1077,28 @@ body.printing-formal {
     --bg-main: #ffffff;
     --bg-card: #ffffff;
     --bg-input: #ffffff;
-    --bg-tint: #ffffff;
+    --bg-tint: #F4FAFD;
     --bg-hover: #ffffff;
     --bg-menu: #ffffff;
     --bg-header: #ffffff;
     --statement-bg: #ffffff;
-    --statement-row-alt: #ffffff;
-    --text-main: #000000;
-    /* Darker than the on-screen muted grey \u2014 a phone's own print/share
-       pipeline has repeatedly washed out lighter tones in this app before,
-       so secondary text (sub-lines, labels) needs real contrast here too,
-       not just the primary heading text. */
-    --text-muted: #1a1a1a;
-    --text-invert: #000000;
-    --accent: #000000;
-    --accent-hover: #000000;
+    --statement-row-alt: #F7FBFD;
+    --text-main: #0F172A;
+    --text-muted: #475569;
+    --text-invert: #0F172A;
     --accent-soft: #ffffff;
-    --success: #000000;
-    --danger: #000000;
-    --warning: #000000;
-    --pink: #000000;
-    --violet: #000000;
-    --cyan: #000000;
-    --lime: #000000;
-    --orange: #000000;
-    --border: #000000;
-    --border-strong: #000000;
+    --border: #C3D0E0;
+    --border-strong: #64748B;
     --card-shadow: none;
-    --grad-accent: #ffffff;
-    --grad-success: #ffffff;
-    --grad-danger: #ffffff;
-    --danger-bg: #ffffff;
-    --danger-border: #000000;
-    --success-bg: #ffffff;
-    --success-border: #000000;
-    --success-text: #000000;
-    --info-bg: #ffffff;
-    --info-border: #000000;
     background: #ffffff !important;
-    color: #000000 !important;
     overflow: visible !important;
 }
-.pdf-capture-mode:not(.invoice-box) *, body.printing-region *,
-body.printing-ledger *, body.printing-formal * {
-    background-color: transparent !important;
-    color: #000000 !important;
-    box-shadow: none !important;
-    text-shadow: none !important;
-}
 .pdf-capture-mode:not(.invoice-box) table, body.printing-region table,
-body.printing-ledger table, body.printing-formal table { border: 1px solid #000000; }
-.pdf-capture-mode:not(.invoice-box) th, .pdf-capture-mode:not(.invoice-box) td,
-body.printing-region th, body.printing-region td,
-body.printing-ledger th, body.printing-ledger td,
-body.printing-formal th, body.printing-formal td { border-color: #000000 !important; }
+body.printing-ledger table, body.printing-formal table { border: 1px solid #C3D0E0; }
 .pdf-capture-mode:not(.invoice-box) thead th, body.printing-region thead th,
-body.printing-ledger thead th, body.printing-formal thead th { border-bottom: 2px solid #000000; }
+body.printing-ledger thead th, body.printing-formal thead th { border-bottom: 2px solid #64748B; }
 .pdf-capture-mode:not(.invoice-box) tfoot td, body.printing-region tfoot td,
-body.printing-ledger tfoot td, body.printing-formal tfoot td { border-top: 2px solid #000000; }
-/* Buttons still need to be visibly buttons on a printed page, not
-   invisible transparent boxes — give them a plain outline instead of a
-   filled colour. */
-.pdf-capture-mode:not(.invoice-box) button, body.printing-region button,
-body.printing-ledger button, body.printing-formal button {
-    border: 1px solid #000000 !important;
-    background: #ffffff !important;
-}
+body.printing-ledger tfoot td, body.printing-formal tfoot td { border-top: 2px solid #64748B; }
 
 /* The Select Party field card gets a backdrop-filter (see the
    ".form-grid > div:has(> label)" rule above), and backdrop-filter

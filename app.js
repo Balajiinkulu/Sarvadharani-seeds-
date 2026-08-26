@@ -993,7 +993,7 @@
                     ? `${isPurchase ? 'Paid' : 'Received'} \u20B9${money(r.received)} \u00b7 Due <b style="color:var(--danger);">\u20B9${money(r.due)}</b>`
                     : `Due <b style="color:var(--danger);">\u20B9${money(r.due)}</b>`);
             return `
-                <div class="inv-card tappable" onclick="openInvoiceFromList(${t.id})" title="${r.status === 'paid' ? 'Open invoice' : 'Record a payment'}">
+                <div class="inv-card tappable" onclick="openInvoiceFromList(${t.id})" title="Open invoice">
                     <div class="r1">
                         <span class="who">${escapeHtml(t.partyName || t.accountName || 'Retail Sale')}</span>
                         <span class="amt">\u20B9${money(r.total)}</span>
@@ -1013,26 +1013,13 @@
     // A fully-paid invoice has nothing to add, so it just opens to view;
     // anything still owing goes straight to the edit screen with the Add
     // Payment row already open and the outstanding balance pre-filled.
+    // Tapping a row opens the invoice to view. It used to jump straight
+    // into the edit screen with Add Payment expanded, which meant a tap
+    // meant to just LOOK at an invoice landed you in an editing state.
     function openInvoiceFromList(txnId) {
         const txn = transactions.find(t => t.id == txnId);
         if (!txn) return;
-        if (invoiceOutstanding(txn) <= 0.004) {
-            printInvoice(txnId);
-            return;
-        }
-        openEditModal(txnId);
-        // openEditModal renders the linked-payments panel synchronously, so
-        // the control exists immediately — no need to wait for it. What
-        // needed the delay was the modal's own entrance animation (0.16s);
-        // waiting past that means the row appears onto an already-settled
-        // screen instead of animating in on top of a still-moving one.
-        // autoFocus is explicitly false here — see openAddPayment() — so
-        // the amount field is visible and ready, but nothing pops the
-        // keyboard up until you actually tap it.
-        setTimeout(() => {
-            const openBtn = document.getElementById('editAddPayOpen');
-            if (openBtn && openBtn.style.display !== 'none') openAddPayment(false);
-        }, 200);
+        printInvoice(txnId);
     }
 
     // ---- Recent Transactions (dashboard widget) ----
@@ -4953,6 +4940,15 @@
     // reliably catches an edit having been committed.
     function finishEdit(txn) {
         logAudit('Edited', txn);
+        // The success alert is deferred until AFTER the modal's back has
+        // actually completed. closeEditModal() calls history.back(), which
+        // is asynchronous \u2014 but window.alert() is overridden to push its
+        // own history entry, so calling it immediately raced the back:
+        // the push could land first, leaving the history stack out of step
+        // and the next Back tap popping the wrong entry (or appearing to do
+        // nothing at all). navPendingAfterBack already exists for exactly
+        // this "close this, then do that" ordering.
+        navPendingAfterBack = () => { alert(`${txn.invNo} updated.`); };
         closeEditModal();
         render();
         if (typeof renderOptional === 'function' && txn.optional) renderOptional();
@@ -4973,7 +4969,8 @@
         if (document.getElementById('ledgerPrintArea').style.display === 'block' && typeof lastLedger !== 'undefined' && lastLedger) {
             openLedgerStatement(lastLedger.kind, lastLedger.id);
         }
-        alert(`${txn.invNo} updated.`);
+        // (success alert is fired by navPendingAfterBack above, once the
+        // modal has genuinely closed)
     }
 
     async function deleteTransaction(txnId) {
@@ -6877,7 +6874,11 @@
         }
 
         const narrWrap = document.getElementById('invNarrationWrap');
-        if (!isCash && txn.narration) {
+        // Narration shows on EVERY voucher type that has one. The !isCash
+        // guard here specifically excluded Payment and Receipt \u2014 which are
+        // arguably where a narration matters most, since a cash voucher has
+        // no line items to explain what it was for.
+        if (txn.narration) {
             document.getElementById('invNarrationText').innerText = txn.narration;
             narrWrap.style.display = 'block';
         } else {
