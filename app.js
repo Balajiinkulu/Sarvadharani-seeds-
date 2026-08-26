@@ -7682,13 +7682,27 @@
             // not just whatever fits in one screen's height — without this,
             // long content (e.g. a ledger with many rows) gets cut off after
             // one viewport's worth.
-            // scale:3 rather than 2 \u2014 noticeably sharper text and figures on
-            // a printed page, at the cost of a larger file. Capped so a very
-            // long report (hundreds of ledger rows) can't produce a canvas
-            // big enough to exhaust memory on a phone and fail outright:
-            // beyond ~7000px tall the extra sharpness isn't visible anyway
-            // once it's sliced across pages.
-            const targetScale = (node.scrollHeight > 7000) ? 2 : 3;
+            // iOS Safari silently truncates any canvas beyond roughly 16.7
+            // MILLION pixels of total area (and ~8192px on a side). It does
+            // not throw \u2014 it just quietly returns a canvas whose lower
+            // portion is blank, which is exactly why a full month's report
+            // stopped partway down the page with empty space below it. So
+            // the scale is derived from an area budget rather than picked
+            // as a flat number: sharp (3x) for short documents like a single
+            // invoice, automatically stepping down for a long report so the
+            // whole thing survives the capture. Better slightly softer text
+            // than a report missing half its rows.
+            const MAX_CANVAS_AREA = 14000000;   // safely under the ~16.7M limit
+            const MAX_CANVAS_SIDE = 8000;
+            const srcW = node.scrollWidth || 1;
+            const srcH = node.scrollHeight || 1;
+            let targetScale = 3;
+            targetScale = Math.min(targetScale, Math.sqrt(MAX_CANVAS_AREA / (srcW * srcH)));
+            targetScale = Math.min(targetScale, MAX_CANVAS_SIDE / srcW, MAX_CANVAS_SIDE / srcH);
+            // Never go below 1x — past that the text stops being legible,
+            // and at that point the document is better off printed by the
+            // browser than exported as an unreadable image.
+            targetScale = Math.max(1, targetScale);
             const canvas = await html2canvas(node, {
                 scale: targetScale,
                 backgroundColor: '#ffffff',
@@ -7785,8 +7799,43 @@
             // page with room to spare; using the gutter-reduced height here
             // just made the centring lopsided by that same 6mm.
             const centerHeightMm = a4HeightMm - marginMm * 2;
+
+            // Where every row STARTS, in canvas pixels. The slice loop cuts
+            // at a blind pixel offset, so a page boundary landing mid-row
+            // sliced rows in half \u2014 the bottom of one page showing the top
+            // of a row and the next page showing its remainder. Knowing the
+            // real row boundaries lets each page end just BEFORE a row
+            // instead of through it. Covers report tables, ledger rows and
+            // the invoice-card lists alike.
+            const nodeTop = node.getBoundingClientRect().top;
+            const rowStarts = [];
+            node.querySelectorAll('tbody tr, .inv-card').forEach(el => {
+                const top = (el.getBoundingClientRect().top - nodeTop) * targetScale;
+                if (top > 0) rowStarts.push(top);
+            });
+            rowStarts.sort((a, b) => a - b);
+
+            // Largest row boundary at or before `limit` — but only if it
+            // still makes real progress down the page, since a row taller
+            // than a whole page has to be cut regardless.
+            const snapToRow = (from, limit) => {
+                let best = null;
+                for (let i = 0; i < rowStarts.length; i++) {
+                    const bnd = rowStarts[i];
+                    if (bnd <= from) continue;
+                    if (bnd > limit) break;
+                    best = bnd;
+                }
+                if (best !== null && (best - from) > pageHeightPx * 0.55) return best;
+                return limit;
+            };
+
             while (renderedPx < canvas.height) {
-                const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedPx);
+                let sliceEnd = Math.min(renderedPx + pageHeightPx, canvas.height);
+                // Only snap while there's more content to come; the last
+                // page has nothing after it to split.
+                if (sliceEnd < canvas.height) sliceEnd = snapToRow(renderedPx, sliceEnd);
+                const sliceHeightPx = sliceEnd - renderedPx;
 
                 const sliceCanvas = document.createElement('canvas');
                 sliceCanvas.width = canvas.width;
