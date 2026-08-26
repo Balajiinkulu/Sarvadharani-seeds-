@@ -7593,23 +7593,15 @@
             fallbackPrintFn();
             return;
         }
-        // A new tab has to be opened synchronously, while the tap is still
-        // being handled \u2014 building the PDF is async, and by the time it
-        // finishes the browser no longer treats window.open() as
-        // user-initiated and silently blocks it as a popup. So the tab is
-        // claimed up-front here and its address filled in later.
+        // The PDF is generated FIRST, and only then delivered. Claiming the
+        // new tab up-front (to dodge the popup blocker) backfired badly on
+        // iOS: opening a tab immediately moves this page to the background,
+        // and html2canvas captures a backgrounded page as blank \u2014 which
+        // produced a correctly-sized but completely empty PDF. Capturing
+        // while the page is still frontmost is non-negotiable; the delivery
+        // problem is handled afterwards instead (see the end of the try
+        // block), where a blocked popup simply becomes a download.
         const wantsTab = !isStandaloneApp();
-        let pdfTab = null;
-        if (wantsTab) {
-            try { pdfTab = window.open('', '_blank'); } catch (e) { pdfTab = null; }
-            if (pdfTab && pdfTab.document) {
-                pdfTab.document.write(
-                    '<title>Preparing PDF\u2026</title>' +
-                    '<body style="margin:0;display:flex;align-items:center;justify-content:center;' +
-                    'height:100vh;font-family:system-ui,sans-serif;color:#475569;background:#f8fafc">' +
-                    'Preparing your PDF\u2026</body>');
-            }
-        }
         // .no-print elements (action buttons, the e-Way Bill/paper-size
         // toolbar, etc.) are only hidden via an `@media print` rule,
         // which never applies to a live on-screen html2canvas capture.
@@ -7706,6 +7698,39 @@
                 windowWidth: node.scrollWidth,
                 windowHeight: node.scrollHeight
             });
+            // Guard against a blank capture. html2canvas can hand back a
+            // correctly-sized but entirely empty canvas (a backgrounded tab
+            // on iOS being the classic cause), which previously sailed
+            // through and produced a blank-but-perfectly-formatted PDF.
+            // Sampling a small grid is enough to tell "real content" from
+            // "uniformly one colour", and costs nothing next to the capture
+            // itself. If it IS blank, fall back to the browser's own print
+            // rather than handing over an empty file.
+            let looksBlank = true;
+            try {
+                const probe = canvas.getContext('2d');
+                const step = Math.max(1, Math.floor(Math.min(canvas.width, canvas.height) / 24));
+                let first = null;
+                outer:
+                for (let y = 0; y < canvas.height; y += step) {
+                    for (let x = 0; x < canvas.width; x += step) {
+                        const d = probe.getImageData(x, y, 1, 1).data;
+                        const key = d[0] + ',' + d[1] + ',' + d[2] + ',' + d[3];
+                        if (first === null) { first = key; continue; }
+                        if (key !== first) { looksBlank = false; break outer; }
+                    }
+                }
+            } catch (e) {
+                // Couldn't sample (tainted canvas etc.) — assume it's fine
+                // rather than blocking a legitimate export.
+                looksBlank = false;
+            }
+            if (looksBlank) {
+                console.warn('Capture came back blank — using the browser print dialog instead.');
+                fallbackPrintFn();
+                return;
+            }
+
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
 
@@ -7806,24 +7831,25 @@
             const safeName = (filenameBase || 'Document').replace(/[^\w.-]+/g, '_');
             const file = new File([blob], `${safeName}.pdf`, { type: 'application/pdf' });
 
-            // In a browser tab, show the finished PDF in the tab claimed
-            // above \u2014 the browser's own PDF viewer then handles printing
-            // and saving, already sized to the A4 pages generated here.
-            if (wantsTab && pdfTab && !pdfTab.closed) {
-                pdfTab.location.href = URL.createObjectURL(blob);
-                return;
-            }
-            if (wantsTab && (!pdfTab || pdfTab.closed)) {
-                // Popup was blocked (or the tab was closed) \u2014 download the
-                // file instead rather than silently doing nothing.
-                const durl = URL.createObjectURL(blob);
-                const da = document.createElement('a');
-                da.href = durl;
-                da.download = `${safeName}.pdf`;
-                document.body.appendChild(da);
-                da.click();
-                document.body.removeChild(da);
-                setTimeout(() => URL.revokeObjectURL(durl), 4000);
+            // Browser tab: hand the finished PDF to the browser's own PDF
+            // viewer, which already knows how to print and save it. The tab
+            // is opened only now, once capture is safely done.
+            if (wantsTab) {
+                const burl = URL.createObjectURL(blob);
+                let opened = null;
+                try { opened = window.open(burl, '_blank'); } catch (e) { opened = null; }
+                if (!opened) {
+                    // Popup blocked (common once the tap is no longer
+                    // "recent" enough for the browser) \u2014 download instead of
+                    // silently doing nothing.
+                    const da = document.createElement('a');
+                    da.href = burl;
+                    da.download = `${safeName}.pdf`;
+                    document.body.appendChild(da);
+                    da.click();
+                    document.body.removeChild(da);
+                }
+                setTimeout(() => URL.revokeObjectURL(burl), 60000);
                 return;
             }
 
@@ -7846,8 +7872,6 @@
             setTimeout(() => URL.revokeObjectURL(url), 4000);
         } catch (err) {
             console.error('PDF export failed, falling back to print dialog', err);
-            // Don't strand the blank placeholder tab if generation failed.
-            if (wantsTab && pdfTab && !pdfTab.closed) { try { pdfTab.close(); } catch (e) {} }
             fallbackPrintFn();
         } finally {
             noPrintEls.forEach((el, i) => { el.style.display = prevDisplay[i]; });
