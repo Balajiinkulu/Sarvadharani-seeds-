@@ -7581,9 +7581,34 @@
     }
 
     async function smartPrint(node, filenameBase, fallbackPrintFn) {
-        if (!isStandaloneApp() || typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+        // The custom PDF path now runs in a normal browser tab too, not just
+        // the installed app. It was originally gated to standalone-only as a
+        // safety net in case the two CDN libraries weren't available \u2014 but
+        // that meant a browser tab always fell back to the raw browser print
+        // dialog and lost every layout fix (A4 sizing, centring, full-width
+        // capture, all-rows pagination). The library check below is the part
+        // that actually matters, so it's kept; the standalone requirement is
+        // not.
+        if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
             fallbackPrintFn();
             return;
+        }
+        // A new tab has to be opened synchronously, while the tap is still
+        // being handled \u2014 building the PDF is async, and by the time it
+        // finishes the browser no longer treats window.open() as
+        // user-initiated and silently blocks it as a popup. So the tab is
+        // claimed up-front here and its address filled in later.
+        const wantsTab = !isStandaloneApp();
+        let pdfTab = null;
+        if (wantsTab) {
+            try { pdfTab = window.open('', '_blank'); } catch (e) { pdfTab = null; }
+            if (pdfTab && pdfTab.document) {
+                pdfTab.document.write(
+                    '<title>Preparing PDF\u2026</title>' +
+                    '<body style="margin:0;display:flex;align-items:center;justify-content:center;' +
+                    'height:100vh;font-family:system-ui,sans-serif;color:#475569;background:#f8fafc">' +
+                    'Preparing your PDF\u2026</body>');
+            }
         }
         // .no-print elements (action buttons, the e-Way Bill/paper-size
         // toolbar, etc.) are only hidden via an `@media print` rule,
@@ -7781,6 +7806,27 @@
             const safeName = (filenameBase || 'Document').replace(/[^\w.-]+/g, '_');
             const file = new File([blob], `${safeName}.pdf`, { type: 'application/pdf' });
 
+            // In a browser tab, show the finished PDF in the tab claimed
+            // above \u2014 the browser's own PDF viewer then handles printing
+            // and saving, already sized to the A4 pages generated here.
+            if (wantsTab && pdfTab && !pdfTab.closed) {
+                pdfTab.location.href = URL.createObjectURL(blob);
+                return;
+            }
+            if (wantsTab && (!pdfTab || pdfTab.closed)) {
+                // Popup was blocked (or the tab was closed) \u2014 download the
+                // file instead rather than silently doing nothing.
+                const durl = URL.createObjectURL(blob);
+                const da = document.createElement('a');
+                da.href = durl;
+                da.download = `${safeName}.pdf`;
+                document.body.appendChild(da);
+                da.click();
+                document.body.removeChild(da);
+                setTimeout(() => URL.revokeObjectURL(durl), 4000);
+                return;
+            }
+
             if (navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({ files: [file], title: safeName });
@@ -7800,6 +7846,8 @@
             setTimeout(() => URL.revokeObjectURL(url), 4000);
         } catch (err) {
             console.error('PDF export failed, falling back to print dialog', err);
+            // Don't strand the blank placeholder tab if generation failed.
+            if (wantsTab && pdfTab && !pdfTab.closed) { try { pdfTab.close(); } catch (e) {} }
             fallbackPrintFn();
         } finally {
             noPrintEls.forEach((el, i) => { el.style.display = prevDisplay[i]; });
@@ -7854,7 +7902,14 @@
         return smartPrint(el, title || 'Report', () => {
             window.print();
             setTimeout(cleanup, 1000);
-        }).then(() => { if (isStandaloneApp()) cleanup(); });
+        }).then(() => {
+            // Always clean up now. This used to be standalone-only, because a
+            // browser tab went through window.print() and relied on the
+            // afterprint event instead — but the PDF path runs in the
+            // browser too now, and afterprint never fires for it, which would
+            // leave print-only styling stuck on the live screen.
+            cleanup();
+        });
     }
 
     function csvCell(v) {
@@ -8078,7 +8133,14 @@
                 window.print();
                 // Fallback for browsers that don't fire afterprint reliably
                 setTimeout(cleanup, 1000);
-            }).then(() => { if (isStandaloneApp()) cleanup(); });
+            }).then(() => {
+            // Always clean up now. This used to be standalone-only, because a
+            // browser tab went through window.print() and relied on the
+            // afterprint event instead — but the PDF path runs in the
+            // browser too now, and afterprint never fires for it, which would
+            // leave print-only styling stuck on the live screen.
+            cleanup();
+        });
         } finally {
             state.page = savedPage;
             state.pageSize = savedSize;
@@ -8388,7 +8450,14 @@
         smartPrint(invoiceBox, (txn && txn.invNo) || 'Invoice', () => {
             window.print();
             setTimeout(cleanup, 1000);
-        }).then(() => { if (isStandaloneApp()) cleanup(); });
+        }).then(() => {
+            // Always clean up now. This used to be standalone-only, because a
+            // browser tab went through window.print() and relied on the
+            // afterprint event instead — but the PDF path runs in the
+            // browser too now, and afterprint never fires for it, which would
+            // leave print-only styling stuck on the live screen.
+            cleanup();
+        });
     }
     // ---------------------------------------------------
 
