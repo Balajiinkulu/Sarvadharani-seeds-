@@ -233,6 +233,12 @@ table td, table th {
 .invoice-box.inv-fixed table th:nth-child(5), .invoice-box.inv-fixed table td:nth-child(5) { width: 20%; }
 .invoice-box.inv-fixed table th:nth-child(6), .invoice-box.inv-fixed table td:nth-child(6) { width: 21%; }
 
+/* Print/PDF controls are hidden on phones. The JS gate (canPrintHere)
+   still guards the actual functions, but hiding the buttons means a phone
+   user isn't offered something that will only decline \u2014 the class is
+   applied to <html> at startup by the same detection. */
+html.is-phone .print-only-desktop { display: none !important; }
+
 /* Invoices panel — status tabs and invoice cards. */
 .inv-tabs {
     display: flex;

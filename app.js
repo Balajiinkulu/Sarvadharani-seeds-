@@ -1392,6 +1392,7 @@
     // time. Order follows whatever order the ids were given in (normally
     // the list's current sort order).
     function printSelected(listKey, orderedIdsInCurrentView) {
+        if (!canPrintHere()) return;
         const set = selectionSetFor(listKey);
         if (set.size === 0) return;
         const ids = (orderedIdsInCurrentView || []).filter(id => set.has(id));
@@ -5700,7 +5701,7 @@
 
                 const rowTotal = figures.taxable + figures.tax;
 
-                rowHtml.push(`<tr onclick="printInvoice(${t.id})" title="Open invoice"><td class="gst-nowrap">${escapeHtml(t.date)}</td><td><strong>${escapeHtml(partyDisplay)}</strong>${itemLines}</td><td>${escapeHtml(t.subLedger || '\u2014')}</td><td>${escapeHtml(t.invNo)}</td><td class="gst-mono">\u20B9${fmt(figures.taxable)}</td><td class="gst-mono-sm">${taxCell}</td><td class="gst-mono-b">\u20B9${fmt(rowTotal)}</td></tr>`);
+                rowHtml.push(`<tr onclick="printInvoiceFromGst(${t.id})" title="Open invoice (report rates)"><td class="gst-nowrap">${escapeHtml(t.date)}</td><td><strong>${escapeHtml(partyDisplay)}</strong>${itemLines}</td><td>${escapeHtml(t.subLedger || '\u2014')}</td><td>${escapeHtml(t.invNo)}</td><td class="gst-mono">\u20B9${fmt(figures.taxable)}</td><td class="gst-mono-sm">${taxCell}</td><td class="gst-mono-b">\u20B9${fmt(rowTotal)}</td></tr>`);
             });
             // Single DOM write for the whole table.
             registerBody.innerHTML = rowHtml.join('');
@@ -6722,6 +6723,52 @@
             m.classList.remove('sheet-closing');
         }, 180);
     }
+    // Rupees in words, Indian numbering (crore / lakh / thousand).
+    // "prefix" lets the same routine produce both "INR ... Only" for the
+    // chargeable amount and the paise-aware wording used for tax.
+    function amountInWords(amount, prefix) {
+        const abs = Math.abs(Number(amount) || 0);
+        const n = Math.floor(abs);
+        const paise = Math.round((abs - n) * 100);
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+            'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+            'Seventeen', 'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const two = v => v < 20 ? ones[v] : (tens[Math.floor(v / 10)] + (v % 10 ? ' ' + ones[v % 10] : ''));
+        const three = v => {
+            const hd = Math.floor(v / 100), r = v % 100;
+            return (hd ? ones[hd] + ' Hundred' + (r ? ' ' : '') : '') + (r ? two(r) : '');
+        };
+        let out = '';
+        const crore = Math.floor(n / 10000000);
+        const lakh = Math.floor((n % 10000000) / 100000);
+        const thou = Math.floor((n % 100000) / 1000);
+        const rest = n % 1000;
+        if (crore) out += three(crore) + ' Crore ';
+        if (lakh) out += three(lakh) + ' Lakh ';
+        if (thou) out += three(thou) + ' Thousand ';
+        if (rest) out += three(rest);
+        out = out.trim() || 'Zero';
+        let words = (prefix || 'INR') + ' ' + out;
+        if (paise) words += ' and ' + two(paise) + ' Paise';
+        return words + ' Only';
+    }
+
+    // Which rate basis the invoice popup should use.
+    //   'counter' (default) — the rate actually charged on the voucher.
+    //   'master'            — the item's master rate at the time of sale,
+    //                         i.e. exactly what the GST Liability report
+    //                         computes its figures from.
+    // Only the GST report opens invoices on the master basis; every other
+    // route (Sales Statement, Invoices tile, Ledger, search) leaves this at
+    // 'counter' so the customer-facing invoice is unchanged.
+    let invoiceRateBasis = 'counter';
+
+    function printInvoiceFromGst(txnId) {
+        invoiceRateBasis = 'master';
+        printInvoice(txnId);
+    }
+
     function printInvoice(txnId) {  
         const txn = transactions.find(t => t.id == txnId);  
         if (!txn) return;  
@@ -6871,6 +6918,169 @@
             paidBalanceWrap.style.display = 'block';
         } else {
             paidBalanceWrap.style.display = 'none';
+        }
+
+        // ---- Formal Sales invoice layout ----
+        // Strictly Sales-only. Every other voucher type falls through to the
+        // classic layout above with nothing changed. Figures are taken from
+        // the same txn, so the two layouts can never disagree.
+        // Captured now, then reset immediately, so a single flagged open
+        // can't leak into the next invoice opened from somewhere else.
+        const rateBasis = invoiceRateBasis;
+        invoiceRateBasis = 'counter';
+
+        const isFormalSale = (txn.type === 'Sales');
+        const formalView = document.getElementById('invFormalView');
+        const paperView = document.getElementById('invPaperView');
+        if (isFormalSale) {
+            formalView.style.display = '';
+            paperView.style.display = 'none';
+
+            const money2 = n => (Number(n) || 0).toLocaleString('en-IN',
+                { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            document.getElementById('fmSeller').innerText = 'Sarvadharani Seeds';
+            document.getElementById('fmSellerAddr').innerText = getCompanyAddress() || '';
+            const tinV = getCompanyTin();
+            document.getElementById('fmSellerTin').innerText = tinV ? ('TIN No ' + tinV) : '';
+            document.getElementById('fmSellerGstin').innerText = 'GSTIN/UIN: 21AFGFS0227N1Z2';
+            const mob = getCompanyMobile();
+            document.getElementById('fmSellerContact').innerText = mob ? ('Contact : ' + mob) : '';
+            document.getElementById('fmSellerEmail').innerText = '';
+
+            document.getElementById('fmInvNo').innerText = txn.invNo || '';
+            document.getElementById('fmDate').innerText = txn.date || '';
+            document.getElementById('fmDeliveryNote').innerHTML =
+                txn.deliveryNoteNo ? escapeHtml(txn.deliveryNoteNo) : '&nbsp;';
+            document.getElementById('fmPayTerms').innerHTML = '&nbsp;';
+
+            document.getElementById('fmBuyer').innerText = txn.partyName || 'Retail Sale';
+            document.getElementById('fmBuyerAddr').innerText = (partyObj && partyObj.address) ? partyObj.address : '';
+            const bg = (partyObj && partyObj.gstin) ? String(partyObj.gstin).trim() : '';
+            document.getElementById('fmBuyerGstin').innerText = bg ? ('GSTIN/UIN : ' + bg) : '';
+            document.getElementById('fmBuyerState').innerText = 'State Name : Odisha, Code : 21';
+            document.getElementById('fmPlaceOfSupply').innerText = 'Place of Supply : Odisha';
+
+            const isExemptSale = (txn.taxType === 'EXEMPT');
+            const isInterSale = (txn.taxType === 'INTER');
+
+            let fmRows = '', fmTaxable = 0, fmTaxTotal = 0;
+            const rateBuckets = {};
+            const useMaster = (rateBasis === 'master');
+            (txn.items || []).forEach((it, idx) => {
+                const qty = it.qty || 0;
+                // On the master basis, fall back to the counter rate only
+                // where no snapshot exists (vouchers posted before that was
+                // recorded) — matching reportTaxForSale() exactly, so this
+                // invoice and the GST report can never disagree.
+                const incl = useMaster
+                    ? ((it.masterRateAtSale != null) ? it.masterRateAtSale : (it.inclRate || 0))
+                    : (it.inclRate || 0);
+                const gr = it.gstRate || 0;
+                const excl = (!isExemptSale && gr > 0) ? incl / (1 + gr / 100) : incl;
+                const lineTaxable = excl * qty;
+                const lineTax = (!isExemptSale && gr > 0) ? (incl * qty) - lineTaxable : 0;
+                fmTaxable += lineTaxable;
+                fmTaxTotal += lineTax;
+                if (!isExemptSale && gr > 0) {
+                    if (!rateBuckets[gr]) rateBuckets[gr] = { taxable: 0, tax: 0 };
+                    rateBuckets[gr].taxable += lineTaxable;
+                    rateBuckets[gr].tax += lineTax;
+                }
+                fmRows += `<tr>
+                    <td style="border:1px solid #000; padding:3px; text-align:center;">${idx + 1}</td>
+                    <td style="border:1px solid #000; padding:3px; font-weight:600;">${escapeHtml(it.name || '')}</td>
+                    <td style="border:1px solid #000; padding:3px; text-align:center;">${escapeHtml(it.hsn || '')}</td>
+                    <td style="border:1px solid #000; padding:3px; text-align:center;">${isExemptSale ? '-' : gr + ' %'}</td>
+                    <td style="border:1px solid #000; padding:3px; text-align:right; font-weight:600;">${qty} ${escapeHtml(it.uom || '')}</td>
+                    <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(incl)}</td>
+                    <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(excl)}</td>
+                    <td style="border:1px solid #000; padding:3px; text-align:center;">${escapeHtml(it.uom || '')}</td>
+                    <td style="border:1px solid #000; padding:3px; text-align:right; font-weight:600;">${money2(incl * qty)}</td>
+                </tr>`;
+            });
+            document.getElementById('fmItems').innerHTML = fmRows;
+
+            // Round-off is derived, not stored: the difference between the
+            // voucher's actual total and the sum of its lines.
+            const lineSum = fmTaxable + fmTaxTotal;
+            // On the master basis the printed total must be the sum of the
+            // lines shown — using the counter grand total instead would make
+            // the invoice contradict its own figures and throw the whole
+            // difference into Round Off.
+            const shownTotal = useMaster ? lineSum : (Number(txn.grandTotal) || 0);
+            const roundOff = useMaster ? 0 : (shownTotal - lineSum);
+            const half = fmTaxTotal / 2;
+            let footHtml = `<tr>
+                <td colspan="8" style="border:1px solid #000; padding:3px; text-align:right;">Taxable Value</td>
+                <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(fmTaxable)}</td></tr>`;
+            if (!isExemptSale && fmTaxTotal > 0.004) {
+                if (isInterSale) {
+                    footHtml += `<tr><td colspan="8" style="border:1px solid #000; padding:3px; text-align:right; font-style:italic;">IGST</td>
+                        <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(fmTaxTotal)}</td></tr>`;
+                } else {
+                    footHtml += `<tr><td colspan="8" style="border:1px solid #000; padding:3px; text-align:right; font-style:italic;">CGST</td>
+                        <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(half)}</td></tr>`;
+                    footHtml += `<tr><td colspan="8" style="border:1px solid #000; padding:3px; text-align:right; font-style:italic;">SGST</td>
+                        <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(half)}</td></tr>`;
+                }
+            }
+            if (Math.abs(roundOff) >= 0.005) {
+                footHtml += `<tr><td colspan="8" style="border:1px solid #000; padding:3px; text-align:right; font-style:italic;">Round Off</td>
+                    <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(roundOff)}</td></tr>`;
+            }
+            footHtml += `<tr><td colspan="8" style="border:1px solid #000; padding:5px; text-align:right; font-weight:700;">Total</td>
+                <td style="border:1px solid #000; padding:5px; text-align:right; font-weight:700;">\u20B9 ${money2(shownTotal)}</td></tr>`;
+            document.getElementById('fmItemsFoot').innerHTML = footHtml;
+
+            document.getElementById('fmAmountWords').innerText = amountInWords(shownTotal, 'INR');
+
+            // Tax summary, grouped by GST rate — one row per rate actually
+            // used, which is what a GST return expects.
+            let taxRows = '';
+            const rateKeys = Object.keys(rateBuckets).sort((a, b) => a - b);
+            if (rateKeys.length === 0) {
+                taxRows = `<tr><td colspan="6" style="border:1px solid #000; padding:4px; text-align:center;">Nil rated / exempt supply</td></tr>`;
+            } else {
+                rateKeys.forEach(k => {
+                    const bk = rateBuckets[k];
+                    const hRate = (Number(k) / 2);
+                    const hAmt = bk.tax / 2;
+                    taxRows += `<tr>
+                        <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(bk.taxable)}</td>
+                        <td style="border:1px solid #000; padding:3px; text-align:center;">${isInterSale ? '-' : hRate + '%'}</td>
+                        <td style="border:1px solid #000; padding:3px; text-align:right;">${isInterSale ? '-' : money2(hAmt)}</td>
+                        <td style="border:1px solid #000; padding:3px; text-align:center;">${isInterSale ? '-' : hRate + '%'}</td>
+                        <td style="border:1px solid #000; padding:3px; text-align:right;">${isInterSale ? '-' : money2(hAmt)}</td>
+                        <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(bk.tax)}</td></tr>`;
+                });
+                taxRows += `<tr style="font-weight:700;">
+                    <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(fmTaxable)}</td>
+                    <td style="border:1px solid #000; padding:3px;"></td>
+                    <td style="border:1px solid #000; padding:3px; text-align:right;">${isInterSale ? '-' : money2(half)}</td>
+                    <td style="border:1px solid #000; padding:3px;"></td>
+                    <td style="border:1px solid #000; padding:3px; text-align:right;">${isInterSale ? '-' : money2(half)}</td>
+                    <td style="border:1px solid #000; padding:3px; text-align:right;">${money2(fmTaxTotal)}</td></tr>`;
+            }
+            document.getElementById('fmTaxRows').innerHTML = taxRows;
+            document.getElementById('fmTaxWords').innerText =
+                fmTaxTotal > 0.004 ? amountInWords(fmTaxTotal, 'INR') : 'Nil';
+
+            const bankWrap = document.getElementById('fmBankWrap');
+            const bName = getCompanyBankName(), bAcc = getCompanyBankAcc(), bIfsc = getCompanyBankIfsc();
+            if (bName || bAcc || bIfsc) {
+                document.getElementById('fmBankHolder').innerText = 'Sarvadharani Seeds';
+                document.getElementById('fmBankName').innerText = bName || '';
+                document.getElementById('fmBankAcc').innerText = bAcc || '';
+                document.getElementById('fmBankIfsc').innerText = bIfsc || '';
+                bankWrap.style.display = '';
+            } else {
+                bankWrap.style.display = 'none';
+            }
+            document.getElementById('fmForCompany').innerText = 'for Sarvadharani Seeds';
+        } else {
+            formalView.style.display = 'none';
+            paperView.style.display = '';
         }
 
         const narrWrap = document.getElementById('invNarrationWrap');
@@ -7028,7 +7238,30 @@
                 </tbody>
             </table>
         `;
-        box.style.display = 'block';
+        // Never overlay the results list on top of an already-open ledger
+        // statement — that produced the confusing stacked view where the
+        // full ledger list sat above a statement that was still displayed.
+        // With a ledger open, results only appear once something is
+        // actually typed to search for.
+        // Opening a ledger writes its own name back into the search box
+        // (e.g. "Mahalakshmi traders (Vendor)"), so the query is rarely
+        // empty here. What matters is whether the text still describes the
+        // ledger already on screen \u2014 if so, showing a results list over
+        // it is pure noise, and produced the stacked view where the whole
+        // ledger list sat on top of an open statement. The list returns as
+        // soon as the text is actually changed to search for something else.
+        // `q` already has the "(Vendor)" style qualifier stripped, and it
+        // is compared against the matches below. If the only thing the box
+        // would show is the ledger that's ALREADY open, hide it instead —
+        // that's what produced the stacked view of a full ledger list
+        // sitting on top of an open statement. Typing anything different
+        // brings the list straight back.
+        const wrapEl = document.getElementById('ledgerActiveWrap');
+        const ledgerOpen = wrapEl && wrapEl.style.display === 'block' && lastLedger;
+        const onlyShowsCurrent = ledgerOpen && matches.length === 1
+            && String(matches[0].kind) === String(lastLedger.kind)
+            && String(matches[0].id) === String(lastLedger.id);
+        box.style.display = onlyShowsCurrent ? 'none' : 'block';
     }
 
     function selectLedger(kind, id) {
@@ -7043,6 +7276,11 @@
 
     function closeActiveLedger() {
         document.getElementById('ledgerActiveWrap').style.display = 'none';
+        // The statement itself lives in its own container and was being
+        // left behind — so choosing a different ledger cleared the filters
+        // but the previous ledger's rows stayed on screen underneath the
+        // search list, looking like two ledgers open at once.
+        document.getElementById('ledgerPrintArea').style.display = 'none';
         document.getElementById('ledgerSearchInput').value = '';
         document.getElementById('ledgerSearchResults').style.display = 'none';
         document.getElementById('ledRowFilter').value = '';
@@ -7575,6 +7813,42 @@
     // the person can Save to Files, AirPrint, or send it anywhere.
     // Everywhere else (desktop, or the page opened as a normal Safari/
     // Chrome tab) keeps using window.print() exactly as before.
+    // Printing and PDF export are restricted to computers and tablets.
+    // Mobile Safari's canvas limits, memory ceiling and popup rules made
+    // phone exports unreliable in ways that couldn't be worked around
+    // safely \u2014 the workarounds themselves risked the browser killing the
+    // app mid-export. Everything else in the app works exactly the same on
+    // a phone; only Save as PDF / Print is held back, with a clear message
+    // rather than a silent failure.
+    //
+    // Phones are identified by physical screen size rather than user-agent
+    // string: an iPad reports itself as a Mac on modern iOS, and Android
+    // UA strings are notoriously unreliable, but a screen whose smaller
+    // side is under 600 CSS px is a phone in practice.
+    function isPhoneDevice() {
+        const w = window.screen && window.screen.width ? window.screen.width : window.innerWidth;
+        const h = window.screen && window.screen.height ? window.screen.height : window.innerHeight;
+        const shortSide = Math.min(w || 0, h || 0);
+        const uaPhone = /iPhone|iPod/i.test(navigator.userAgent)
+                     || (/Android/i.test(navigator.userAgent) && /Mobile/i.test(navigator.userAgent));
+        return uaPhone || (shortSide > 0 && shortSide < 600);
+    }
+
+    // Single gate every print/export entry point checks first.
+    // Applied once at startup so the CSS can hide print controls.
+    try {
+        if (isPhoneDevice()) document.documentElement.classList.add('is-phone');
+    } catch (e) { /* detection is best-effort; the JS gate still applies */ }
+
+    function canPrintHere() {
+        if (isPhoneDevice()) {
+            alert("Printing and PDF export work on a computer or tablet, not on a phone.\n\n"
+                + "Open the app on a laptop, desktop or tablet and use Save as PDF there.");
+            return false;
+        }
+        return true;
+    }
+
     function isStandaloneApp() {
         return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
             || window.navigator.standalone === true;
@@ -7692,81 +7966,24 @@
             // invoice, automatically stepping down for a long report so the
             // whole thing survives the capture. Better slightly softer text
             // than a report missing half its rows.
-            // Safari caps a single canvas at roughly 16.7M pixels of area
-            // AND about 8192px on a side. A long report blows past the
-            // height cap even at 1x, and it does so SILENTLY — the lower
-            // part just comes back blank, which is why a month's report
-            // kept stopping at the same invoice no matter what scale was
-            // used. Simply scaling down far enough to fit would make the
-            // text illegible, so instead the page is captured in several
-            // vertical CHUNKS, each safely inside the limits, and stitched
-            // together afterwards. Every row is captured at full quality
-            // regardless of how long the report is.
-            const MAX_CANVAS_AREA = 14000000;
-            const MAX_CANVAS_SIDE = 7500;
-            const srcW = node.scrollWidth || 1;
-            const srcH = node.scrollHeight || 1;
+            // Single, straightforward capture. An earlier version split
+            // this into repeated chunked captures to work around Safari's
+            // canvas height limit, but calling the capture library many
+            // times over re-processes the whole page each time and could
+            // exhaust memory on a phone badly enough for iOS to kill the
+            // app. Printing is now restricted to computers and tablets
+            // (see canPrintHere below), which have no such constraint, so
+            // the simple approach is both sufficient and far safer.
+            const canvas = await html2canvas(node, {
+                scale: 2,
+                backgroundColor: '#ffffff',
+                useCORS: true,
+                width: node.scrollWidth,
+                height: node.scrollHeight,
+                windowWidth: node.scrollWidth,
+                windowHeight: node.scrollHeight
+            });
 
-            // Quality first: pick the scale a SHORT document would get, then
-            // let chunking absorb the length instead of sacrificing sharpness.
-            let targetScale = Math.min(3, MAX_CANVAS_SIDE / srcW,
-                                       Math.sqrt(MAX_CANVAS_AREA / (srcW * Math.min(srcH, 2000))));
-            targetScale = Math.max(1, targetScale);
-
-            // Tallest slice of the ORIGINAL page that still yields a legal
-            // canvas once scaled up.
-            const maxChunkSrcH = Math.max(200, Math.floor(Math.min(
-                MAX_CANVAS_SIDE / targetScale,
-                MAX_CANVAS_AREA / (srcW * targetScale * targetScale)
-            )));
-
-            const chunks = [];
-            for (let y = 0; y < srcH; y += maxChunkSrcH) {
-                const h = Math.min(maxChunkSrcH, srcH - y);
-                const chunkCanvas = await html2canvas(node, {
-                    scale: targetScale,
-                    backgroundColor: '#ffffff',
-                    useCORS: true,
-                    x: 0,
-                    y: y,
-                    width: srcW,
-                    height: h,
-                    windowWidth: srcW,
-                    windowHeight: srcH
-                });
-                chunks.push(chunkCanvas);
-            }
-
-            // Deliberately NOT stitched into one tall canvas — that would
-            // just recreate the same over-limit canvas this chunking exists
-            // to avoid. Instead the chunks stay separate, and each PDF page
-            // is drawn from whichever chunk(s) it spans. `virtualCanvas`
-            // presents the combined dimensions so the pagination maths below
-            // is unchanged, while drawRegion() does the real work of pulling
-            // the right pixels from the right chunk.
-            const chunkTops = [];
-            let runningTop = 0;
-            chunks.forEach(ch => { chunkTops.push(runningTop); runningTop += ch.height; });
-            const virtualCanvas = { width: chunks[0].width, height: runningTop };
-
-            // Copies the horizontal band [srcY, srcY+srcH) of the whole
-            // document into destCtx at y=0, crossing chunk seams as needed.
-            const drawRegion = (destCtx, srcY, srcH) => {
-                for (let i = 0; i < chunks.length; i++) {
-                    const ch = chunks[i];
-                    const top = chunkTops[i];
-                    const bottom = top + ch.height;
-                    if (bottom <= srcY || top >= srcY + srcH) continue;
-                    const from = Math.max(srcY, top);
-                    const to = Math.min(srcY + srcH, bottom);
-                    destCtx.drawImage(
-                        ch,
-                        0, from - top, ch.width, to - from,
-                        0, from - srcY, ch.width, to - from
-                    );
-                }
-            };
-            const canvas = virtualCanvas;
             // Guard against a blank capture. html2canvas can hand back a
             // correctly-sized but entirely empty canvas (a backgrounded tab
             // on iOS being the classic cause), which previously sailed
@@ -7782,19 +7999,16 @@
                 // coarse grid risked declaring a real report blank just
                 // because its top strip happened to be sparse — a false
                 // positive here throws away a perfectly good export.
+                const probe = canvas.getContext('2d');
+                const step = Math.max(1, Math.floor(Math.min(canvas.width, canvas.height) / 60));
                 let first = null;
                 outer:
-                for (let ci = 0; ci < chunks.length; ci++) {
-                    const ch = chunks[ci];
-                    const probe = ch.getContext('2d');
-                    const step = Math.max(1, Math.floor(Math.min(ch.width, ch.height) / 60));
-                    for (let y = 0; y < ch.height; y += step) {
-                        for (let x = 0; x < ch.width; x += step) {
-                            const d = probe.getImageData(x, y, 1, 1).data;
-                            const key = d[0] + ',' + d[1] + ',' + d[2] + ',' + d[3];
-                            if (first === null) { first = key; continue; }
-                            if (key !== first) { looksBlank = false; break outer; }
-                        }
+                for (let y = 0; y < canvas.height; y += step) {
+                    for (let x = 0; x < canvas.width; x += step) {
+                        const d = probe.getImageData(x, y, 1, 1).data;
+                        const key = d[0] + ',' + d[1] + ',' + d[2] + ',' + d[3];
+                        if (first === null) { first = key; continue; }
+                        if (key !== first) { looksBlank = false; break outer; }
                     }
                 }
             } catch (e) {
@@ -7872,7 +8086,7 @@
             const nodeTop = node.getBoundingClientRect().top;
             const rowStarts = [];
             node.querySelectorAll('tbody tr, .inv-card').forEach(el => {
-                const top = (el.getBoundingClientRect().top - nodeTop) * targetScale;
+                const top = (el.getBoundingClientRect().top - nodeTop) * 2;
                 if (top > 0) rowStarts.push(top);
             });
             rowStarts.sort((a, b) => a - b);
@@ -7905,7 +8119,10 @@
                 const sctx = sliceCanvas.getContext('2d');
                 sctx.fillStyle = '#ffffff';
                 sctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
-                drawRegion(sctx, renderedPx, sliceHeightPx);
+                sctx.drawImage(
+                    canvas, 0, renderedPx, canvas.width, sliceHeightPx,
+                    0, 0, canvas.width, sliceHeightPx
+                );
                 const sliceData = sliceCanvas.toDataURL('image/png');
                 const sliceHeightMm = (sliceHeightPx * imgWidthMm) / canvas.width;
 
@@ -8005,6 +8222,7 @@
     // paginated view \u2014 the on-screen list is never permanently changed,
     // only during the moment of export.
     async function printAllRows(elementId, title, listKey, rerenderFn) {
+        if (!canPrintHere()) return;
         const state = pageStateFor(listKey);
         const savedPage = state.page, savedSize = state.pageSize;
         state.page = 1;
@@ -8020,6 +8238,7 @@
     }
 
     function printRegion(elementId, title) {
+        if (!canPrintHere()) return;
         if (!isAdmin() && !hasPermission('exportPrint')) { alert("Only an admin, or a user with 'Export / print' turned on, can print or export."); return; }
         const el = document.getElementById(elementId);
         if (!el) return;
@@ -8243,6 +8462,7 @@
     }
 
     async function printLedger() {
+        if (!canPrintHere()) return;
         if (!isAdmin() && !hasPermission('exportPrint')) return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
         const ledgerEl = document.getElementById('ledgerPrintArea');
         if (ledgerEl.style.display !== 'block') {
@@ -8565,6 +8785,7 @@
 
 
     function printInvoiceDoc() {
+        if (!canPrintHere()) return;
         if (!isAdmin() && !hasPermission('exportPrint')) return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
         document.body.classList.add('printing-invoice');
         // The preview may be scaled down to fit the screen; paper output
