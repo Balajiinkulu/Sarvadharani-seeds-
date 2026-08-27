@@ -9015,7 +9015,7 @@
             body.insertAdjacentHTML('beforeend', `
                 <tr style="cursor:pointer;">
                     <td onclick="openLedgerStatement('party', ${p.id})"><strong>${escapeHtml(p.name)}</strong></td>
-                    <td onclick="openLedgerStatement('party', ${p.id})"><span style="font-size:0.75rem; background:#1e293b; padding:2px 6px; border-radius:4px;">Party (${escapeHtml(p.type)})</span></td>
+                    <td onclick="openLedgerStatement('party', ${p.id})"><span class="ledger-type-badge">Party (${escapeHtml(p.type)})</span></td>
                     <td onclick="openLedgerStatement('party', ${p.id})" style="color:${balColor}; font-weight:bold;">${balTxt}</td>
                     <td><button onclick="event.stopPropagation(); deletePartyFromGroup(${p.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button></td>
                 </tr>
@@ -9027,7 +9027,7 @@
             body.insertAdjacentHTML('beforeend', `
                 <tr style="cursor:pointer;">
                     <td onclick="openLedgerStatement('account', ${a.id})"><strong>${escapeHtml(a.name)}</strong></td>
-                    <td onclick="openLedgerStatement('account', ${a.id})"><span style="font-size:0.75rem; background:#1e293b; padding:2px 6px; border-radius:4px;">Account (${escapeHtml(a.type)})</span></td>
+                    <td onclick="openLedgerStatement('account', ${a.id})"><span class="ledger-type-badge">Account (${escapeHtml(a.type)})</span></td>
                     <td onclick="openLedgerStatement('account', ${a.id})" style="color:${bal < 0 ? 'var(--danger)' : 'var(--success)'}; font-weight:bold;">\u20B9${bal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td><button onclick="event.stopPropagation(); deleteAccount(${a.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button></td>
                 </tr>

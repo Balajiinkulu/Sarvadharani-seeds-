@@ -239,6 +239,23 @@ table td, table th {
    applied to <html> at startup by the same detection. */
 html.is-phone .print-only-desktop { display: none !important; }
 
+/* Ledger type badge (Party (Vendor), Account (Bank), etc.). This was a
+   hardcoded dark navy background with no text colour set, so the label sat
+   as dark text on a dark chip and was effectively unreadable. Now uses the
+   theme's own tint/text pair, so it stays legible in both light and dark
+   mode and follows any future palette change automatically. */
+.ledger-type-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--bg-tint);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
 /* Invoices panel — status tabs and invoice cards. */
 .inv-tabs {
     display: flex;
