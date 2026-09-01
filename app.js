@@ -629,6 +629,31 @@
     // so a newly-added category (e.g. "Pesticides") shows up immediately
     // without needing a page reload, and the previously-selected filter
     // is preserved across re-renders rather than silently resetting.
+    function onStockSoldPeriodChange() {
+        const wrap = document.getElementById('stockSoldCustomWrap');
+        if (wrap) wrap.style.display =
+            (document.getElementById('stockSoldPeriod').value === 'custom') ? 'flex' : 'none';
+        pageStateFor('stockSummary').page = 1;
+        renderStockSummary();
+    }
+
+    // Quantity sold per item, from every Sales voucher whose date falls in
+    // the selected range. Computed once per render and looked up per row,
+    // rather than re-scanning every transaction for every item.
+    function soldQtyByItemInRange(range) {
+        const sold = {};   // itemId -> { qty, value }
+        transactions.forEach(t => {
+            if (t.type !== 'Sales' || !inRange(t.date, range) || !Array.isArray(t.items)) return;
+            t.items.forEach(it => {
+                if (it.itemId == null) return;
+                if (!sold[it.itemId]) sold[it.itemId] = { qty: 0, value: 0 };
+                sold[it.itemId].qty += (it.qty || 0);
+                sold[it.itemId].value += (it.qty || 0) * (it.inclRate || 0);
+            });
+        });
+        return sold;
+    }
+
     function renderStockSummary() {
         const filterSelect = document.getElementById('stockGroupFilter');
         if (!filterSelect) return; // panel not in the DOM yet on first load
@@ -651,11 +676,25 @@
                 ? stockItems.filter(i => !i.groupId)
                 : stockItems.filter(i => i.groupId == selectedGroup);
 
+        // Sold-in-period: a separate, optional column. "All Time" hides it
+        // entirely rather than showing lifetime sales, since that number
+        // would just restate what the report already isn't about.
+        const soldPeriodSel = document.getElementById('stockSoldPeriod');
+        const soldPeriodVal = soldPeriodSel ? soldPeriodSel.value : '';
+        const showSold = !!soldPeriodVal;
+        const soldColHead = document.getElementById('stockSoldColHead');
+        if (soldColHead) soldColHead.style.display = showSold ? '' : 'none';
+        const soldRange = showSold
+            ? periodRange(soldPeriodVal, document.getElementById('stockSoldFrom').value,
+                          document.getElementById('stockSoldTo').value)
+            : null;
+        const soldMap = showSold ? soldQtyByItemInRange(soldRange) : {};
+
         const stockBody = document.getElementById('stockSummaryBody');
         stockBody.innerHTML = '';
 
         if (filteredItems.length === 0) {
-            stockBody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No items in this category.</td></tr>';
+            stockBody.innerHTML = `<tr><td colspan="${showSold ? 8 : 7}" style="text-align:center; color:var(--text-muted);">No items in this category.</td></tr>`;
         } else {
             const pageRows = paginateRows('stockSummary', filteredItems);
             pageRows.forEach(i => {
@@ -665,12 +704,17 @@
                 const qtyDisplay = isOversold
                     ? `${i.qty} ${escapeHtml(i.uom)} <span style="font-size:0.68rem; font-weight:normal; background:var(--danger); color:#fff; padding:1px 6px; border-radius:4px; margin-left:4px;">Oversold</span>`
                     : `${i.qty} ${escapeHtml(i.uom)}`;
+                const sold = soldMap[i.id];
+                const soldCell = showSold
+                    ? `<td style="font-family:'JetBrains Mono',monospace;">${sold ? `${sold.qty} ${escapeHtml(i.uom)}` : '\u2014'}</td>`
+                    : '';
                 stockBody.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td onclick="viewStockItem(${i.id})" style="cursor:pointer;" title="View item summary"><strong>${escapeHtml(i.name)}</strong></td>
                         <td><span class="group-badge${i.groupId ? '' : ' muted'}">${escapeHtml(getStockGroupName(i.groupId))}</span></td>
                         <td>${escapeHtml(i.hsn)}</td>
                         <td onclick="viewStockItem(${i.id})" style="cursor:pointer; color:${qtyColor}"><strong>${qtyDisplay}</strong></td>
+                        ${soldCell}
                         <td>\u20B9${i.rate.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td>\u20B9${totalVal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="display:flex; gap:6px;">
@@ -682,6 +726,29 @@
             });
         }
         renderPaginationControls('stockSummary', filteredItems.length, renderStockSummary);
+
+        // Total sold across ALL items matching the current Category filter
+        // — computed over every matching item, not just the page on screen,
+        // so it doesn't change as you page through. Shown as a rupee value
+        // rather than a quantity, since Bags and Pcs and Kg can't be added
+        // into one meaningful number.
+        const summaryEl = document.getElementById('stockSoldSummary');
+        if (summaryEl) {
+            if (!showSold) {
+                summaryEl.style.display = 'none';
+            } else {
+                let itemsWithSales = 0, totalSoldValue = 0;
+                filteredItems.forEach(i => {
+                    const s = soldMap[i.id];
+                    if (s && s.qty > 0) { itemsWithSales++; totalSoldValue += s.value; }
+                });
+                summaryEl.innerText = itemsWithSales === 0
+                    ? 'No sales in this period for the items shown.'
+                    : `${itemsWithSales} item${itemsWithSales === 1 ? '' : 's'} sold in this period \u00b7 `
+                      + `Total sold value: \u20B9${totalSoldValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+                summaryEl.style.display = 'block';
+            }
+        }
     }
     function getLedgerGroupName(id) {
         const g = ledgerGroups.find(l => l.id == id);

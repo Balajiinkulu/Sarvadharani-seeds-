@@ -2293,14 +2293,32 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <!-- Stock -->
     <div class="panel" id="panelStock">
         <div class="panel-head"><h3>Stock Inventory Summary</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div class="no-print" style="display:flex; gap:6px; margin-bottom:14px; align-items:center; flex-wrap:wrap;">
+        <div class="no-print" style="display:flex; gap:6px; margin-bottom:10px; align-items:center; flex-wrap:wrap;">
             <label for="stockGroupFilter" style="font-size:0.78rem; color:var(--text-muted); margin:0;">Category</label>
             <select id="stockGroupFilter" onchange="pageStateFor('stockSummary').page = 1; renderStockSummary();" style="width:auto; padding:8px 10px; font-size:0.85rem;">
                 <option value="">All Categories</option>
             </select>
+            <!-- Sold-quantity-in-period is a separate question from current
+                 stock on hand, so it's its own filter rather than folding
+                 into Category — "All Time" hides the Sold column entirely
+                 rather than showing every sale ever made against it, which
+                 would just restate the obvious. -->
+            <label for="stockSoldPeriod" style="font-size:0.78rem; color:var(--text-muted); margin:0;">Sold in period</label>
+            <select id="stockSoldPeriod" onchange="onStockSoldPeriodChange()" style="width:auto; padding:8px 10px; font-size:0.85rem;">
+                <option value="">All Time (hide Sold column)</option>
+                <option value="thisMonth">This Month</option>
+                <option value="lastMonth">Last Month</option>
+                <option value="thisYear">This Year</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <div id="stockSoldCustomWrap" style="display:none; gap:6px; align-items:center;">
+                <input type="date" id="stockSoldFrom" onchange="pageStateFor('stockSummary').page = 1; renderStockSummary();">
+                <input type="date" id="stockSoldTo" onchange="pageStateFor('stockSummary').page = 1; renderStockSummary();">
+            </div>
             <button onclick="printAllRows('panelStock','Stock Summary','stockSummary',renderStockSummary)" class="btn-success print-only-desktop" style="width:auto; padding:8px 14px; font-size:0.8rem;">Save as PDF</button>
             <button onclick="resetAllOpeningQuantities()" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--warning); border-color:rgba(255,255,255,0.3);" title="Fix items where Opening Qty was set incorrectly">Fix Opening Qty</button>
         </div>
+        <div id="stockSoldSummary" style="display:none; font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;"></div>
         <div class="table-responsive">
             <table>
                 <thead>
@@ -2309,12 +2327,14 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <th>Group</th>
                         <th>HSN</th>
                         <th>In Stock</th>
+                        <th id="stockSoldColHead" style="display:none;">Sold in Period</th>
                         <th>Unit Rate (Incl)</th>
                         <th>Total Inventory Value</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="stockSummaryBody"></tbody>
+                <tfoot id="stockSummaryFoot"></tfoot>
             </table>
             <div class="no-print" data-page-controls="stockSummary" data-page-anchor="stockSummary"></div>
         </div>
@@ -3047,6 +3067,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=74"></script>
+<script src="app.js?v=75"></script>
 </body>
 </html>
