@@ -9117,10 +9117,13 @@
         document.getElementById('ivValue').innerText = `\u20B9${(item.qty * item.rate).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
 
         // Period-scoped figures — a separate question from the lifetime
-        // totals above. Taxable Value here follows the same GST-exclusive
-        // convention used everywhere else in the app (the GST Liability
-        // report, the formal tax invoice): back-calculated from the MRP
-        // rate and the item's own GST rate, not the inclusive sale amount.
+        // totals above. Amount Sold here is the ACTUAL amount on each sale
+        // voucher (r.amount, the same figure the transactions table below
+        // already shows per line) — not a GST-adjusted figure. This used to
+        // back-calculate a GST-exclusive "Taxable Value" instead, matching
+        // the GST Liability report's own convention; that's the right basis
+        // FOR that report specifically, but here the point is simpler: what
+        // did this item actually bring in during the period, as charged.
         const periodSel = document.getElementById('ivPeriod');
         const periodVal = periodSel ? periodSel.value : '';
         const periodStatsWrap = document.getElementById('ivPeriodStats');
@@ -9128,18 +9131,23 @@
             const range = periodRange(periodVal,
                 document.getElementById('ivPeriodFrom').value,
                 document.getElementById('ivPeriodTo').value);
-            let periodSoldQty = 0, periodTaxable = 0;
+            // "Purchased" mirrors the SAME distinction the lifetime Total
+            // Purchased tile makes \u2014 Raw Purchase is tracked separately
+            // (as Total Raw Purchased) and isn't folded in here either.
+            let periodSoldQty = 0, periodAmount = 0, periodPurchasedQty = 0;
             rows.forEach(r => {
-                if (r.type !== 'Sales') return;
                 if (!inRange(r.date, range)) return;
-                periodSoldQty += r.qty;
-                const gr = item.gstRate || 0;
-                const mrpAmt = r.amount;
-                periodTaxable += (gr > 0) ? (mrpAmt / (1 + gr / 100)) : mrpAmt;
+                if (r.type === 'Sales') {
+                    periodSoldQty += r.qty;
+                    periodAmount += r.amount;
+                } else if (r.type === 'Purchase') {
+                    periodPurchasedQty += r.qty;
+                }
             });
             document.getElementById('ivPeriodSold').innerText = `${periodSoldQty} ${item.uom}`;
             document.getElementById('ivPeriodTaxable').innerText =
-                `\u20B9${periodTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                `\u20B9${periodAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('ivPeriodPurchased').innerText = `${periodPurchasedQty} ${item.uom}`;
             periodStatsWrap.style.display = 'grid';
         } else {
             periodStatsWrap.style.display = 'none';
