@@ -256,6 +256,34 @@ html.is-phone .print-only-desktop { display: none !important; }
     white-space: nowrap;
 }
 
+/* Item detail's compact stat tiles — mirrors .dash-menu-row's small-grid
+   pattern (2-3 per row on a phone) rather than .dashboard-summary's
+   full-width one-per-row cards, which turned 6-8 stats into a very long
+   scroll. Keeps the label-then-value shape .summary-card has, just smaller. */
+.iv-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+    gap: 10px;
+}
+.iv-stat {
+    background: var(--bg-tint);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+}
+.iv-stat-label {
+    font-size: 0.64rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+}
+.iv-stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
 /* Invoices panel — status tabs and invoice cards. */
 .inv-tabs {
     display: flex;

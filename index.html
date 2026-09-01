@@ -506,9 +506,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div class="tile-name">Trial Balance</div>
                 <div class="tile-sub">Every ledger's Dr/Cr closing balance</div>
             </div>
-            <div class="tile" onclick="openPanel('panelGstLiability')">
-                <div class="tile-name">GST Liability</div>
-                <div class="tile-sub">Output vs input tax, by period</div>
+            <div class="tile" onclick="openPanel('panelGstReportsHub')">
+                <div class="tile-name">GST Reports</div>
+                <div class="tile-sub">Liability return, or one item's totals</div>
             </div>
             <div class="tile" onclick="openPanel('panelInvoiceGapCheck')">
                 <div class="tile-name">Invoice Number Gap Check</div>
@@ -698,18 +698,44 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <!-- Single stock item summary + its transactions -->
     <div class="panel" id="panelStockItemView">
         <div class="panel-head"><h3 id="itemViewTitle">Stock Item</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div class="dashboard-summary" style="margin-bottom:18px;">
-            <div class="summary-card"><div>In Stock</div><div id="ivStock" style="color:var(--accent);">0</div></div>
-            <div class="summary-card"><div>Opening Qty</div><div id="ivOpening" style="color:var(--text-muted);">0</div>
-                <div id="ivOpeningAsOf" style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;"></div>
-                <div id="ivOpeningResetWrap" style="margin-top:4px;"><span onclick="resetItemOpeningQty(currentStockItemViewId)" style="font-size:0.7rem; color:var(--accent); text-decoration:underline; cursor:pointer;">Reset to 0</span></div>
+        <!-- Compact grid — same "small tile" pattern as the Masters/
+             Transactions/Reports row on the dashboard, instead of the
+             full-width one-per-row cards this used before. -->
+        <div class="iv-stat-grid" style="margin-bottom:14px;">
+            <div class="iv-stat"><div class="iv-stat-label">In Stock</div><div id="ivStock" class="iv-stat-value" style="color:var(--accent);">0</div></div>
+            <div class="iv-stat"><div class="iv-stat-label">Opening Qty</div><div id="ivOpening" class="iv-stat-value" style="color:var(--text-muted);">0</div>
+                <div id="ivOpeningAsOf" style="font-size:0.64rem; color:var(--text-muted); margin-top:2px;"></div>
+                <div id="ivOpeningResetWrap" style="margin-top:3px;"><span onclick="resetItemOpeningQty(currentStockItemViewId)" style="font-size:0.66rem; color:var(--accent); text-decoration:underline; cursor:pointer;">Reset to 0</span></div>
             </div>
-            <div class="summary-card"><div>Total Purchased</div><div id="ivPurch" style="color:var(--text-main);">0</div></div>
-            <div class="summary-card"><div>Total Raw Purchased</div><div id="ivRawPurch" style="color:var(--success);">0</div></div>
-            <div class="summary-card"><div>Total Sold</div><div id="ivSold" style="color:var(--text-main);">0</div></div>
-            <div class="summary-card"><div>Stock Value</div><div id="ivValue" style="color:var(--success);">&#8377;0.00</div></div>
+            <div class="iv-stat"><div class="iv-stat-label">Total Purchased</div><div id="ivPurch" class="iv-stat-value" style="color:var(--text-main);">0</div></div>
+            <div class="iv-stat"><div class="iv-stat-label">Total Raw Purchased</div><div id="ivRawPurch" class="iv-stat-value" style="color:var(--success);">0</div></div>
+            <div class="iv-stat"><div class="iv-stat-label">Total Sold</div><div id="ivSold" class="iv-stat-value" style="color:var(--text-main);">0</div></div>
+            <div class="iv-stat"><div class="iv-stat-label">Stock Value</div><div id="ivValue" class="iv-stat-value" style="color:var(--success);">&#8377;0.00</div></div>
         </div>
         <div id="ivMeta" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:14px;"></div>
+
+        <!-- Period-scoped figures — separate from the lifetime stats above,
+             since "sold this month" is a different question from "sold
+             ever". Hidden (via the same "All Time hides it" pattern used
+             elsewhere) until a period is actually picked. -->
+        <div class="no-print" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px;">
+            <label for="ivPeriod" style="font-size:0.78rem; color:var(--text-muted); margin:0;">Period</label>
+            <select id="ivPeriod" onchange="onIvPeriodChange()" style="width:auto; padding:8px 10px; font-size:0.85rem;">
+                <option value="">All Time</option>
+                <option value="thisMonth">This Month</option>
+                <option value="lastMonth">Last Month</option>
+                <option value="thisYear">This Year</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <div id="ivPeriodCustomWrap" style="display:none; gap:6px; align-items:center;">
+                <input type="date" id="ivPeriodFrom" onchange="viewStockItem(currentStockItemViewId)">
+                <input type="date" id="ivPeriodTo" onchange="viewStockItem(currentStockItemViewId)">
+            </div>
+        </div>
+        <div id="ivPeriodStats" class="iv-stat-grid" style="display:none; margin-bottom:14px;">
+            <div class="iv-stat"><div class="iv-stat-label">Sold in Period</div><div id="ivPeriodSold" class="iv-stat-value" style="color:var(--text-main);">0</div></div>
+            <div class="iv-stat"><div class="iv-stat-label">Taxable Value in Period</div><div id="ivPeriodTaxable" class="iv-stat-value" style="color:var(--success);">&#8377;0.00</div></div>
+        </div>
         <div class="section-label">Transactions for this item</div>
         <div class="table-responsive">
             <table>
@@ -1461,6 +1487,64 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <tbody id="salesStatementBody"></tbody>
             </table>
             <div class="no-print" data-page-controls="salesStatement" data-page-anchor="salesStatement"></div>
+        </div>
+    </div>
+
+    <!-- GST Reports hub — two tiles: the full return, and a per-item
+         lookup. A panel (not a .submenu), opened the same way any other
+         report is, so it fits the existing Back-navigation without needing
+         special-case handling. -->
+    <div class="panel" id="panelGstReportsHub">
+        <div class="panel-head"><h3>GST Reports</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div class="tile-grid">
+            <div class="tile" onclick="openPanel('panelGstLiability')">
+                <div class="tile-name">GST Liability Report</div>
+                <div class="tile-sub">Output vs input tax, by period</div>
+            </div>
+            <div class="tile" onclick="openPanel('panelGstItemWise')">
+                <div class="tile-name">GST Item Wise Report</div>
+                <div class="tile-sub">Quantity and tax totals for one item, by period</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GST Item Wise: pick a period and one item, get its quantity sold
+         plus taxable/total value for that window. A summary, not a list of
+         invoices — mirrors the GST Liability report's own master-rate
+         basis (see reportTaxForSale), so this can never disagree with the
+         figures shown there. -->
+    <div class="panel" id="panelGstItemWise">
+        <div class="panel-head"><h3>GST Item Wise</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;">
+            <div style="flex:1; min-width:150px;">
+                <label>Period</label>
+                <select id="giwPeriod" onchange="onGiwFilterChange()">
+                    <option value="thisMonth">This Month</option>
+                    <option value="lastMonth">Last Month</option>
+                    <option value="thisYear">This Year</option>
+                    <option value="all" selected>All Time</option>
+                    <option value="custom">Custom...</option>
+                </select>
+            </div>
+            <div id="giwCustomWrap" style="display:none; flex:2; min-width:220px;">
+                <label>From &ndash; To</label>
+                <div style="display:flex; gap:6px;">
+                    <input type="date" id="giwFrom" onchange="renderGstItemWise()">
+                    <input type="date" id="giwTo" onchange="renderGstItemWise()">
+                </div>
+            </div>
+            <div style="flex:2; min-width:200px;">
+                <label>Item</label>
+                <select id="giwItem" onchange="onGiwFilterChange()">
+                    <option value="">-- Select Item --</option>
+                </select>
+            </div>
+        </div>
+        <div id="giwEmpty" style="color:var(--text-muted); font-size:0.85rem;">Select an item to see its totals for the chosen period.</div>
+        <div id="giwStats" class="iv-stat-grid" style="display:none;">
+            <div class="iv-stat"><div class="iv-stat-label">Quantity Sold</div><div id="giwQty" class="iv-stat-value" style="color:var(--text-main);">0</div></div>
+            <div class="iv-stat"><div class="iv-stat-label">Taxable Amount</div><div id="giwTaxable" class="iv-stat-value" style="color:var(--accent);">&#8377;0.00</div></div>
+            <div class="iv-stat"><div class="iv-stat-label">Total Amount (Incl. Tax)</div><div id="giwTotal" class="iv-stat-value" style="color:var(--success);">&#8377;0.00</div></div>
         </div>
     </div>
 
@@ -3067,6 +3151,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=75"></script>
+<script src="app.js?v=77"></script>
 </body>
 </html>

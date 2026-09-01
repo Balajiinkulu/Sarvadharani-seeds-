@@ -1938,8 +1938,12 @@
         // directly, skipping the Reports group screen entirely. Restoring
         // "Reports" on back in that case would show a screen with no real
         // history entry behind it — back from there has nowhere left to go.
-        const activeSubmenu = document.querySelector('.submenu.active');
-        const previousGroupId = activeSubmenu ? activeSubmenu.id : null;
+        // Generalized from "submenu only" to "whatever screen was actually
+        // showing" \u2014 a panel can now open FROM another panel (a hub screen
+        // full of tiles, rather than only from a top-level group), and Back
+        // needs to return to THAT panel, not skip past it to the dashboard.
+        const activeScreen = document.querySelector('.submenu.active, .panel.active');
+        const previousGroupId = activeScreen ? activeScreen.id : null;
         hideAllMenus();
         currentGroup = PANEL_GROUP[id] || null;
         const panel = document.getElementById(id);
@@ -1960,6 +1964,7 @@
         if (id === 'panelSalesStatement') renderSalesStatement();
         if (id === 'panelPurchaseReport') renderPurchaseReport();
         if (id === 'panelGstLiability') renderGstLiability();
+        if (id === 'panelGstItemWise') { onGiwFilterChange(); }
         if (id === 'panelDeliveryNotes') renderDeliveryNotes();
         if (id === 'panelCashReport') renderCashReport();
         if (id === 'panelVoucherTypes') renderVoucherTypes();
@@ -5631,6 +5636,63 @@
     // filing, the tax due is worked out backward from that MRP and slab —
     // this is exactly that calculation, done once here instead of by
     // re-entering every sale a second time.
+    function onGiwFilterChange() {
+        document.getElementById('giwCustomWrap').style.display =
+            (document.getElementById('giwPeriod').value === 'custom') ? 'block' : 'none';
+        renderGstItemWise();
+    }
+
+    function populateGiwItemOptions() {
+        const sel = document.getElementById('giwItem');
+        if (!sel) return;
+        const keep = sel.value;
+        let html = '<option value="">-- Select Item --</option>';
+        [...stockItems].sort((a, b) => a.name.localeCompare(b.name)).forEach(it => {
+            html += `<option value="${it.id}">${escapeHtml(it.name)}</option>`;
+        });
+        sel.innerHTML = html;
+        if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+    }
+
+    // Quantity sold, taxable value and inclusive total for ONE item over a
+    // period \u2014 on the same master-rate basis reportTaxForSale() uses for
+    // the whole GST Liability report, so this can never disagree with it.
+    function renderGstItemWise() {
+        populateGiwItemOptions();
+        const itemId = document.getElementById('giwItem').value;
+        const emptyEl = document.getElementById('giwEmpty');
+        const statsEl = document.getElementById('giwStats');
+        if (!itemId) {
+            emptyEl.style.display = 'block';
+            statsEl.style.display = 'none';
+            return;
+        }
+        const range = periodRange(document.getElementById('giwPeriod').value,
+                                  document.getElementById('giwFrom').value,
+                                  document.getElementById('giwTo').value);
+        const item = stockItems.find(s => s.id == itemId);
+        let qty = 0, taxable = 0, tax = 0;
+        transactions.forEach(t => {
+            if (t.type !== 'Sales' || !inRange(t.date, range) || !Array.isArray(t.items)) return;
+            t.items.forEach(it => {
+                if (it.itemId != itemId) return;
+                const baseRate = (it.masterRateAtSale != null) ? it.masterRateAtSale : (it.inclRate || 0);
+                const mrp = baseRate * (it.qty || 0);
+                const rate = it.gstRate || 0;
+                const lineTaxable = rate > 0 ? mrp / (1 + rate / 100) : mrp;
+                qty += (it.qty || 0);
+                taxable += lineTaxable;
+                tax += (mrp - lineTaxable);
+            });
+        });
+        const fmt = n => (n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('giwQty').innerText = `${qty} ${item ? escapeHtml(item.uom) : ''}`;
+        document.getElementById('giwTaxable').innerText = `\u20B9${fmt(taxable)}`;
+        document.getElementById('giwTotal').innerText = `\u20B9${fmt(taxable + tax)}`;
+        emptyEl.style.display = 'none';
+        statsEl.style.display = 'grid';
+    }
+
     function reportTaxForSale(t) {
         if (!Array.isArray(t.items) || !t.items.length) {
             // Cash-type Sales carry no line items — nothing to recompute
@@ -9002,6 +9064,12 @@
 
     // Single item: headline summary + every transaction touching it.
     let currentStockItemViewId = null;
+    function onIvPeriodChange() {
+        const wrap = document.getElementById('ivPeriodCustomWrap');
+        if (wrap) wrap.style.display = (document.getElementById('ivPeriod').value === 'custom') ? 'flex' : 'none';
+        viewStockItem(currentStockItemViewId);
+    }
+
     function viewStockItem(itemId) {
         currentStockItemViewId = itemId;
         const item = stockItems.find(s => s.id == itemId);
@@ -9047,6 +9115,35 @@
         document.getElementById('ivRawPurch').innerText = `${rawPurchased} ${item.uom}`;
         document.getElementById('ivSold').innerText = `${sold} ${item.uom}`;
         document.getElementById('ivValue').innerText = `\u20B9${(item.qty * item.rate).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+
+        // Period-scoped figures — a separate question from the lifetime
+        // totals above. Taxable Value here follows the same GST-exclusive
+        // convention used everywhere else in the app (the GST Liability
+        // report, the formal tax invoice): back-calculated from the MRP
+        // rate and the item's own GST rate, not the inclusive sale amount.
+        const periodSel = document.getElementById('ivPeriod');
+        const periodVal = periodSel ? periodSel.value : '';
+        const periodStatsWrap = document.getElementById('ivPeriodStats');
+        if (periodVal) {
+            const range = periodRange(periodVal,
+                document.getElementById('ivPeriodFrom').value,
+                document.getElementById('ivPeriodTo').value);
+            let periodSoldQty = 0, periodTaxable = 0;
+            rows.forEach(r => {
+                if (r.type !== 'Sales') return;
+                if (!inRange(r.date, range)) return;
+                periodSoldQty += r.qty;
+                const gr = item.gstRate || 0;
+                const mrpAmt = r.amount;
+                periodTaxable += (gr > 0) ? (mrpAmt / (1 + gr / 100)) : mrpAmt;
+            });
+            document.getElementById('ivPeriodSold').innerText = `${periodSoldQty} ${item.uom}`;
+            document.getElementById('ivPeriodTaxable').innerText =
+                `\u20B9${periodTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            periodStatsWrap.style.display = 'grid';
+        } else {
+            periodStatsWrap.style.display = 'none';
+        }
 
         const body = document.getElementById('itemTxnBody');
         body.innerHTML = '';
