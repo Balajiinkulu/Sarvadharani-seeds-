@@ -1868,7 +1868,7 @@
     }
 
     function setHomeDashboardVisible(visible) {
-        const ids = ['homeDashboardSummary', 'extrasBar', 'backupBanner', 'recentTxnCard', 'dataLoadingBanner'];
+        const ids = ['todaySalesCard', 'homeDashboardSummary', 'extrasBar', 'backupBanner', 'recentTxnCard', 'dataLoadingBanner'];
         ids.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = visible ? '' : 'none';

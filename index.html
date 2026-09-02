@@ -221,7 +221,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <!-- Today's sales sits above the two pending tiles: it's the figure
          that changes hour to hour, whereas the pending totals move slowly.
          Full width because it's the headline number of the day. -->
-    <div class="today-sales-card" onclick="openTodaysSales()" title="View today's sales">
+    <div class="today-sales-card" id="todaySalesCard" onclick="openTodaysSales()" title="View today's sales">
         <div class="today-sales-label">Today's Sales</div>
         <div id="todaySalesAmount" class="today-sales-amount">&#8377;0.00</div>
         <div id="todaySalesCount" class="today-sales-count">No sales yet today</div>
@@ -3163,6 +3163,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=80"></script>
+<script src="app.js?v=81"></script>
 </body>
 </html>
