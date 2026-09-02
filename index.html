@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=65">
+    <link rel="stylesheet" href="styles.css?v=66">
 </head>
 <body>
 <script>
@@ -218,13 +218,24 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     </div>
 
     <!-- Dashboard Metrics -->
-    <div class="dashboard-summary" id="homeDashboardSummary" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));">
-        <div class="summary-card" onclick="openInvoicesFor('Sales')" style="cursor:pointer;" title="View unpaid sales invoices">
-            <div>Pending to Receive (Sales)</div>
+    <!-- Today's sales sits above the two pending tiles: it's the figure
+         that changes hour to hour, whereas the pending totals move slowly.
+         Full width because it's the headline number of the day. -->
+    <div class="today-sales-card" onclick="openTodaysSales()" title="View today's sales">
+        <div class="today-sales-label">Today's Sales</div>
+        <div id="todaySalesAmount" class="today-sales-amount">&#8377;0.00</div>
+        <div id="todaySalesCount" class="today-sales-count">No sales yet today</div>
+    </div>
+    <!-- Compact variant: these two were full-width stacked cards taking up
+         most of the first screen. Side by side and smaller, they leave room
+         for today's figures without losing anything. -->
+    <div class="dashboard-summary dashboard-summary-compact" id="homeDashboardSummary">
+        <div class="summary-card summary-card-compact" onclick="openInvoicesFor('Sales')" style="cursor:pointer;" title="View unpaid sales invoices">
+            <div>Pending to Receive</div>
             <div id="statReceivable" style="color: var(--success);">&#8377;0.00</div>
         </div>
-        <div class="summary-card" onclick="openInvoicesFor('Purchase')" style="cursor:pointer;" title="View unpaid purchase invoices">
-            <div>Pending to Pay (Purchase)</div>
+        <div class="summary-card summary-card-compact" onclick="openInvoicesFor('Purchase')" style="cursor:pointer;" title="View unpaid purchase invoices">
+            <div>Pending to Pay</div>
             <div id="statPayable" style="color: var(--danger);">&#8377;0.00</div>
         </div>
     </div>
@@ -3152,6 +3163,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=78"></script>
+<script src="app.js?v=80"></script>
 </body>
 </html>

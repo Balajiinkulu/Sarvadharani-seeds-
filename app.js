@@ -1095,16 +1095,51 @@
     // ---- Recent Transactions (dashboard widget) ----
     // Shows the last few posted vouchers of any type, newest first.
     // Read-only summary — rows do not open or navigate anywhere.
+    // Today's date in the same YYYY-MM-DD form vouchers are stored in,
+    // built from LOCAL date parts. Using toISOString() here would convert
+    // to UTC first and, for anything past ~05:30 IST, report yesterday.
+    function todayKey() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
     function renderRecentTransactions() {
         const listEl = document.getElementById('recentTxnList');
         if (!listEl) return;
 
-        const recent = [...transactions]
+        // Today only, rather than "the last 5 whenever they happened".
+        // A dashboard is a picture of the day \u2014 showing months-old
+        // vouchers (or the 1-Apr cancelled placeholders) crowded out
+        // whatever actually happened at the counter this morning.
+        const today = todayKey();
+        const todaysTxns = transactions.filter(t => t.date === today);
+
+        // Today's sales total, shown as its own widget above the list.
+        // Cancelled placeholders are excluded \u2014 they're zero-value, but
+        // they'd wrongly inflate the voucher count beside the figure.
+        const todaysSales = todaysTxns.filter(t => t.type === 'Sales' && !t.cancelled);
+        const salesTotal = todaysSales.reduce((s, t) => s + (Number(t.grandTotal) || 0), 0);
+        const salesAmtEl = document.getElementById('todaySalesAmount');
+        const salesCountEl = document.getElementById('todaySalesCount');
+        if (salesAmtEl) {
+            salesAmtEl.innerText = `\u20B9${salesTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+        if (salesCountEl) {
+            salesCountEl.innerText = todaysSales.length === 0
+                ? 'No sales yet today'
+                : `${todaysSales.length} sale${todaysSales.length === 1 ? '' : 's'} today`;
+        }
+
+        // Cancelled placeholders are excluded here too — they exist only
+        // to explain a gap in the numbering, and listing them as if they
+        // were activity is misleading on a screen showing today's work.
+        const recent = todaysTxns
+            .filter(t => !t.cancelled)
             .sort((a, b) => b.id - a.id)
             .slice(0, 5);
 
         if (recent.length === 0) {
-            listEl.innerHTML = '<div class="recent-txn-empty">No vouchers posted yet.</div>';
+            listEl.innerHTML = '<div class="recent-txn-empty">No transactions today.</div>';
             return;
         }
 
@@ -1122,6 +1157,26 @@
                 </div>
             `;
         }).join('');
+    }
+
+    // Opens Sales Statement scoped to today, so the list reconciles with
+    // the Today's Sales figure that was tapped. There's no "Today" preset
+    // in that dropdown, so the custom range is used with both ends set to
+    // today \u2014 which also leaves the dates visible and editable if the
+    // person wants to widen the window from there.
+    function openTodaysSales() {
+        const today = todayKey();
+        openPanel('panelSalesStatement');
+        const periodSel = document.getElementById('salesPeriod');
+        if (periodSel) periodSel.value = 'custom';
+        const fromEl = document.getElementById('salesFrom');
+        const toEl = document.getElementById('salesTo');
+        if (fromEl) fromEl.value = today;
+        if (toEl) toEl.value = today;
+        const wrap = document.getElementById('salesCustomWrap');
+        if (wrap) wrap.style.display = 'block';
+        pageStateFor('salesStatement').page = 1;
+        renderSalesStatement();
     }
 
     // ---- Pending to Receive / Pending to Pay (dashboard tile drill-downs) ----

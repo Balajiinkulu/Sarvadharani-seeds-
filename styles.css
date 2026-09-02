@@ -256,6 +256,51 @@ html.is-phone .print-only-desktop { display: none !important; }
     white-space: nowrap;
 }
 
+/* Today's Sales — the dashboard headline. Larger figure than the pending
+   tiles below it because it's the number checked most often during the day. */
+.today-sales-card {
+    background: var(--bg-tint);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background-color 160ms ease;
+}
+.today-sales-card:hover { background: var(--bg-hover); }
+.today-sales-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.today-sales-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 1.75rem;
+    color: var(--success);
+    margin-top: 2px;
+}
+.today-sales-count {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Compact pending tiles: two per row instead of full-width stacked, with
+   a smaller figure — they're reference numbers, not the headline. */
+/* Doubled class for specificity: the base .dashboard-summary rule appears
+   LATER in this file, so a single-class selector here would lose to it
+   regardless of intent. */
+.dashboard-summary.dashboard-summary-compact {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.summary-card.summary-card-compact { padding: 10px 12px; }
+.summary-card.summary-card-compact > div:first-child { font-size: 0.66rem; }
+.summary-card.summary-card-compact > div:nth-child(2) { font-size: 1.15rem; }
+
 /* Item detail's compact stat tiles — mirrors .dash-menu-row's small-grid
    pattern (2-3 per row on a phone) rather than .dashboard-summary's
    full-width one-per-row cards, which turned 6-8 stats into a very long
@@ -1634,7 +1679,11 @@ body.paper-80mm #invoiceModal .invoice-box table { font-size: 0.7rem; }
     .brand-title { font-size: 1.35rem; margin-top: 8px; }
     .gst-badge { align-self: stretch; text-align: center; font-size: 0.7rem; padding: 6px 10px; }
 
-    .dashboard-summary { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 18px; }
+    /* :not() exempts the compact variant — the two pending tiles are
+       deliberately half-width even on a phone, since their figures are
+       short and stacking them wastes most of the first screen. */
+    .dashboard-summary:not(.dashboard-summary-compact) { grid-template-columns: 1fr !important; gap: 10px; margin-bottom: 18px; }
+    .dashboard-summary.dashboard-summary-compact { grid-template-columns: 1fr 1fr !important; gap: 10px; margin-bottom: 18px; }
     .summary-card { padding: 14px 14px; }
     .summary-card > div:nth-child(2) { font-size: 1.35rem; }
 
