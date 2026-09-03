@@ -1800,10 +1800,24 @@
         history.back();
         if (r) r(result);
     }
-    function confirmAsync(message) {
+    // Destructive confirmations look different from routine ones: the
+    // action button turns red and reads "Delete" rather than a neutral
+    // "OK", so the dialog itself signals what's about to happen instead of
+    // relying on the person having read the sentence above it.
+    function confirmAsync(message, opts) {
         return new Promise(resolve => {
             appConfirmResolve = resolve;
             document.getElementById('appConfirmText').textContent = message;
+            const okBtn = document.getElementById('appConfirmOkBtn');
+            // Auto-detected from the wording, so every existing delete call
+            // gets the treatment without needing to be updated one by one.
+            const danger = (opts && opts.danger !== undefined)
+                ? opts.danger
+                : /\b(delete|remove|erase|wipe|clear all|reset)\b/i.test(message || '');
+            if (okBtn) {
+                okBtn.classList.toggle('confirm-danger', !!danger);
+                okBtn.textContent = (opts && opts.okText) ? opts.okText : (danger ? 'Delete' : 'OK');
+            }
             document.getElementById('appConfirmModal').style.display = 'flex';
             lockBodyScroll();
             navPushState(closeAppConfirmUI);
@@ -7040,6 +7054,14 @@
             : txn.customVoucherTypeId
                 ? (txn.customVoucherTypeName || 'CUSTOM VOUCHER').toUpperCase() + (txn.inMainBooks === false ? ' (OFF-BOOK)' : '')
                 : 'TAX INVOICE';
+        // A Delivery Note isn't an invoice and charges nothing, so calling
+        // its number "Invoice No" and its value "Grand Total" contradicts
+        // the disclaimer printed right below. Both labels adapt instead.
+        const noLabel = document.getElementById('invNoLabel');
+        if (noLabel) noLabel.innerText = isDN ? 'Challan No:' : 'Invoice No:';
+        const totLabel = document.getElementById('invTotalLabel');
+        if (totLabel) totLabel.innerText = isDN ? 'Value of Goods' : 'Grand Total';
+
         const rh = document.getElementById('invRateHead');
         if (rh) rh.innerText = (txn.rateMode === 'EXEMPT') ? 'Rate (Nil GST)' : 'Rate (Incl GST)';
         document.getElementById('invNo').innerText = txn.invNo;  

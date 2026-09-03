@@ -256,6 +256,14 @@ html.is-phone .print-only-desktop { display: none !important; }
     white-space: nowrap;
 }
 
+/* Destructive confirm button — red so the dialog itself signals that
+   the action removes data, rather than looking like any other OK. */
+#appConfirmOkBtn.confirm-danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+
 /* Today's Sales — the dashboard headline. Larger figure than the pending
    tiles below it because it's the number checked most often during the day. */
 .today-sales-card {

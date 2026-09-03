@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=66">
+    <link rel="stylesheet" href="styles.css?v=67">
 </head>
 <body>
 <script>
@@ -2692,9 +2692,15 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <div id="appConfirmModal">
     <div class="edit-box" style="max-width:400px;">
         <p id="appConfirmText" style="margin:0 0 18px; font-size:0.92rem; line-height:1.55; white-space:pre-line;"></p>
+        <!-- Cancel is deliberately the WIDER, visually dominant button and
+             sits on the right where the thumb naturally lands. The confirm
+             action is narrower and, for deletions, turns red via
+             .confirm-danger. Previously both were equal-sized with the
+             confirm styled as the default blue "OK", so a mistaken tap
+             destroyed data as easily as it cancelled. -->
         <div style="display:flex; gap:10px;">
-            <button type="button" class="btn-inline" style="flex:1;" onclick="resolveAppConfirm(false)" id="appConfirmCancelBtn">Cancel</button>
             <button type="button" style="flex:1;" onclick="resolveAppConfirm(true)" id="appConfirmOkBtn">OK</button>
+            <button type="button" class="btn-inline" style="flex:1.6;" onclick="resolveAppConfirm(false)" id="appConfirmCancelBtn">Cancel</button>
         </div>
     </div>
 </div>
@@ -2897,7 +2903,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </div>
             </div>
             <div style="text-align:right; font-size:0.85rem;">
-                <div><strong>Invoice No:</strong> <span id="invNo"></span></div>
+                <div><strong id="invNoLabel">Invoice No:</strong> <span id="invNo"></span></div>
                 <div><strong>Date:</strong> <span id="invDate"></span></div>
             </div>
         </div>
@@ -2930,7 +2936,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
         <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
             <div id="invTaxBreakdown"></div>
-            <div style="text-align:right; font-size:1.15rem; font-weight:bold;">Grand Total: <span id="invGrandTotal"></span></div>
+            <div style="text-align:right; font-size:1.15rem; font-weight:bold;"><span id="invTotalLabel">Grand Total</span>: <span id="invGrandTotal"></span></div>
         </div>
 
         <!-- Paid / Balance Due — Sales and Purchase invoices only, computed
@@ -2959,7 +2965,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         </div>
 
         <div style="margin-top:24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;" class="no-print">
-            <button id="invPrintBtn" onclick="printInvoiceCurrentStyle()" class="btn-success">Print</button>
+            <button id="invPrintBtn" onclick="printInvoiceCurrentStyle()" class="btn-success print-only-desktop">Print</button>
             <!-- Style selector removed: with "Formal" gone there was only one
                  option left to pick. Edit now lives in the toolbar at the top
                  of the invoice, so it isn't repeated here. -->
@@ -3163,6 +3169,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=81"></script>
+<script src="app.js?v=83"></script>
 </body>
 </html>
