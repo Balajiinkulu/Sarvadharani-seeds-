@@ -97,7 +97,8 @@
         { name: 'accounts',           lsKey: 'tally_mob_accounts',     get: () => accounts,           set: v => { accounts = v; } },
         { name: 'stockGroups',        lsKey: 'tally_mob_stockgroups',  get: () => stockGroups,        set: v => { stockGroups = v; } },
         { name: 'ledgerGroups',       lsKey: 'tally_mob_ledgergroups', get: () => ledgerGroups,       set: v => { ledgerGroups = v; } },
-        { name: 'customVoucherTypes', lsKey: 'tally_mob_vouchertypes', get: () => customVoucherTypes, set: v => { customVoucherTypes = v; } }
+        { name: 'customVoucherTypes', lsKey: 'tally_mob_vouchertypes', get: () => customVoucherTypes, set: v => { customVoucherTypes = v; } },
+        { name: 'seedLots',           lsKey: 'tally_mob_seedlots',     get: () => seedLots,           set: v => { seedLots = v; } }
     ];
     MASTER_SPECS.forEach(s => {
         s.ref = cloudDb.collection('sarvadharaniSeeds_' + s.name);
@@ -576,6 +577,10 @@
     let transactions = JSON.parse(localStorage.getItem('tally_mob_db')) || [];  
     let accounts = JSON.parse(localStorage.getItem('tally_mob_accounts')) || [];
     let stockGroups = JSON.parse(localStorage.getItem('tally_mob_stockgroups')) || [];
+    // Seed lots: a lot groups raw seed of ONE variety bought from several
+    // growers, because drying and processing happen per lot rather than per
+    // purchase. Lot numbers are assigned by the plant, not by SSCA.
+    let seedLots = JSON.parse(localStorage.getItem('tally_mob_seedlots')) || [];
     let ledgerGroups = JSON.parse(localStorage.getItem('tally_mob_ledgergroups')) || [];
     let refCounter = JSON.parse(localStorage.getItem('tally_mob_refcounter')) || { Payment: 0, Receipt: 0 };
     let subLedgers = JSON.parse(localStorage.getItem('tally_mob_subledgers')) || [];
@@ -1090,6 +1095,373 @@
         const txn = transactions.find(t => t.id == txnId);
         if (!txn) return;
         printInvoice(txnId);
+    }
+
+    // ================= SEED PROCESSING =================
+    let editingSeedLotId = null;
+
+    function lotById(id) { return seedLots.find(l => l.id == id); }
+
+    // Raw seed booked into a lot, from the grower purchases assigned to it.
+    // Always in quintals: purchases may be entered in Kg or Bags, so they're
+    // normalised here rather than trusting whatever unit was typed.
+    function lotRawQty(lotId) {
+        return transactions
+            .filter(t => t.rawPurchase && t.lotId == lotId)
+            .reduce((s, t) => s + (Number(t.rawQtl) || 0), 0);
+    }
+
+    function lotDriedOut(lotId) {
+        return transactions
+            .filter(t => t.type === 'Drying' && t.lotId == lotId)
+            .reduce((s, t) => s + (Number(t.qtyOut) || 0), 0);
+    }
+
+    function lotDryingLoss(lotId) {
+        return transactions
+            .filter(t => t.type === 'Drying' && t.lotId == lotId)
+            .reduce((s, t) => s + ((Number(t.qtyIn) || 0) - (Number(t.qtyOut) || 0)), 0);
+    }
+
+    function populateLotDropdowns() {
+        const opts = [...seedLots]
+            .sort((a, b) => String(b.lotNo).localeCompare(String(a.lotNo)))
+            .map(l => `<option value="${l.id}">${escapeHtml(l.lotNo)} \u2014 ${escapeHtml(l.variety)}</option>`)
+            .join('');
+        const rp = document.getElementById('rpLot');
+        if (rp) {
+            const keep = rp.value;
+            rp.innerHTML = '<option value="">-- No lot --</option>' + opts;
+            if (keep) rp.value = keep;
+        }
+        const dry = document.getElementById('dryLot');
+        if (dry) {
+            const keep = dry.value;
+            dry.innerHTML = '<option value="">-- Select Lot --</option>' + opts;
+            if (keep) dry.value = keep;
+        }
+        const cv = document.getElementById('cvLot');
+        if (cv) {
+            const keep = cv.value;
+            cv.innerHTML = '<option value="">-- No lot --</option>' + opts;
+            if (keep) cv.value = keep;
+        }
+    }
+
+    function openNewLotPrompt() {
+        openPanel('panelSeedLots');
+    }
+
+    function saveSeedLot(e) {
+        e.preventDefault();
+        const lotNo = document.getElementById('slLotNo').value.trim();
+        const variety = document.getElementById('slVariety').value.trim();
+        if (!lotNo || !variety) return false;
+        // Lot numbers are assigned by the plant, so the app enforces
+        // uniqueness — two lots sharing a number would make the register
+        // ambiguous exactly where it matters most.
+        const clash = seedLots.find(l => l.lotNo.toLowerCase() === lotNo.toLowerCase() && l.id != editingSeedLotId);
+        if (clash) { alert(`Lot "${lotNo}" already exists. Lot numbers must be unique.`); return false; }
+
+        const payload = {
+            lotNo: lotNo,
+            variety: variety,
+            seedClass: document.getElementById('slClass').value,
+            date: document.getElementById('slDate').value,
+            producer: document.getElementById('slProducer').value.trim()
+        };
+        if (editingSeedLotId) {
+            Object.assign(lotById(editingSeedLotId), payload);
+        } else {
+            seedLots.push(Object.assign({ id: newId(seedLots) }, payload));
+        }
+        localStorage.setItem('tally_mob_seedlots', JSON.stringify(seedLots));
+        syncCloud();
+        cancelSeedLotEdit();
+        renderSeedLots();
+        populateLotDropdowns();
+        return false;
+    }
+
+    function editSeedLot(id) {
+        const l = lotById(id);
+        if (!l) return;
+        editingSeedLotId = id;
+        document.getElementById('slLotNo').value = l.lotNo;
+        document.getElementById('slVariety').value = l.variety;
+        document.getElementById('slClass').value = l.seedClass || 'Truthfully Labelled';
+        document.getElementById('slDate').value = l.date || '';
+        document.getElementById('slProducer').value = l.producer || '';
+        document.getElementById('slSubmitBtn').innerText = 'Update Lot';
+        document.getElementById('slCancelBtn').style.display = '';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelSeedLotEdit() {
+        editingSeedLotId = null;
+        document.getElementById('seedLotForm').reset();
+        document.getElementById('slDate').value = todayKey();
+        document.getElementById('slSubmitBtn').innerText = 'Save Lot';
+        document.getElementById('slCancelBtn').style.display = 'none';
+    }
+
+    async function deleteSeedLot(id) {
+        const l = lotById(id);
+        if (!l) return;
+        // Deleting a lot that purchases or drying entries point at would
+        // orphan them and break the register, so it's blocked rather than
+        // silently cascading.
+        const used = transactions.some(t => t.lotId == id);
+        if (used) return alert(`Cannot delete lot "${l.lotNo}" \u2014 purchases or processing entries are linked to it. Remove those first.`);
+        if (!(await confirmAsync(`Delete lot "${l.lotNo}"? This cannot be undone.`))) return;
+        seedLots = seedLots.filter(x => x.id != id);
+        localStorage.setItem('tally_mob_seedlots', JSON.stringify(seedLots));
+        syncCloud();
+        renderSeedLots();
+        populateLotDropdowns();
+    }
+
+    // A lot's stage, derived from what's actually been recorded rather than
+    // stored as a field that could drift out of step with the vouchers.
+    function lotStatus(lotId) {
+        const raw = lotRawQty(lotId);
+        if (raw <= 0) return 'Open';
+        const dried = transactions.some(t => t.type === 'Drying' && t.lotId == lotId);
+        const processed = transactions.some(t => t.conversion && t.lotId == lotId);
+        if (processed) return 'Processed';
+        if (dried) return 'Dried';
+        return 'Raw In';
+    }
+
+    function renderSeedLots() {
+        const body = document.getElementById('seedLotsBody');
+        if (!body) return;
+        if (seedLots.length === 0) {
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No lots yet. Create one above.</td></tr>';
+            return;
+        }
+        body.innerHTML = [...seedLots]
+            .sort((a, b) => String(b.lotNo).localeCompare(String(a.lotNo)))
+            .map(l => {
+                const st = lotStatus(l.id);
+                return `<tr>
+                    <td><strong>${escapeHtml(l.lotNo)}</strong></td>
+                    <td>${escapeHtml(l.variety)}</td>
+                    <td>${escapeHtml(l.seedClass || '')}</td>
+                    <td><span class="ledger-type-badge">${st}</span></td>
+                    <td style="font-family:'JetBrains Mono',monospace;">${lotRawQty(l.id).toFixed(2)} Qtl</td>
+                    <td style="display:flex; gap:6px;">
+                        <button onclick="editSeedLot(${l.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button>
+                        <button onclick="deleteSeedLot(${l.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
+                    </td>
+                </tr>`;
+            }).join('');
+    }
+
+    // ---- Drying ----
+    function onDryLotChange() {
+        const lotId = document.getElementById('dryLot').value;
+        if (!lotId) return;
+        // Default Qty In to what's still undried in this lot, so the common
+        // case (dry the whole lot at once) needs no typing.
+        const remaining = lotRawQty(lotId) - transactions
+            .filter(t => t.type === 'Drying' && t.lotId == lotId)
+            .reduce((s, t) => s + (Number(t.qtyIn) || 0), 0);
+        const qtyIn = document.getElementById('dryQtyIn');
+        if (qtyIn && !qtyIn.value) qtyIn.value = Math.max(0, remaining).toFixed(2);
+        updateDryingLoss();
+    }
+
+    function updateDryingLoss() {
+        const inQ = parseFloat(document.getElementById('dryQtyIn').value) || 0;
+        const outQ = parseFloat(document.getElementById('dryQtyOut').value) || 0;
+        const el = document.getElementById('dryLossDisplay');
+        if (el) el.innerText = `${Math.max(0, inQ - outQ).toFixed(2)} Qtl`;
+    }
+
+    function saveDrying(e) {
+        e.preventDefault();
+        const lotId = document.getElementById('dryLot').value;
+        const qtyIn = parseFloat(document.getElementById('dryQtyIn').value) || 0;
+        const qtyOut = parseFloat(document.getElementById('dryQtyOut').value) || 0;
+        if (!lotId) { alert('Select a lot.'); return false; }
+        if (qtyIn <= 0) { alert('Enter the quantity going in to dry.'); return false; }
+        if (qtyOut <= 0) { alert('Enter the quantity that came out.'); return false; }
+        if (qtyOut > qtyIn) { alert('Quantity out cannot be more than quantity in \u2014 drying removes moisture, it cannot add weight.'); return false; }
+
+        const lot = lotById(lotId);
+        transactions.push({
+            id: newId(transactions),
+            invNo: nextVoucherNo('Drying', 'DRY', null, document.getElementById('dryDateIn').value),
+            type: 'Drying',
+            drying: true,
+            date: document.getElementById('dryDateIn').value,
+            dateOut: document.getElementById('dryDateOut').value || '',
+            lotId: Number(lotId),
+            lotNo: lot ? lot.lotNo : '',
+            qtyIn: qtyIn,
+            qtyOut: qtyOut,
+            moistIn: parseFloat(document.getElementById('dryMoistIn').value) || null,
+            moistOut: parseFloat(document.getElementById('dryMoistOut').value) || null,
+            notes: document.getElementById('dryNotes').value.trim(),
+            // Shape-compatibility with generic transaction handling.
+            partyId: null, partyName: '', items: [], taxable: 0, totalTax: 0, grandTotal: 0
+        });
+        localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
+        syncCloud();
+        document.getElementById('dryingForm').reset();
+        document.getElementById('dryDateIn').value = todayKey();
+        updateDryingLoss();
+        renderDrying();
+        populateLotDropdowns();
+        alert('Drying entry saved.');
+        return false;
+    }
+
+    async function deleteDrying(txnId) {
+        const t = transactions.find(x => x.id == txnId);
+        if (!t) return;
+        if (!(await confirmAsync(`Delete drying entry ${t.invNo} for lot ${t.lotNo}?`))) return;
+        transactions = transactions.filter(x => x.id != txnId);
+        localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
+        syncCloud();
+        renderDrying();
+    }
+
+    function renderDrying() {
+        const body = document.getElementById('dryingBody');
+        if (!body) return;
+        const rows = transactions.filter(t => t.type === 'Drying')
+            .sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id);
+        if (rows.length === 0) {
+            body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No drying entries yet.</td></tr>';
+            return;
+        }
+        body.innerHTML = rows.map(t => {
+            const loss = (Number(t.qtyIn) || 0) - (Number(t.qtyOut) || 0);
+            const moist = (t.moistIn != null || t.moistOut != null)
+                ? `${t.moistIn != null ? t.moistIn + '%' : '\u2014'} \u2192 ${t.moistOut != null ? t.moistOut + '%' : '\u2014'}`
+                : '\u2014';
+            return `<tr>
+                <td>${escapeHtml(t.date)}</td>
+                <td><strong>${escapeHtml(t.lotNo || '')}</strong></td>
+                <td style="font-family:'JetBrains Mono',monospace;">${(Number(t.qtyIn)||0).toFixed(2)}</td>
+                <td style="font-family:'JetBrains Mono',monospace;">${(Number(t.qtyOut)||0).toFixed(2)}</td>
+                <td style="font-family:'JetBrains Mono',monospace; color:var(--warning);">${loss.toFixed(2)}</td>
+                <td style="font-size:0.78rem;">${moist}</td>
+                <td><button onclick="deleteDrying(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button></td>
+            </tr>`;
+        }).join('');
+    }
+
+    function onPrPeriodChange() {
+        document.getElementById('prCustomWrap').style.display =
+            (document.getElementById('prPeriod').value === 'custom') ? 'block' : 'none';
+        renderProcessingRegister();
+    }
+
+    // Cleaned seed produced for a lot, from Processing (conversion) entries.
+    function lotCleanedQtl(lotId) {
+        return transactions
+            .filter(t => t.conversion && t.lotId == lotId)
+            .reduce((s, t) => s + (Number(t.cleanedQtl) || 0), 0);
+    }
+
+    function renderProcessingRegister() {
+        const body = document.getElementById('prBody');
+        if (!body) return;
+
+        // Lot filter dropdown, kept in sync with the lots that exist.
+        const lotSel = document.getElementById('prLot');
+        if (lotSel) {
+            const keep = lotSel.value;
+            lotSel.innerHTML = '<option value="">All Lots</option>' + [...seedLots]
+                .sort((a, b) => String(b.lotNo).localeCompare(String(a.lotNo)))
+                .map(l => `<option value="${l.id}">${escapeHtml(l.lotNo)}</option>`).join('');
+            if (keep) lotSel.value = keep;
+        }
+
+        const range = periodRange(document.getElementById('prPeriod').value,
+            document.getElementById('prFrom').value, document.getElementById('prTo').value);
+        const lotFilter = lotSel ? lotSel.value : '';
+        const lbl = document.getElementById('prPeriodLabel');
+        if (lbl) lbl.innerText = document.getElementById('prPeriod').selectedOptions[0].text;
+
+        // One row per GROWER PURCHASE, sharing the lot number — matching the
+        // proforma, which has a single grower per row.
+        let rows = transactions.filter(t => t.rawPurchase && inRange(t.date, range));
+        if (lotFilter) rows = rows.filter(t => t.lotId == lotFilter);
+        rows.sort((a, b) => String(a.date).localeCompare(String(b.date)) || a.id - b.id);
+
+        if (rows.length === 0) {
+            body.innerHTML = '<tr><td colspan="13" style="text-align:center; color:var(--text-muted);">No raw seed purchases in this period.</td></tr>';
+            document.getElementById('prFoot').innerHTML = '';
+            renderPaginationControls('processingRegister', 0, renderProcessingRegister);
+            return;
+        }
+
+        const pageRows = paginateRows('processingRegister', rows);
+        let tRaw = 0, tDry = 0, tClean = 0, tProc = 0, tBags = 0;
+
+        body.innerHTML = pageRows.map((t, idx) => {
+            const lot = t.lotId ? lotById(t.lotId) : null;
+            const party = parties.find(p => p.id == t.partyId);
+            const addr = (party && party.address) ? party.address : '';
+            const raw = Number(t.rawQtl) || 0;
+
+            // Lot-level figures (drying loss, cleaned seed, bags) are shared
+            // across the growers in that lot, so each grower's row shows its
+            // OWN share, apportioned by how much raw seed it contributed.
+            // Without this a 5-grower lot would show the full lot loss on
+            // every row and the column would total five times over.
+            let share = 0, dryLoss = 0, cleaned = 0, bags = 0;
+            if (lot) {
+                const lotRaw = lotRawQty(lot.id);
+                share = lotRaw > 0 ? (raw / lotRaw) : 0;
+                dryLoss = lotDryingLoss(lot.id) * share;
+                cleaned = lotCleanedQtl(lot.id) * share;
+                bags = transactions
+                    .filter(x => x.conversion && x.lotId == lot.id)
+                    .reduce((s, x) => s + (Number(x.outQty) || 0), 0) * share;
+            }
+            // Processing loss = what went in to process, minus what came out
+            // clean. Only meaningful once processing has actually happened.
+            const procLoss = cleaned > 0 ? Math.max(0, (raw - dryLoss) - cleaned) : 0;
+
+            tRaw += raw; tDry += dryLoss; tClean += cleaned; tProc += procLoss; tBags += bags;
+
+            const num = (rows.indexOf(t) + 1);
+            const f = n => n.toFixed(2);
+            return `<tr>
+                <td>${num}</td>
+                <td>${escapeHtml(t.date)}</td>
+                <td><strong>${escapeHtml(t.partyName || '')}</strong>${addr ? `<div style="font-size:0.68rem; color:var(--text-muted);">${escapeHtml(addr)}</div>` : ''}</td>
+                <td>${escapeHtml(lot ? lot.variety : ((t.items && t.items[0]) ? t.items[0].name : ''))}</td>
+                <td><strong>${escapeHtml(lot ? lot.lotNo : '\u2014')}</strong></td>
+                <td>${escapeHtml(lot ? (lot.seedClass || '') : '')}</td>
+                <td style="font-family:'JetBrains Mono',monospace;">${f(raw)}</td>
+                <td style="font-family:'JetBrains Mono',monospace;">${t.moisturePct != null ? t.moisturePct + '%' : '\u2014'}</td>
+                <td style="font-family:'JetBrains Mono',monospace; color:var(--warning);">${dryLoss > 0 ? f(dryLoss) : '\u2014'}</td>
+                <td style="font-family:'JetBrains Mono',monospace;">${cleaned > 0 ? f(cleaned) : '\u2014'}</td>
+                <td style="font-family:'JetBrains Mono',monospace; color:var(--danger);">${procLoss > 0 ? f(procLoss) : '\u2014'}</td>
+                <td style="font-family:'JetBrains Mono',monospace;">${f(raw)}</td>
+                <td style="font-family:'JetBrains Mono',monospace;">${bags > 0 ? Math.round(bags) : '\u2014'}</td>
+            </tr>`;
+        }).join('');
+
+        const f = n => n.toFixed(2);
+        document.getElementById('prFoot').innerHTML = `<tr style="font-weight:700;">
+            <td colspan="6" style="text-align:right;">Totals (all rows in period)</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${f(tRaw)}</td>
+            <td></td>
+            <td style="font-family:'JetBrains Mono',monospace;">${f(tDry)}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${f(tClean)}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${f(tProc)}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${f(tRaw)}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">${Math.round(tBags)}</td>
+        </tr>`;
+
+        renderPaginationControls('processingRegister', rows.length, renderProcessingRegister);
     }
 
     // ---- Recent Transactions (dashboard widget) ----
@@ -1722,6 +2094,8 @@
         panelRawPurchase: 'groupTransactions', panelConversion: 'groupTransactions',
         panelProcessedReport: 'groupReports', panelRawPurchaseReport: 'groupReports', panelTrialBalance: 'groupReports',
         panelInvoiceGapCheck: 'groupReports',
+        panelSeedLots: 'groupSeedProcessing', panelDrying: 'groupSeedProcessing',
+        panelProcessingRegister: 'groupSeedProcessing',
         panelManageStaff: 'groupSettings'
     };
     let currentGroup = null;
@@ -2051,6 +2425,18 @@
         if (id === 'panelStock') renderStockSummary();
         if (id === 'panelStockGroup' || id === 'panelLedgerGroup' || id === 'panelGroupStock') renderGroupTables();
         if (id === 'panelInvoices') { onInvoicePeriodChange(); setInvoiceFilter(invoiceFilter); }
+        if (id === 'panelSeedLots') {
+            if (!document.getElementById('slDate').value) document.getElementById('slDate').value = todayKey();
+            renderSeedLots();
+        }
+        if (id === 'panelDrying') {
+            populateLotDropdowns();
+            if (!document.getElementById('dryDateIn').value) document.getElementById('dryDateIn').value = todayKey();
+            renderDrying();
+        }
+        if (id === 'panelRawPurchase') { populateLotDropdowns(); onRpUnitChange(); }
+        if (id === 'panelConversion') { populateLotDropdowns(); }
+        if (id === 'panelProcessingRegister') { renderProcessingRegister(); }
         if (id === 'panelAuditTrail') renderAuditTrail();
         if (id === 'panelBackfillGst') {
             const { vouchers, lines } = countGstBackfillCandidates();
@@ -4576,6 +4962,14 @@
         const qty = parseFloat(document.getElementById('editAddItemQty').value);
         const rate = parseFloat(document.getElementById('editAddItemRate').value);
         if (isNaN(qty) || qty <= 0) return alert("Enter a valid quantity.");
+        // A lot total in quintals can't be built from bags without knowing
+        // what a bag weighs — better to stop here than record a lot figure
+        // of zero that quietly corrupts the register.
+        if (document.getElementById('rpUnit').value === 'Bags'
+            && document.getElementById('rpLot') && document.getElementById('rpLot').value
+            && rpQuintals() <= 0) {
+            return alert("Enter the weight per bag \u2014 it's needed to convert this purchase to quintals for the lot and the processing register.");
+        }
         if (isNaN(rate) || rate < 0) return alert("Enter a valid rate.");
         const item = stockItems.find(s => s.id == itemId);
         if (!item) return;
@@ -6194,6 +6588,28 @@
     function onRpUnitChange() {
         const unit = document.getElementById('rpUnit').value;
         document.getElementById('rpRateLabel').innerText = `Rate / ${unit === 'Bags' ? 'Bag' : 'Quintal'} (\u20B9 Incl. GST)`;
+        const wrap = document.getElementById('rpBagWtWrap');
+        if (wrap) wrap.style.display = (unit === 'Bags') ? '' : 'none';
+        updateRpQtlPreview();
+    }
+
+    // Bags -> quintals, shown live so the figure that lands in the lot and
+    // the register is visible before saving rather than a silent conversion.
+    function rpQuintals() {
+        const qty = parseFloat(document.getElementById('rpQty').value) || 0;
+        const unit = document.getElementById('rpUnit').value;
+        if (unit === 'Quintal') return qty;
+        const bagWt = parseFloat(document.getElementById('rpBagWt') ? document.getElementById('rpBagWt').value : '') || 0;
+        return bagWt > 0 ? (qty * bagWt) / 100 : 0;
+    }
+
+    function updateRpQtlPreview() {
+        const el = document.getElementById('rpQtlPreview');
+        if (!el) return;
+        const unit = document.getElementById('rpUnit').value;
+        if (unit !== 'Bags') { el.innerText = ''; return; }
+        const q = rpQuintals();
+        el.innerText = q > 0 ? `= ${q.toFixed(2)} Quintal for the lot / register` : 'Enter bag weight to convert to quintals';
     }
 
     function recomputeRawPurchaseTotal() {
@@ -6245,6 +6661,24 @@
             date: document.getElementById('rpDate').value,
             type: 'RawPurchase',
             rawPurchase: true,
+            // Seed Processing Register fields. rawQtl normalises the entered
+            // quantity to QUINTALS regardless of the unit typed, so the lot
+            // and register totals never mix Bags and Quintals silently.
+            lotId: document.getElementById('rpLot') && document.getElementById('rpLot').value
+                ? Number(document.getElementById('rpLot').value) : null,
+            lotNo: (() => {
+                const sel = document.getElementById('rpLot');
+                if (!sel || !sel.value) return '';
+                const l = seedLots.find(x => x.id == sel.value);
+                return l ? l.lotNo : '';
+            })(),
+            moisturePct: (() => {
+                const el = document.getElementById('rpMoisture');
+                const v = el ? parseFloat(el.value) : NaN;
+                return isFinite(v) ? v : null;
+            })(),
+            rawQtl: rpQuintals(),
+            rawUnitEntered: purchaseUnit,
             taxType: taxType,
             rateMode: mode,
             subLedger: '',
@@ -6378,6 +6812,23 @@
             date: document.getElementById('cvDate').value,
             type: 'Conversion',
             conversion: true,
+            // Links this processing run to a lot, so the register can trace
+            // raw seed through to cleaned seed for each grower in that lot.
+            lotId: (() => {
+                const s = document.getElementById('cvLot');
+                return (s && s.value) ? Number(s.value) : null;
+            })(),
+            lotNo: (() => {
+                const s = document.getElementById('cvLot');
+                if (!s || !s.value) return '';
+                const l = seedLots.find(x => x.id == s.value);
+                return l ? l.lotNo : '';
+            })(),
+            cleanedQtl: (() => {
+                const el = document.getElementById('cvCleanedQtl');
+                const v = el ? parseFloat(el.value) : NaN;
+                return isFinite(v) ? v : 0;
+            })(),
             rawItemId: rawItem.id,
             rawItemName: rawItem.name,
             rawUom: rawItem.uom,

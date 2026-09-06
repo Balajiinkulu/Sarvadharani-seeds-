@@ -251,6 +251,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="dash-menu-item" onclick="openGroup('groupMasters')">Masters</div>
             <div class="dash-menu-item" onclick="openGroup('groupTransactions')">Transactions</div>
             <div class="dash-menu-item" onclick="openGroup('groupReports')">Reports</div>
+            <div class="dash-menu-item" onclick="openGroup('groupSeedProcessing')">Seed Processing</div>
             <div class="dash-menu-item" onclick="openPanel('panelInvoices')">Invoices</div>
             <div class="dash-menu-item" onclick="openPanel('panelLedger')">Ledger</div>
             <div class="dash-menu-item" onclick="openGroup('groupSettings')">Admin</div>
@@ -478,6 +479,43 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     </div>
 
     <!-- SUB-MENU: REPORTS -->
+    <!-- Seed Processing: everything from raw seed intake through drying and
+         processing to the SSCA register lives here, rather than being spread
+         across Transactions and Reports. -->
+    <div class="submenu" id="groupSeedProcessing">
+        <div class="panel-head"><h3>Seed Processing</h3><button class="back-btn" onclick="backToGroups()">&#8592; Back</button></div>
+        <div class="tile-grid">
+            <div class="tile" onclick="openPanel('panelSeedLots')">
+                <div class="tile-name">Seed Lots</div>
+                <div class="tile-sub">Create &amp; track lots by variety</div>
+            </div>
+            <div class="tile" onclick="openPanel('panelRawPurchase')">
+                <div class="tile-name">Raw Purchase Entry</div>
+                <div class="tile-sub">Buy raw seed, assign to a lot</div>
+            </div>
+            <div class="tile" onclick="openPanel('panelDrying')">
+                <div class="tile-name">Drying Entry</div>
+                <div class="tile-sub">Record drying loss per lot</div>
+            </div>
+            <div class="tile" onclick="openPanel('panelConversion')">
+                <div class="tile-name">Processing Entry</div>
+                <div class="tile-sub">Raw seed &rarr; cleaned seed &amp; bags</div>
+            </div>
+            <div class="tile" onclick="openPanel('panelProcessingRegister')">
+                <div class="tile-name">Seed Processing Register</div>
+                <div class="tile-sub">SSCA Register-I, one row per grower</div>
+            </div>
+            <div class="tile" onclick="openPanel('panelRawPurchaseReport')">
+                <div class="tile-name">Raw Purchase Report</div>
+                <div class="tile-sub">Raw seed bought, by variety &amp; period</div>
+            </div>
+            <div class="tile" onclick="openPanel('panelProcessedReport')">
+                <div class="tile-name">Processed Report</div>
+                <div class="tile-sub">Raw &rarr; Bags conversion history</div>
+            </div>
+        </div>
+    </div>
+
     <div class="submenu" id="groupReports">
         <div class="panel-head"><h3>Reports</h3><button class="back-btn" onclick="backToGroups()">&#8592; Back</button></div>
         <div class="tile-grid">
@@ -1502,6 +1540,176 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         </div>
     </div>
 
+    <!-- Seed Lots master -->
+    <div class="panel" id="panelSeedLots">
+        <div class="panel-head"><h3>Seed Lots</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+            A lot groups raw seed of one variety bought from several growers. Drying and processing happen per lot.
+        </div>
+        <form id="seedLotForm" onsubmit="return saveSeedLot(event)">
+            <div class="form-grid">
+                <div class="col-2">
+                    <label>Lot No.</label>
+                    <input type="text" id="slLotNo" placeholder="e.g. LOT/26-27/001" required>
+                </div>
+                <div class="col-2">
+                    <label>Crop / Variety</label>
+                    <input type="text" id="slVariety" placeholder="e.g. Paddy MTU-1010" required>
+                </div>
+                <div class="col-2">
+                    <label>Class of Seed</label>
+                    <select id="slClass">
+                        <option value="Truthfully Labelled" selected>Truthfully Labelled</option>
+                        <option value="Certified">Certified</option>
+                        <option value="Foundation">Foundation</option>
+                        <option value="Breeder">Breeder</option>
+                    </select>
+                </div>
+                <div class="col-2">
+                    <label>Date Opened</label>
+                    <input type="date" id="slDate" required>
+                </div>
+                <div class="col-2">
+                    <label>Seed Producing Co. / Organizer <span style="font-weight:400; color:var(--text-muted); font-size:0.75rem;">(optional)</span></label>
+                    <input type="text" id="slProducer" placeholder="Licence no. / validity / organizer">
+                </div>
+            </div>
+            <button type="submit" id="slSubmitBtn">Save Lot</button>
+            <button type="button" class="btn-inline" id="slCancelBtn" style="display:none;" onclick="cancelSeedLotEdit()">Cancel Edit</button>
+        </form>
+        <div class="table-responsive" style="margin-top:18px;">
+            <table>
+                <thead><tr><th>Lot No.</th><th>Variety</th><th>Class</th><th>Status</th><th>Raw Qty</th><th>Action</th></tr></thead>
+                <tbody id="seedLotsBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Drying entry: per lot, not per purchase -->
+    <div class="panel" id="panelDrying">
+        <div class="panel-head"><h3>Drying Entry</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">
+            Records moisture loss for a whole lot. A lot can be dried in more than one batch &mdash; add an entry for each.
+        </div>
+        <form id="dryingForm" onsubmit="return saveDrying(event)">
+            <div class="form-grid">
+                <div class="col-2">
+                    <label>Lot</label>
+                    <select id="dryLot" onchange="onDryLotChange()" required>
+                        <option value="">-- Select Lot --</option>
+                    </select>
+                </div>
+                <div class="col-2">
+                    <label>Date In</label>
+                    <input type="date" id="dryDateIn" required>
+                </div>
+                <div class="col-2">
+                    <label>Date Out</label>
+                    <input type="date" id="dryDateOut">
+                </div>
+                <div class="col-2">
+                    <label>Quantity In (Qtl)</label>
+                    <input type="number" id="dryQtyIn" min="0" step="any" placeholder="0" required>
+                </div>
+                <div class="col-2">
+                    <label>Quantity Out (Qtl)</label>
+                    <input type="number" id="dryQtyOut" min="0" step="any" placeholder="0" oninput="updateDryingLoss()" required>
+                </div>
+                <div class="col-2">
+                    <label>Moisture % Before</label>
+                    <input type="number" id="dryMoistIn" min="0" max="100" step="0.1" placeholder="e.g. 14.5">
+                </div>
+                <div class="col-2">
+                    <label>Moisture % After</label>
+                    <input type="number" id="dryMoistOut" min="0" max="100" step="0.1" placeholder="e.g. 12.0">
+                </div>
+                <div class="col-2" style="background:var(--bg-input); padding:12px 14px; border-radius:16px;">
+                    <span style="font-size:0.8rem; color:var(--text-muted);">Drying Loss:</span>
+                    <span id="dryLossDisplay" style="font-weight:bold; font-size:1.05rem; color:var(--warning); margin-left:6px;">0.00 Qtl</span>
+                </div>
+                <div class="col-2">
+                    <label>Notes (Optional)</label>
+                    <input type="text" id="dryNotes" placeholder="e.g. sun dried 3 days">
+                </div>
+            </div>
+            <button type="submit">Save Drying Entry</button>
+        </form>
+        <div class="table-responsive" style="margin-top:18px;">
+            <table>
+                <thead><tr><th>Date</th><th>Lot</th><th>Qty In</th><th>Qty Out</th><th>Loss</th><th>Moisture</th><th>Action</th></tr></thead>
+                <tbody id="dryingBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- SSCA Seed Processing Register-I. One row per grower purchase,
+         sharing the lot number, as the proforma expects. Lab/certification
+         columns are captured per lot in the Lot record; everything else is
+         derived from vouchers already posted. -->
+    <div class="panel" id="panelProcessingRegister">
+        <div class="panel-head"><h3>Seed Processing Register</h3><button class="back-btn no-print" onclick="closePanel()">&#8592; Back</button></div>
+        <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:14px;">
+            <div style="flex:1; min-width:150px;">
+                <label>Period</label>
+                <select id="prPeriod" onchange="onPrPeriodChange()">
+                    <option value="thisMonth">This Month</option>
+                    <option value="lastMonth">Last Month</option>
+                    <option value="thisYear">This Year</option>
+                    <option value="all" selected>All Time</option>
+                    <option value="custom">Custom...</option>
+                </select>
+            </div>
+            <div id="prCustomWrap" style="display:none; flex:2; min-width:220px;">
+                <label>From &ndash; To</label>
+                <div style="display:flex; gap:6px;">
+                    <input type="date" id="prFrom" onchange="renderProcessingRegister()">
+                    <input type="date" id="prTo" onchange="renderProcessingRegister()">
+                </div>
+            </div>
+            <div style="flex:1; min-width:150px;">
+                <label>Lot</label>
+                <select id="prLot" onchange="renderProcessingRegister()">
+                    <option value="">All Lots</option>
+                </select>
+            </div>
+            <button onclick="printAllRows('prPrintArea','Seed Processing Register','processingRegister',renderProcessingRegister)" class="btn-success print-only-desktop" style="width:auto; padding:9px 14px; font-size:0.8rem;">Save as PDF</button>
+        </div>
+        <div id="prPrintArea">
+            <div style="text-align:center; margin-bottom:10px;">
+                <div style="font-weight:700; font-size:1rem;">SEED PROCESSING REGISTER-I</div>
+                <div style="font-size:0.78rem; color:var(--text-muted);">Sarvadharani Seeds &middot; <span id="prPeriodLabel"></span></div>
+            </div>
+            <div class="table-responsive">
+                <table style="font-size:0.72rem;">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Date</th>
+                            <th>Grower Name &amp; Address</th>
+                            <th>Crop / Variety</th>
+                            <th>Lot No.</th>
+                            <th>Class of Seed</th>
+                            <th>Raw Seed Received (Qtl)</th>
+                            <th>Moisture %</th>
+                            <th>Drying Loss (Qtl)</th>
+                            <th>Cleaned Seed Realised (Qtl)</th>
+                            <th>Processing Loss (Qtl)</th>
+                            <th>Total (Qtl)</th>
+                            <th>Bags</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prBody"></tbody>
+                    <tfoot id="prFoot"></tfoot>
+                </table>
+            </div>
+            <div style="margin-top:26px; display:flex; justify-content:space-between; font-size:0.78rem;">
+                <div>Signature of Seed Processing Plant in charge</div>
+                <div>Date: ____________</div>
+            </div>
+        </div>
+        <div class="no-print" data-page-controls="processingRegister" data-page-anchor="processingRegister"></div>
+    </div>
+
     <!-- GST Reports hub — two tiles: the full return, and a per-item
          lookup. A panel (not a .submenu), opened the same way any other
          report is, so it fits the existing Back-navigation without needing
@@ -1836,6 +2044,14 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <option value="Bags">Bags</option>
                 </select>
             </div>
+            <!-- Only shown for Bags. The register and all lot totals work in
+                 quintals, and there's no universal bag weight to assume, so
+                 it's asked for rather than guessed. -->
+            <div id="rpBagWtWrap" style="display:none;">
+                <label>Weight per Bag (Kg)</label>
+                <input type="number" id="rpBagWt" min="0" step="any" placeholder="e.g. 50" oninput="updateRpQtlPreview()">
+                <div id="rpQtlPreview" style="font-size:0.74rem; color:var(--text-muted); margin-top:4px;"></div>
+            </div>
             <div>
                 <label id="rpRateLabel">Rate / Quintal (&#8377; Incl. GST)</label>
                 <input type="number" id="rpRate" min="0" step="any" placeholder="0.00" required>
@@ -1854,7 +2070,24 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
             <div class="col-2">
                 <label>Narration (Optional)</label>
-                <input type="text" id="rpNarration" placeholder="e.g. Moisture 12%, Grade A">
+                <input type="text" id="rpNarration" placeholder="e.g. Grade A">
+            </div>
+            <!-- Seed Processing Register fields. Moisture is captured at
+                 purchase (per grower), and the lot groups several growers'
+                 seed of the same variety — which is how drying and
+                 processing actually happen. -->
+            <div class="col-2">
+                <label>Moisture % at purchase</label>
+                <input type="number" id="rpMoisture" min="0" max="100" step="0.1" placeholder="e.g. 14.5">
+            </div>
+            <div class="col-2">
+                <label>Lot No. <span style="font-weight:400; color:var(--text-muted); font-size:0.75rem;">(groups growers by variety)</span></label>
+                <div style="display:flex; gap:6px;">
+                    <select id="rpLot" style="flex:1;">
+                        <option value="">-- No lot --</option>
+                    </select>
+                    <button type="button" class="btn-inline" style="width:auto; padding:8px 12px; font-size:0.78rem;" onclick="openNewLotPrompt()">+ New</button>
+                </div>
             </div>
             <button type="submit" class="btn-success col-2">Post Raw Purchase</button>
         </form>
@@ -1900,6 +2133,17 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div>
                 <label>Quantity Produced (output)</label>
                 <input type="number" id="cvOutQty" min="0" step="any" placeholder="0" required>
+            </div>
+            <div>
+                <label>Lot <span style="font-weight:400; color:var(--text-muted); font-size:0.75rem;">(for the processing register)</span></label>
+                <select id="cvLot">
+                    <option value="">-- No lot --</option>
+                </select>
+            </div>
+            <div>
+                <label>Cleaned Seed Realised (Qtl)</label>
+                <input type="number" id="cvCleanedQtl" min="0" step="any" placeholder="0">
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">Good seed after cleaning &mdash; the rest is processing loss.</div>
             </div>
             <div>
                 <label>Notes (optional)</label>
@@ -3169,6 +3413,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=83"></script>
+<script src="app.js?v=84"></script>
 </body>
 </html>
