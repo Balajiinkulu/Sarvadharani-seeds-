@@ -1102,6 +1102,176 @@
 
     function lotById(id) { return seedLots.find(l => l.id == id); }
 
+    // Maximum lot size by crop category, per Indian Minimum Seed
+    // Certification Standards. Exceeding the cap means the output legally
+    // has to be split into a separate lot number, so the app tracks it
+    // rather than leaving it to be discovered at inspection.
+    const LOT_MAX_KG = { LARGE: 20000, SMALL: 10000, MAIZE: 40000 };
+
+    function lotMaxQtl(lot) {
+        if (!lot) return null;
+        if (lot.cropCat === 'CUSTOM') {
+            const kg = Number(lot.customMaxKg) || 0;
+            return kg > 0 ? kg / 100 : null;
+        }
+        // An unrecognised category must not mean "unlimited" — a lot size
+        // cap is a certification requirement, so fall back to the strictest
+        // common standard rather than silently enforcing nothing.
+        const kg = LOT_MAX_KG[lot.cropCat] || LOT_MAX_KG.LARGE;
+        return kg / 100;
+    }
+
+    // How full a lot is, in quintals, plus a status the UI can colour by.
+    function lotCapacity(lotId) {
+        const lot = lotById(lotId);
+        const maxQtl = lotMaxQtl(lot);
+        const used = lotRawQty(lotId);
+        if (maxQtl == null) return { used, maxQtl: null, pct: null, state: 'none' };
+        const pct = (used / maxQtl) * 100;
+        const state = pct > 100 ? 'over' : (pct >= 90 ? 'near' : 'ok');
+        return { used, maxQtl, pct, state, remaining: maxQtl - used };
+    }
+
+    // Lot number: SDS/<VARIETY>/<MM-YYYY>/<NNN>
+    // The running number is per VARIETY and keeps climbing \u2014 it does not
+    // restart each month. Only the month/year part changes, so a lot opened
+    // in September after two August lots reads .../09-2026/003.
+    // Words that describe the RAW material, not the variety. The lot number
+    // ends up printed on the finished seed bag, so "DHARANI-RAW" would be
+    // wrong there — the bag holds cleaned seed, not raw. Stripped
+    // automatically, and the code stays editable for anything unusual.
+    const LOT_CODE_STRIP = /\b(RAW|UNPROCESSED|UNCLEANED|PADDY|SEED|SEEDS)\b/g;
+
+    function varietyCode(variety) {
+        let s = String(variety || '')
+            .toUpperCase()
+            .replace(/[^A-Z0-9\s-]/g, '')   // drop punctuation the number can't carry
+            .replace(LOT_CODE_STRIP, ' ')
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        // If stripping removed everything (variety was literally "Raw Seed"),
+        // fall back to the original so the number is never blank.
+        if (!s) {
+            s = String(variety || '').toUpperCase()
+                .replace(/[^A-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+        }
+        return s;
+    }
+
+    function nextLotNumberFor(variety, dateStr) {
+        const code = varietyCode(variety);
+        if (!code) return '';
+        // An unparseable date used to yield "NaN-NaN" in the middle of the
+        // lot number — which then gets printed on the bags. Fall back to
+        // today rather than produce a corrupt identifier.
+        let d = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+        if (isNaN(d.getTime())) d = new Date();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        // Count every lot of this variety, whatever month it was opened in,
+        // and continue from the highest number actually used \u2014 counting
+        // lots would repeat a number if an earlier lot were ever deleted.
+        let highest = 0;
+        seedLots.forEach(l => {
+            if (varietyCode(l.variety) !== code) return;
+            const m = String(l.lotNo || '').match(/\/(\d+)\s*$/);
+            if (m) highest = Math.max(highest, parseInt(m[1], 10));
+        });
+        const seq = String(highest + 1).padStart(3, '0');
+        return `SDS/${code}/${mm}-${yyyy}/${seq}`;
+    }
+
+    // Fills the lot-number box as the variety/date are typed, unless the
+    // person has edited it by hand \u2014 then their value is left alone.
+    let slLotNoManual = false;
+    function onSlLotNoInput() { slLotNoManual = true; updateLotPreview(); }
+
+    function autoFillLotNo() {
+        const variety = document.getElementById('slVariety').value;
+        const date = document.getElementById('slDate').value;
+        const box = document.getElementById('slLotNo');
+        if (!slLotNoManual && box && variety) box.value = nextLotNumberFor(variety, date);
+        updateLotPreview();
+    }
+
+    // Shows exactly what will be printed on the bag, and says so when a
+    // raw-material word has been dropped — otherwise the difference between
+    // what was typed and what prints would be invisible until the bags are
+    // already labelled.
+    function updateLotPreview() {
+        const wrap = document.getElementById('slLotPreview');
+        const box = document.getElementById('slLotNo');
+        if (!wrap || !box) return;
+        const val = box.value.trim();
+        if (!val) { wrap.style.display = 'none'; return; }
+        document.getElementById('slLotPreviewText').innerText = val;
+        const variety = document.getElementById('slVariety').value.trim();
+        const code = varietyCode(variety);
+        const typedCode = String(variety).toUpperCase()
+            .replace(/[^A-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+        const note = document.getElementById('slLotPreviewNote');
+        note.innerText = (code && typedCode && code !== typedCode)
+            ? `"${variety}" shortened to "${code}" \u2014 a finished seed bag shouldn't carry raw-material wording.`
+            : '';
+        wrap.style.display = 'block';
+    }
+
+    // Splitting a full lot: carries over variety, crop category and class,
+    // and pre-fills the next number in that variety's sequence, so only the
+    // purchase has to be re-pointed at the new lot.
+    function splitLot(fromLotId) {
+        const src = lotById(fromLotId);
+        if (!src) return;
+        openPanel('panelSeedLots');
+        cancelSeedLotEdit();
+        slLotNoManual = false;
+        document.getElementById('slVariety').value = src.variety;
+        document.getElementById('slCropCat').value = src.cropCat || 'LARGE';
+        document.getElementById('slCustomMax').value = src.customMaxKg || '';
+        document.getElementById('slClass').value = src.seedClass || 'Truthfully Labelled';
+        document.getElementById('slProducer').value = src.producer || '';
+        onSlCropCatChange();
+        document.getElementById('slDate').value = todayKey();
+        autoFillLotNo();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        alert(`New lot ready for ${src.variety}, continuing from ${src.lotNo}.\n\n`
+            + `Check the details and press Save Lot, then point the next purchase at it.`);
+    }
+
+    function onSlCropCatChange() {
+        const v = document.getElementById('slCropCat').value;
+        document.getElementById('slCustomMaxWrap').style.display = (v === 'CUSTOM') ? '' : 'none';
+    }
+
+    // Shown live under the lot picker on Raw Purchase, so the person sees
+    // the lot filling up while entering rather than after saving.
+    function updateRpLotCapacity() {
+        const el = document.getElementById('rpLotCapacity');
+        if (!el) return;
+        const sel = document.getElementById('rpLot');
+        if (!sel || !sel.value) { el.innerText = ''; return; }
+        const cap = lotCapacity(sel.value);
+        if (cap.maxQtl == null) { el.innerText = ''; return; }
+        const adding = rpQuintals();
+        const after = cap.used + adding;
+        const afterPct = (after / cap.maxQtl) * 100;
+        const kg = q => (q * 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+        if (afterPct > 100) {
+            el.innerHTML = `<span style="color:var(--danger); font-weight:600;">Over lot limit:</span> `
+                + `${kg(after)} kg of ${kg(cap.maxQtl)} kg max. `
+                + `Only ${kg(Math.max(0, cap.remaining))} kg can still go in this lot \u2014 split the rest into a new lot.`;
+        } else if (afterPct >= 90) {
+            el.innerHTML = `<span style="color:var(--warning); font-weight:600;">Nearly full:</span> `
+                + `${kg(after)} kg of ${kg(cap.maxQtl)} kg max (${afterPct.toFixed(0)}%).`;
+        } else {
+            el.innerHTML = `<span style="color:var(--text-muted);">Lot holds ${kg(cap.used)} kg`
+                + `${adding > 0 ? ` \u2192 ${kg(after)} kg` : ''} of ${kg(cap.maxQtl)} kg max.</span>`;
+        }
+    }
+
+
+
     // Raw seed booked into a lot, from the grower purchases assigned to it.
     // Always in quintals: purchases may be entered in Kg or Bags, so they're
     // normalised here rather than trusting whatever unit was typed.
@@ -1170,6 +1340,11 @@
         const payload = {
             lotNo: lotNo,
             variety: variety,
+            cropCat: document.getElementById('slCropCat').value,
+            customMaxKg: (() => {
+                const v = parseFloat(document.getElementById('slCustomMax').value);
+                return isFinite(v) && v > 0 ? v : null;
+            })(),
             seedClass: document.getElementById('slClass').value,
             date: document.getElementById('slDate').value,
             producer: document.getElementById('slProducer').value.trim()
@@ -1193,6 +1368,9 @@
         editingSeedLotId = id;
         document.getElementById('slLotNo').value = l.lotNo;
         document.getElementById('slVariety').value = l.variety;
+        document.getElementById('slCropCat').value = l.cropCat || 'LARGE';
+        document.getElementById('slCustomMax').value = l.customMaxKg || '';
+        onSlCropCatChange();
         document.getElementById('slClass').value = l.seedClass || 'Truthfully Labelled';
         document.getElementById('slDate').value = l.date || '';
         document.getElementById('slProducer').value = l.producer || '';
@@ -1203,6 +1381,7 @@
 
     function cancelSeedLotEdit() {
         editingSeedLotId = null;
+        slLotNoManual = false;
         document.getElementById('seedLotForm').reset();
         document.getElementById('slDate').value = todayKey();
         document.getElementById('slSubmitBtn').innerText = 'Save Lot';
@@ -1244,7 +1423,7 @@
         const body = document.getElementById('seedLotsBody');
         if (!body) return;
         if (seedLots.length === 0) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No lots yet. Create one above.</td></tr>';
+            body.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No lots yet. Create one above.</td></tr>';
             return;
         }
         body.innerHTML = [...seedLots]
@@ -1257,7 +1436,20 @@
                     <td>${escapeHtml(l.seedClass || '')}</td>
                     <td><span class="ledger-type-badge">${st}</span></td>
                     <td style="font-family:'JetBrains Mono',monospace;">${lotRawQty(l.id).toFixed(2)} Qtl</td>
+                    <td>${(() => {
+                        const cap = lotCapacity(l.id);
+                        if (cap.maxQtl == null) return '<span style="color:var(--text-muted);">\u2014</span>';
+                        const colour = cap.state === 'over' ? 'var(--danger)'
+                                     : cap.state === 'near' ? 'var(--warning)' : 'var(--success)';
+                        const kg = q => (q * 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+                        return `<div style="font-size:0.72rem; font-family:'JetBrains Mono',monospace; color:${colour}; font-weight:600;">`
+                             + `${kg(cap.used)} / ${kg(cap.maxQtl)} kg</div>`
+                             + `<div style="height:4px; background:var(--bg-hover); border-radius:2px; margin-top:3px; overflow:hidden;">`
+                             + `<div style="height:100%; width:${Math.min(100, cap.pct).toFixed(0)}%; background:${colour};"></div></div>`
+                             + (cap.state === 'over' ? '<div style="font-size:0.64rem; color:var(--danger); margin-top:2px;">Over limit \u2014 split into a new lot</div>' : '');
+                    })()}</td>
                     <td style="display:flex; gap:6px;">
+                        <button onclick="splitLot(${l.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;" title="Start the next lot for this variety">Split</button>
                         <button onclick="editSeedLot(${l.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Edit</button>
                         <button onclick="deleteSeedLot(${l.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button>
                     </td>
@@ -5091,14 +5283,6 @@
         const qty = parseFloat(document.getElementById('editAddItemQty').value);
         const rate = parseFloat(document.getElementById('editAddItemRate').value);
         if (isNaN(qty) || qty <= 0) return alert("Enter a valid quantity.");
-        // A lot total in quintals can't be built from bags without knowing
-        // what a bag weighs — better to stop here than record a lot figure
-        // of zero that quietly corrupts the register.
-        if (document.getElementById('rpUnit').value === 'Bags'
-            && document.getElementById('rpLot') && document.getElementById('rpLot').value
-            && rpQuintals() <= 0) {
-            return alert("Enter the weight per bag \u2014 it's needed to convert this purchase to quintals for the lot and the processing register.");
-        }
         if (isNaN(rate) || rate < 0) return alert("Enter a valid rate.");
         const item = stockItems.find(s => s.id == itemId);
         if (!item) return;
@@ -6733,6 +6917,7 @@
     }
 
     function updateRpQtlPreview() {
+        updateRpLotCapacity();
         const el = document.getElementById('rpQtlPreview');
         if (!el) return;
         const unit = document.getElementById('rpUnit').value;
@@ -6757,13 +6942,45 @@
     document.getElementById('rpRate').addEventListener('input', recomputeRawPurchaseTotal);
     document.getElementById('rpTaxType').addEventListener('change', recomputeRawPurchaseTotal);
 
-    document.getElementById('rawPurchaseForm').addEventListener('submit', (e) => {
+    document.getElementById('rawPurchaseForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!isAdmin() && !hasPermission('postVouchers')) return alert("Only an admin, or a user with 'Post new vouchers' turned on, can post a voucher.");
         const partyId = document.getElementById('rpParty').value;
         const itemId = document.getElementById('rpItem').value;
         const qty = parseFloat(document.getElementById('rpQty').value);
         const rate = parseFloat(document.getElementById('rpRate').value);
+        const rpLotSel = document.getElementById('rpLot');
+        const chosenLotId = rpLotSel ? rpLotSel.value : '';
+        // A lot total in quintals can't be built from bags without knowing
+        // what a bag weighs — better to stop than record a zero that would
+        // quietly corrupt the lot and the register.
+        if (document.getElementById('rpUnit').value === 'Bags' && chosenLotId && rpQuintals() <= 0) {
+            return alert("Enter the weight per bag \u2014 it's needed to convert this purchase to quintals for the lot and the processing register.");
+        }
+        // Seed certification caps lot size; going over means the seed must
+        // legally be split into a separate lot number. Warned rather than
+        // hard blocked, since historical entries sometimes have to be
+        // recorded as they actually happened — but it can't pass unnoticed.
+        if (chosenLotId) {
+            const cap = lotCapacity(chosenLotId);
+            if (cap.maxQtl != null) {
+                const after = cap.used + rpQuintals();
+                if (after > cap.maxQtl + 0.0001) {
+                    const kgFmt = q => (q * 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+                    const lotObj = lotById(chosenLotId);
+                    const proceed = await confirmAsync(
+                        `This would put lot ${lotObj ? lotObj.lotNo : ''} over its certification limit.\n\n`
+                        + `Already in lot: ${kgFmt(cap.used)} kg\n`
+                        + `This purchase: ${kgFmt(rpQuintals())} kg\n`
+                        + `Total would be: ${kgFmt(after)} kg\n`
+                        + `Maximum allowed: ${kgFmt(cap.maxQtl)} kg\n\n`
+                        + `Seed above the limit has to go into a new lot number for certification. Save anyway?`,
+                        { danger: false, okText: 'Save anyway' });
+                    if (!proceed) return;
+                }
+            }
+        }
+
         const purchaseUnit = document.getElementById('rpUnit').value; // 'Quintal' or 'Bags' — as entered this purchase, no conversion applied
         if (!partyId) return alert("Please choose a vendor.");
         if (!itemId) return alert("Please select the raw item being purchased.");

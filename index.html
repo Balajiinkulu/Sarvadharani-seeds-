@@ -1550,11 +1550,35 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="form-grid">
                 <div class="col-2">
                     <label>Lot No.</label>
-                    <input type="text" id="slLotNo" placeholder="e.g. LOT/26-27/001" required>
+                    <input type="text" id="slLotNo" placeholder="fills automatically" oninput="onSlLotNoInput()" required>
+                    <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">
+                        Format: SDS / variety / month-year / number. Fills itself from the variety and date &mdash; edit if you need something different.
+                    </div>
+                    <div id="slLotPreview" style="display:none; margin-top:8px; padding:8px 10px; background:var(--bg-input); border-radius:8px;">
+                        <div style="font-size:0.64rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted);">Prints on the bag as</div>
+                        <div id="slLotPreviewText" style="font-family:'JetBrains Mono',monospace; font-weight:700; font-size:0.92rem; margin-top:2px;"></div>
+                        <div id="slLotPreviewNote" style="font-size:0.68rem; color:var(--text-muted); margin-top:3px;"></div>
+                    </div>
                 </div>
                 <div class="col-2">
                     <label>Crop / Variety</label>
-                    <input type="text" id="slVariety" placeholder="e.g. Paddy MTU-1010" required>
+                    <input type="text" id="slVariety" placeholder="e.g. MTU-1010" oninput="autoFillLotNo()" required>
+                </div>
+                <!-- Lot size is capped by seed certification standards, so
+                     the crop category is captured and the ceiling derived
+                     from it rather than left to memory. -->
+                <div class="col-2">
+                    <label>Crop Category <span style="font-weight:400; color:var(--text-muted); font-size:0.75rem;">(sets the lot size limit)</span></label>
+                    <select id="slCropCat" onchange="onSlCropCatChange()">
+                        <option value="LARGE" selected>Large / Medium &mdash; wheat, paddy, pulses (max 20,000 kg)</option>
+                        <option value="SMALL">Small seed &mdash; vegetables, small oilseeds (max 10,000 kg)</option>
+                        <option value="MAIZE">Maize (max 40,000 kg)</option>
+                        <option value="CUSTOM">Custom limit...</option>
+                    </select>
+                </div>
+                <div class="col-2" id="slCustomMaxWrap" style="display:none;">
+                    <label>Custom Max Lot Size (Kg)</label>
+                    <input type="number" id="slCustomMax" min="0" step="any" placeholder="e.g. 5000">
                 </div>
                 <div class="col-2">
                     <label>Class of Seed</label>
@@ -1567,7 +1591,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </div>
                 <div class="col-2">
                     <label>Date Opened</label>
-                    <input type="date" id="slDate" required>
+                    <input type="date" id="slDate" onchange="autoFillLotNo()" required>
                 </div>
                 <div class="col-2">
                     <label>Seed Producing Co. / Organizer <span style="font-weight:400; color:var(--text-muted); font-size:0.75rem;">(optional)</span></label>
@@ -1579,7 +1603,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         </form>
         <div class="table-responsive" style="margin-top:18px;">
             <table>
-                <thead><tr><th>Lot No.</th><th>Variety</th><th>Class</th><th>Status</th><th>Raw Qty</th><th>Action</th></tr></thead>
+                <thead><tr><th>Lot No.</th><th>Variety</th><th>Class</th><th>Status</th><th>Raw Qty</th><th>Lot Capacity</th><th>Action</th></tr></thead>
                 <tbody id="seedLotsBody"></tbody>
             </table>
         </div>
@@ -2043,7 +2067,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
             <div>
                 <label>Quantity</label>
-                <input type="number" id="rpQty" min="0" step="any" placeholder="0" required>
+                <input type="number" id="rpQty" min="0" step="any" placeholder="0" oninput="updateRpLotCapacity()" required>
             </div>
             <div>
                 <label>Unit</label>
@@ -2095,11 +2119,12 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="col-2">
                 <label>Lot No. <span style="font-weight:400; color:var(--text-muted); font-size:0.75rem;">(groups growers by variety)</span></label>
                 <div style="display:flex; gap:6px;">
-                    <select id="rpLot" style="flex:1;">
+                    <select id="rpLot" style="flex:1;" onchange="updateRpLotCapacity()">
                         <option value="">-- No lot --</option>
                     </select>
                     <button type="button" class="btn-inline" style="width:auto; padding:8px 12px; font-size:0.78rem;" onclick="openNewLotPrompt()">+ New</button>
                 </div>
+                <div id="rpLotCapacity" style="font-size:0.74rem; margin-top:5px;"></div>
             </div>
             <button type="submit" class="btn-success col-2">Post Raw Purchase</button>
         </form>
@@ -3435,6 +3460,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=87"></script>
+<script src="app.js?v=91"></script>
 </body>
 </html>
