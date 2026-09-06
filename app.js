@@ -1154,6 +1154,10 @@
 
     function saveSeedLot(e) {
         e.preventDefault();
+        if (!isAdmin() && !hasPermission('seedProcessEdit')) {
+            alert("Only an admin, or a user with 'Create / edit Seed Processing entries' turned on, can save a lot.");
+            return false;
+        }
         const lotNo = document.getElementById('slLotNo').value.trim();
         const variety = document.getElementById('slVariety').value.trim();
         if (!lotNo || !variety) return false;
@@ -1206,6 +1210,9 @@
     }
 
     async function deleteSeedLot(id) {
+        if (!isAdmin() && !hasPermission('seedProcessDelete')) {
+            return alert("Only an admin, or a user with 'Delete Seed Processing entries' turned on, can delete a lot.");
+        }
         const l = lotById(id);
         if (!l) return;
         // Deleting a lot that purchases or drying entries point at would
@@ -1365,6 +1372,10 @@
 
     function saveDrying(e) {
         e.preventDefault();
+        if (!isAdmin() && !hasPermission('seedProcessEdit')) {
+            alert("Only an admin, or a user with 'Create / edit Seed Processing entries' turned on, can save a drying entry.");
+            return false;
+        }
         const lotId = document.getElementById('dryLot').value;
         const qtyIn = parseFloat(document.getElementById('dryQtyIn').value) || 0;
         const outRaw = document.getElementById('dryQtyOut').value;
@@ -1427,6 +1438,9 @@
     }
 
     async function deleteDrying(txnId) {
+        if (!isAdmin() && !hasPermission('seedProcessDelete')) {
+            return alert("Only an admin, or a user with 'Delete Seed Processing entries' turned on, can delete a drying entry.");
+        }
         const t = transactions.find(x => x.id == txnId);
         if (!t) return;
         if (!(await confirmAsync(`Delete drying entry ${t.invNo} for lot ${t.lotNo}?`))) return;
@@ -2066,7 +2080,9 @@
         { key: 'postVouchers',   label: 'Post new vouchers (Sales, Purchase, Payment, Receipt, etc.)' },
         { key: 'viewReports',    label: 'View reports (Ledger, Sales Statement, GST Liability, etc.)' },
         { key: 'exportPrint',    label: 'Export / print (PDF, CSV, invoices)' },
-        { key: 'rawAndConversion', label: 'View/access Raw Purchase &amp; Conversion (stock processing) features and reports' }
+        { key: 'rawAndConversion', label: 'View Seed Processing (lots, drying, processing, register)' },
+        { key: 'seedProcessEdit',  label: 'Create / edit Seed Processing entries (lots, drying, processing)' },
+        { key: 'seedProcessDelete', label: 'Delete Seed Processing entries (lots, drying, processing)' }
     ];
 
     // The role object a brand-new User account starts with — every
@@ -6644,7 +6660,7 @@
     // ================================================================
     function populateRawPurchaseDropdowns() {
         const pSel = document.getElementById('rpParty');
-        let rpHtml = '<option value="">-- Choose Vendor --</option>';
+        let rpHtml = '<option value="">-- Choose Farmer / Vendor --</option>';
         parties.forEach(p => { rpHtml += `<option value="${p.id}">${escapeHtml(p.name)} (${p.type})</option>`; });
         pSel.innerHTML = rpHtml;
 

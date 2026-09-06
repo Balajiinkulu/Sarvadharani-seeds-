@@ -2022,9 +2022,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <input type="date" id="rpDate" required>
             </div>
             <div>
-                <label>Vendor</label>
+                <label>Farmer / Vendor</label>
                 <select id="rpParty" required>
-                    <option value="">-- Choose Vendor --</option>
+                    <option value="">-- Choose Farmer / Vendor --</option>
                 </select>
             </div>
             <div class="col-2">
@@ -2067,10 +2067,13 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
             <div>
                 <label>Tax Type</label>
+                <!-- Raw seed bought from farmers is not taxable, so Nil is
+                     the default rather than Intra-state. Still changeable
+                     for the occasional taxable raw purchase. -->
                 <select id="rpTaxType">
+                    <option value="EXEMPT" selected>Nil GST (no tax charged)</option>
                     <option value="INTRA">Intra-state (CGST + SGST)</option>
                     <option value="INTER">Inter-state (IGST)</option>
-                    <option value="EXEMPT">Nil GST (no tax charged)</option>
                 </select>
             </div>
             <div class="col-2" id="rpTotalWrap" style="background: var(--bg-input); padding: 12px 14px; border-radius: 16px; border:none;">
@@ -2284,7 +2287,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <th class="no-print" data-select-col="rawPurchaseReport" style="width:30px; display:none;"><input type="checkbox" data-select-all="rawPurchaseReport" onchange="toggleSelectAll('rawPurchaseReport', this.checked)"></th>
                         <th>Date</th>
                         <th>Voucher No.</th>
-                        <th>Vendor</th>
+                        <th>Farmer / Vendor</th>
                         <th>Raw Variety</th>
                         <th>Qty</th>
                         <th>Rate</th>
@@ -3432,6 +3435,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=86"></script>
+<script src="app.js?v=87"></script>
 </body>
 </html>
