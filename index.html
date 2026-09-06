@@ -1612,16 +1612,23 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <input type="number" id="dryQtyIn" min="0" step="any" placeholder="0" required>
                 </div>
                 <div class="col-2">
-                    <label>Quantity Out (Qtl)</label>
-                    <input type="number" id="dryQtyOut" min="0" step="any" placeholder="0" oninput="updateDryingLoss()" required>
-                </div>
-                <div class="col-2">
                     <label>Moisture % Before</label>
-                    <input type="number" id="dryMoistIn" min="0" max="100" step="0.1" placeholder="e.g. 14.5">
+                    <input type="number" id="dryMoistIn" min="0" max="100" step="0.1" placeholder="e.g. 14.5" oninput="updateDryingLoss()">
                 </div>
                 <div class="col-2">
                     <label>Moisture % After</label>
-                    <input type="number" id="dryMoistOut" min="0" max="100" step="0.1" placeholder="e.g. 12.0">
+                    <input type="number" id="dryMoistOut" min="0" max="100" step="0.1" placeholder="e.g. 12.0" oninput="updateDryingLoss()">
+                </div>
+                <!-- Quantity Out is deliberately NOT required: the lot often
+                     isn't re-weighed after drying. When it isn't, the weight
+                     is estimated from the moisture readings instead (dry
+                     matter stays constant while water leaves), and the entry
+                     is marked Estimated so the register never presents a
+                     calculated figure as a measured one. -->
+                <div class="col-2">
+                    <label>Quantity Out (Qtl) <span style="font-weight:400; color:var(--text-muted); font-size:0.75rem;">&mdash; leave blank if not weighed</span></label>
+                    <input type="number" id="dryQtyOut" min="0" step="any" placeholder="Not weighed" oninput="onDryQtyOutInput()">
+                    <div id="dryEstimateNote" style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;"></div>
                 </div>
                 <div class="col-2" style="background:var(--bg-input); padding:12px 14px; border-radius:16px;">
                     <span style="font-size:0.8rem; color:var(--text-muted);">Drying Loss:</span>
@@ -1695,6 +1702,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                             <th>Cleaned Seed Realised (Qtl)</th>
                             <th>Processing Loss (Qtl)</th>
                             <th>Total (Qtl)</th>
+                            <th>Packing Size</th>
                             <th>Bags</th>
                         </tr>
                     </thead>
@@ -2049,7 +2057,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                  it's asked for rather than guessed. -->
             <div id="rpBagWtWrap" style="display:none;">
                 <label>Weight per Bag (Kg)</label>
-                <input type="number" id="rpBagWt" min="0" step="any" placeholder="e.g. 50" oninput="updateRpQtlPreview()">
+                <input type="number" id="rpBagWt" min="0" step="any" value="50" oninput="updateRpQtlPreview()">
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">Standard sack is 50 kg &mdash; change if this lot differs.</div>
                 <div id="rpQtlPreview" style="font-size:0.74rem; color:var(--text-muted); margin-top:4px;"></div>
             </div>
             <div>
@@ -2132,7 +2141,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
             <div>
                 <label>Quantity Produced (output)</label>
-                <input type="number" id="cvOutQty" min="0" step="any" placeholder="0" required>
+                <input type="number" id="cvOutQty" min="0" step="any" placeholder="0" oninput="cvBagsAutoFilled = false;" required>
             </div>
             <div>
                 <label>Lot <span style="font-weight:400; color:var(--text-muted); font-size:0.75rem;">(for the processing register)</span></label>
@@ -2142,8 +2151,18 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
             <div>
                 <label>Cleaned Seed Realised (Qtl)</label>
-                <input type="number" id="cvCleanedQtl" min="0" step="any" placeholder="0">
+                <input type="number" id="cvCleanedQtl" min="0" step="any" placeholder="0" oninput="updateCvPacking()">
                 <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">Good seed after cleaning &mdash; the rest is processing loss.</div>
+            </div>
+            <!-- Output packing varies by product (6/10/20/30 kg), unlike the
+                 50 kg input sack. The register asks for BOTH the standard
+                 packing size and the resulting number of packets, so the
+                 size is captured and the count derived from it rather than
+                 typed independently and risking the two disagreeing. -->
+            <div>
+                <label>Packing Size (Kg per bag/packet)</label>
+                <input type="number" id="cvPackSize" min="0" step="any" placeholder="e.g. 10" oninput="updateCvPacking()">
+                <div id="cvPackPreview" style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;"></div>
             </div>
             <div>
                 <label>Notes (optional)</label>
@@ -3413,6 +3432,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 <!-- ===== SARVADHARANI EXTRAS (e-Way / Backup / PWA / Print sizes) ===== -->
 
 
-<script src="app.js?v=84"></script>
+<script src="app.js?v=86"></script>
 </body>
 </html>

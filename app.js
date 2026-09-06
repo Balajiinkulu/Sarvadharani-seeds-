@@ -1272,22 +1272,126 @@
         updateDryingLoss();
     }
 
+    // Weight after drying, estimated from moisture. Drying removes water,
+    // not seed, so the dry matter is unchanged:
+    //     W_in x (100 - M_in) = W_out x (100 - M_out)
+    // Returns null when it can't be worked out, rather than a misleading 0.
+    function estimateDriedWeight(qtyIn, moistIn, moistOut) {
+        if (!(qtyIn > 0)) return null;
+        if (moistIn == null || moistOut == null) return null;
+        if (!(moistIn >= 0 && moistIn < 100) || !(moistOut >= 0 && moistOut < 100)) return null;
+        if (moistOut > moistIn) return null;   // that's wetting, not drying
+        return qtyIn * (100 - moistIn) / (100 - moistOut);
+    }
+
+    // Marks the Quantity Out field as manually entered, so a later moisture
+    // tweak doesn't silently overwrite a real weighing.
+    let dryQtyOutManual = false;
+    function onDryQtyOutInput() {
+        dryQtyOutManual = !!document.getElementById('dryQtyOut').value;
+        updateDryingLoss();
+    }
+
     function updateDryingLoss() {
         const inQ = parseFloat(document.getElementById('dryQtyIn').value) || 0;
-        const outQ = parseFloat(document.getElementById('dryQtyOut').value) || 0;
-        const el = document.getElementById('dryLossDisplay');
-        if (el) el.innerText = `${Math.max(0, inQ - outQ).toFixed(2)} Qtl`;
+        const outRaw = document.getElementById('dryQtyOut').value;
+        const moistIn = parseFloat(document.getElementById('dryMoistIn').value);
+        const moistOut = parseFloat(document.getElementById('dryMoistOut').value);
+        const est = estimateDriedWeight(inQ, isFinite(moistIn) ? moistIn : null,
+                                              isFinite(moistOut) ? moistOut : null);
+        const note = document.getElementById('dryEstimateNote');
+        const lossEl = document.getElementById('dryLossDisplay');
+
+        let effectiveOut, isEstimate;
+        if (outRaw !== '' && parseFloat(outRaw) > 0) {
+            effectiveOut = parseFloat(outRaw);
+            isEstimate = false;
+        } else if (est != null) {
+            effectiveOut = est;
+            isEstimate = true;
+        } else {
+            effectiveOut = null;
+            isEstimate = false;
+        }
+
+        if (note) {
+            if (outRaw !== '' && parseFloat(outRaw) > 0) {
+                note.innerText = est != null
+                    ? `Weighed. (Moisture would suggest about ${est.toFixed(2)} Qtl.)`
+                    : 'Weighed.';
+                note.style.color = 'var(--text-muted)';
+            } else if (est != null) {
+                note.innerText = `Not weighed \u2014 estimated ${est.toFixed(2)} Qtl from the moisture readings.`;
+                note.style.color = 'var(--warning)';
+            } else {
+                note.innerText = 'Not weighed. Enter moisture before and after to estimate the weight, or type the weight.';
+                note.style.color = 'var(--text-muted)';
+            }
+        }
+        if (lossEl) {
+            lossEl.innerText = (effectiveOut == null)
+                ? '\u2014'
+                : `${Math.max(0, inQ - effectiveOut).toFixed(2)} Qtl${isEstimate ? ' (est.)' : ''}`;
+        }
+    }
+
+    // Cleaned seed (quintals) + packing size (kg) -> number of packets.
+    // Auto-filling the bag count means the two figures can't silently
+    // disagree, which they would if both were typed by hand. It only fills
+    // the field when empty or previously auto-filled, so a manual override
+    // (short-filled last bag, say) is never overwritten.
+    let cvBagsAutoFilled = true;
+    function updateCvPacking() {
+        const cleaned = parseFloat(document.getElementById('cvCleanedQtl').value) || 0;
+        const packKg = parseFloat(document.getElementById('cvPackSize').value) || 0;
+        const preview = document.getElementById('cvPackPreview');
+        const outEl = document.getElementById('cvOutQty');
+        if (cleaned <= 0 || packKg <= 0) {
+            if (preview) preview.innerText = 'Enter cleaned seed and packing size to work out the number of bags.';
+            return;
+        }
+        const bags = Math.floor((cleaned * 100) / packKg);
+        const usedKg = bags * packKg;
+        const leftoverKg = (cleaned * 100) - usedKg;
+        if (preview) {
+            preview.innerText = `${cleaned} Qtl \u00f7 ${packKg} kg = ${bags} bags`
+                + (leftoverKg > 0.004 ? ` (${leftoverKg.toFixed(2)} kg left over)` : '');
+        }
+        if (outEl && (cvBagsAutoFilled || !outEl.value)) {
+            outEl.value = bags;
+            cvBagsAutoFilled = true;
+        }
     }
 
     function saveDrying(e) {
         e.preventDefault();
         const lotId = document.getElementById('dryLot').value;
         const qtyIn = parseFloat(document.getElementById('dryQtyIn').value) || 0;
-        const qtyOut = parseFloat(document.getElementById('dryQtyOut').value) || 0;
+        const outRaw = document.getElementById('dryQtyOut').value;
+        const moistInV = parseFloat(document.getElementById('dryMoistIn').value);
+        const moistOutV = parseFloat(document.getElementById('dryMoistOut').value);
+        const moistIn = isFinite(moistInV) ? moistInV : null;
+        const moistOut = isFinite(moistOutV) ? moistOutV : null;
+
         if (!lotId) { alert('Select a lot.'); return false; }
         if (qtyIn <= 0) { alert('Enter the quantity going in to dry.'); return false; }
-        if (qtyOut <= 0) { alert('Enter the quantity that came out.'); return false; }
-        if (qtyOut > qtyIn) { alert('Quantity out cannot be more than quantity in \u2014 drying removes moisture, it cannot add weight.'); return false; }
+
+        // Weighed figure wins; otherwise fall back to the moisture estimate.
+        let qtyOut, outIsEstimate;
+        if (outRaw !== '' && parseFloat(outRaw) > 0) {
+            qtyOut = parseFloat(outRaw);
+            outIsEstimate = false;
+            if (qtyOut > qtyIn) { alert('Quantity out cannot be more than quantity in \u2014 drying removes moisture, it cannot add weight.'); return false; }
+        } else {
+            const est = estimateDriedWeight(qtyIn, moistIn, moistOut);
+            if (est == null) {
+                alert("This lot wasn't weighed after drying, so the weight can't be worked out.\n\n"
+                    + "Either enter the weight, or fill in moisture % before and after and it will be estimated from those.");
+                return false;
+            }
+            qtyOut = est;
+            outIsEstimate = true;
+        }
 
         const lot = lotById(lotId);
         transactions.push({
@@ -1301,8 +1405,11 @@
             lotNo: lot ? lot.lotNo : '',
             qtyIn: qtyIn,
             qtyOut: qtyOut,
-            moistIn: parseFloat(document.getElementById('dryMoistIn').value) || null,
-            moistOut: parseFloat(document.getElementById('dryMoistOut').value) || null,
+            // Recorded so the register can show whether this weight was
+            // actually measured or worked out from moisture.
+            outIsEstimate: outIsEstimate,
+            moistIn: moistIn,
+            moistOut: moistOut,
             notes: document.getElementById('dryNotes').value.trim(),
             // Shape-compatibility with generic transaction handling.
             partyId: null, partyName: '', items: [], taxable: 0, totalTax: 0, grandTotal: 0
@@ -1311,6 +1418,7 @@
         syncCloud();
         document.getElementById('dryingForm').reset();
         document.getElementById('dryDateIn').value = todayKey();
+        dryQtyOutManual = false;
         updateDryingLoss();
         renderDrying();
         populateLotDropdowns();
@@ -1346,7 +1454,7 @@
                 <td>${escapeHtml(t.date)}</td>
                 <td><strong>${escapeHtml(t.lotNo || '')}</strong></td>
                 <td style="font-family:'JetBrains Mono',monospace;">${(Number(t.qtyIn)||0).toFixed(2)}</td>
-                <td style="font-family:'JetBrains Mono',monospace;">${(Number(t.qtyOut)||0).toFixed(2)}</td>
+                <td style="font-family:'JetBrains Mono',monospace;">${(Number(t.qtyOut)||0).toFixed(2)}${t.outIsEstimate ? '<span style="font-size:0.62rem; color:var(--warning); margin-left:4px;">est.</span>' : ''}</td>
                 <td style="font-family:'JetBrains Mono',monospace; color:var(--warning);">${loss.toFixed(2)}</td>
                 <td style="font-size:0.78rem;">${moist}</td>
                 <td><button onclick="deleteDrying(${t.id})" class="btn-danger" style="padding:4px 10px; font-size:0.75rem;">Delete</button></td>
@@ -1394,7 +1502,7 @@
         rows.sort((a, b) => String(a.date).localeCompare(String(b.date)) || a.id - b.id);
 
         if (rows.length === 0) {
-            body.innerHTML = '<tr><td colspan="13" style="text-align:center; color:var(--text-muted);">No raw seed purchases in this period.</td></tr>';
+            body.innerHTML = '<tr><td colspan="14" style="text-align:center; color:var(--text-muted);">No raw seed purchases in this period.</td></tr>';
             document.getElementById('prFoot').innerHTML = '';
             renderPaginationControls('processingRegister', 0, renderProcessingRegister);
             return;
@@ -1414,8 +1522,11 @@
             // OWN share, apportioned by how much raw seed it contributed.
             // Without this a 5-grower lot would show the full lot loss on
             // every row and the column would total five times over.
-            let share = 0, dryLoss = 0, cleaned = 0, bags = 0;
+            let share = 0, dryLoss = 0, cleaned = 0, bags = 0, packSize = null;
             if (lot) {
+                // Packing size comes from the processing run(s) for this lot.
+                const convs = transactions.filter(x => x.conversion && x.lotId == lot.id && x.packSizeKg);
+                if (convs.length) packSize = convs[convs.length - 1].packSizeKg;
                 const lotRaw = lotRawQty(lot.id);
                 share = lotRaw > 0 ? (raw / lotRaw) : 0;
                 dryLoss = lotDryingLoss(lot.id) * share;
@@ -1445,6 +1556,7 @@
                 <td style="font-family:'JetBrains Mono',monospace;">${cleaned > 0 ? f(cleaned) : '\u2014'}</td>
                 <td style="font-family:'JetBrains Mono',monospace; color:var(--danger);">${procLoss > 0 ? f(procLoss) : '\u2014'}</td>
                 <td style="font-family:'JetBrains Mono',monospace;">${f(raw)}</td>
+                <td style="font-family:'JetBrains Mono',monospace;">${packSize ? packSize + ' kg' : '\u2014'}</td>
                 <td style="font-family:'JetBrains Mono',monospace;">${bags > 0 ? Math.round(bags) : '\u2014'}</td>
             </tr>`;
         }).join('');
@@ -1458,6 +1570,7 @@
             <td style="font-family:'JetBrains Mono',monospace;">${f(tClean)}</td>
             <td style="font-family:'JetBrains Mono',monospace;">${f(tProc)}</td>
             <td style="font-family:'JetBrains Mono',monospace;">${f(tRaw)}</td>
+            <td></td>
             <td style="font-family:'JetBrains Mono',monospace;">${Math.round(tBags)}</td>
         </tr>`;
 
@@ -6828,6 +6941,11 @@
                 const el = document.getElementById('cvCleanedQtl');
                 const v = el ? parseFloat(el.value) : NaN;
                 return isFinite(v) ? v : 0;
+            })(),
+            packSizeKg: (() => {
+                const el = document.getElementById('cvPackSize');
+                const v = el ? parseFloat(el.value) : NaN;
+                return isFinite(v) && v > 0 ? v : null;
             })(),
             rawItemId: rawItem.id,
             rawItemName: rawItem.name,
