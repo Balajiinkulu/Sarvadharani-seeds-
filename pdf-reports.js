@@ -538,6 +538,18 @@
       y += 18;
     }
 
+    /* ---- narration ---- */
+    // Was lost when the boxed layout replaced the earlier plain one. It
+    // matters on a seed invoice, where a note like "balance for 2 urea"
+    // is often the only record of what the sale actually covered.
+    if (inv.narration) {
+      var nTop = y, ny2 = nTop + 12;
+      doc.text(L + 4, ny2, 'Narration', { size: 7, gray: 0.35 }); ny2 += 11;
+      ny2 = doc.wrap(L + 4, ny2, inv.narration, W - 8, { size: 8.5, lh: 10 });
+      doc.rect(L, nTop, W, ny2 + 4 - nTop, null, 0.6);
+      y = ny2 + 4;
+    }
+
     /* ---- declaration | bank ---- */
     var dTop = y, dMid = L + W * 0.56;
     var dy = dTop + 12;

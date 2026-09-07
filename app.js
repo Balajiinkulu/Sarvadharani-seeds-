@@ -8639,7 +8639,23 @@
         // balance behaves the same for every ledger and party rather than
         // silently disappearing when there's nothing to carry forward.
         const openingCutoff = (range && range.from) ? dateToYMD(range.from) : null;
-        if (isAccount) {
+
+        // "Exclude" leaves the opening balance out of BOTH the row and the
+        // totals, so the statement shows only what moved in the period and
+        // the closing figure is the period's net movement. Leaving it out
+        // of the row but still inside the totals would give a closing
+        // balance the listed rows can't add up to.
+        const openingModeEl = document.getElementById('ledOpeningMode');
+        const includeOpening = !openingModeEl || openingModeEl.value !== 'exclude';
+        if (!includeOpening) {
+            const lbl = document.getElementById('ledgerFilterLabel');
+            if (lbl) lbl.innerText += (lbl.innerText ? ' \u2022 ' : '')
+                + 'Opening balance excluded \u2014 figures below show movement in this period only.';
+        }
+
+        if (!includeOpening) {
+            // nothing to draw or add
+        } else if (isAccount) {
             const acc = accounts.find(a => a.id == id);
             const asOf = acc.openingAsOf || '2000-01-01';
             const cutoff = openingCutoff || asOf; // no explicit period start -> just the manual base, no txns folded in
@@ -8666,7 +8682,7 @@
                     <td style="vertical-align:top;">-</td>
                 </tr>
             `);
-        } else if (!isAggregate) {
+        } else if (!isAggregate && includeOpening) {
             const party = parties.find(p => p.id == id);
             const asOf = party.openingAsOf || '2000-01-01';
             const cutoff = openingCutoff || asOf;
@@ -8860,6 +8876,12 @@
             } else {
                 lbl.innerText = isAggregate ? 'Total' : 'Closing Balance';
                 val.innerText = balanceText.replace(/^Total: /, '');
+            }
+            // With the opening balance excluded, this figure is the period's
+            // net movement rather than what's actually owed — say so, since
+            // a printed statement can't be asked what mode produced it.
+            if (!includeOpening) {
+                lbl.innerText = 'Net Movement in Period';
             }
             val.style.color = balanceColor;
         }

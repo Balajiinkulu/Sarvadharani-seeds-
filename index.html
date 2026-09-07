@@ -2889,6 +2889,18 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     </div>
                 </div>
                 <div style="flex:1.5; min-width:200px;">
+                    <label>Opening balance</label>
+                    <!-- Two genuinely different documents. "Include" is the
+                         accountant's view: opening carried in, closing shows
+                         what's actually owed. "Exclude" is the customer's
+                         view: only what moved in the period, so a balance
+                         brought forward from months ago doesn't confuse. -->
+                    <select id="ledOpeningMode" onchange="refreshLedgerView()">
+                        <option value="include" selected>Include (true closing balance)</option>
+                        <option value="exclude">Exclude (period movement only)</option>
+                    </select>
+                </div>
+                <div style="flex:1.5; min-width:200px;">
                     <label>Filter within this ledger</label>
                     <input type="text" id="ledRowFilter" placeholder="Voucher no., party, item..." oninput="refreshLedgerView()" autocomplete="off">
                 </div>
@@ -3461,7 +3473,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 
 <script src="pdf-engine.js?v=1"></script>
-<script src="pdf-reports.js?v=6"></script>
-<script src="app.js?v=97"></script>
+<script src="pdf-reports.js?v=7"></script>
+<script src="app.js?v=98"></script>
 </body>
 </html>
