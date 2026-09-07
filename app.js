@@ -8911,14 +8911,13 @@
         if (isPhoneDevice()) document.documentElement.classList.add('is-phone');
     } catch (e) { /* detection is best-effort; the JS gate still applies */ }
 
-    function canPrintHere() {
-        if (isPhoneDevice()) {
-            alert("Printing and PDF export work on a computer or tablet, not on a phone.\n\n"
-                + "Open the app on a laptop, desktop or tablet and use Save as PDF there.");
-            return false;
-        }
-        return true;
-    }
+    // Phones are allowed again. The restriction existed because the old
+    // screenshot-based export hit Safari's canvas limits and could exhaust
+    // memory badly enough for iOS to kill the app. PDFs are now written
+    // directly as text, which has none of those costs, so the gate is only
+    // kept for the legacy image path (the invoice's on-screen Print button)
+    // until that is migrated too.
+    function canPrintHere() { return true; }
 
     function isStandaloneApp() {
         return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
@@ -9292,15 +9291,113 @@
     // for the actual capture to fully finish, then restores the normal
     // paginated view \u2014 the on-screen list is never permanently changed,
     // only during the moment of export.
+    // Reads the report table that's already on screen and writes it as a
+    // real PDF. This replaces the old screenshot-to-bitmap route, so there's
+    // no canvas height limit (long reports no longer get truncated), no
+    // blank-capture problem, and the text stays selectable and sharp.
+    function extractTableForPdf(rootEl) {
+        const table = rootEl.matches && rootEl.matches('table')
+            ? rootEl : rootEl.querySelector('table');
+        if (!table) return null;
+
+        const visible = el => {
+            if (!el) return false;
+            if (el.classList && el.classList.contains('no-print')) return false;
+            return el.offsetParent !== null || el.getClientRects().length > 0;
+        };
+
+        // Header: take the LAST header row, since grouped headers (the GST
+        // tax summary, for instance) put the real column labels there.
+        const headRows = [...table.querySelectorAll('thead tr')].filter(visible);
+        const headRow = headRows.length ? headRows[headRows.length - 1] : null;
+        if (!headRow) return null;
+        const heads = [...headRow.children]
+            .filter(th => !th.classList.contains('no-print'))
+            .map(th => th.innerText.replace(/\s+/g, ' ').trim());
+
+        const bodyRows = [...table.querySelectorAll('tbody tr')]
+            .filter(visible)
+            .map(tr => [...tr.children]
+                .filter(td => !td.classList.contains('no-print'))
+                .map(td => td.innerText.replace(/\s*\n\s*/g, ' \u00b7 ').replace(/\s+/g, ' ').trim()));
+
+        const footRows = [...table.querySelectorAll('tfoot tr')]
+            .filter(visible)
+            .map(tr => [...tr.children]
+                .filter(td => !td.classList.contains('no-print'))
+                .map(td => td.innerText.replace(/\s+/g, ' ').trim()));
+
+        return { heads, bodyRows, footRows };
+    }
+
+    // Column widths from the rendered table, so the PDF keeps roughly the
+    // proportions already tuned on screen instead of dividing evenly.
+    function columnWidthsFrom(rootEl, count) {
+        const table = rootEl.matches && rootEl.matches('table') ? rootEl : rootEl.querySelector('table');
+        const headRows = table ? [...table.querySelectorAll('thead tr')] : [];
+        const headRow = headRows.length ? headRows[headRows.length - 1] : null;
+        if (!headRow) return new Array(count).fill(1);
+        const cells = [...headRow.children].filter(th => !th.classList.contains('no-print'));
+        const widths = cells.map(th => Math.max(1, th.getBoundingClientRect().width));
+        const total = widths.reduce((s, w) => s + w, 0) || 1;
+        return widths.map(w => (w / total) * count);
+    }
+
+    async function printTablePdf(elementId, title) {
+        if (!isAdmin() && !hasPermission('exportPrint')) {
+            return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
+        }
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const data = extractTableForPdf(el);
+        if (!data || !data.heads.length) {
+            // Nothing table-shaped to export — fall back rather than produce
+            // an empty file.
+            return alert('Nothing to export on this screen.');
+        }
+        const rel = columnWidthsFrom(el, data.heads.length);
+        // Right-align columns that hold money or plain numbers, matching how
+        // they read on screen.
+        const numericCol = i => data.bodyRows.length > 0 && data.bodyRows
+            .filter(r => r[i] != null && r[i] !== '' && r[i] !== '\u2014')
+            .every(r => /^[\u20B9\s\-()0-9.,%]+$/.test(r[i]));
+
+        const columns = data.heads.map((h, i) => ({
+            label: h,
+            width: rel[i] || 1,
+            align: numericCol(i) ? 'right' : 'left',
+            wrap: !numericCol(i),
+            get: r => (r[i] == null ? '' : r[i])
+        }));
+
+        const totals = [];
+        if (data.footRows.length) {
+            const f = data.footRows[data.footRows.length - 1];
+            f.forEach((v, i) => { if (v) totals.push({ colIndex: i, text: v, align: columns[i] && columns[i].align }); });
+        }
+
+        const periodEl = el.querySelector('[id$="PeriodLabel"]');
+        const bytes = SarvaDocs.buildTablePDF({
+            title: title,
+            subtitle: 'Sarvadharani Seeds' + (periodEl ? ' \u00b7 ' + periodEl.innerText.trim() : ''),
+            columns: columns,
+            rows: data.bodyRows,
+            totals: totals,
+            emptyText: 'No entries for this selection.'
+        });
+        const name = String(title || 'Report').replace(/[^\w.-]+/g, '_') + '.pdf';
+        if (SarvaPDF.supportsShare()) await SarvaPDF.share(bytes, name, title);
+        else SarvaPDF.open(bytes);
+    }
+
     async function printAllRows(elementId, title, listKey, rerenderFn) {
-        if (!canPrintHere()) return;
         const state = pageStateFor(listKey);
         const savedPage = state.page, savedSize = state.pageSize;
         state.page = 1;
         state.pageSize = 999999;
         rerenderFn();
         try {
-            await printRegion(elementId, title);
+            await printTablePdf(elementId, title);
         } finally {
             state.page = savedPage;
             state.pageSize = savedSize;

@@ -23,12 +23,14 @@
    Bump CACHE when the shell file list changes, so old entries are
    cleaned up by the activate handler below.
 */
-const CACHE = 'sarvadharani-shell-v98';
+const CACHE = 'sarvadharani-shell-v99';
 
 const SHELL = [
   './',
   './index.html',
   './app.js',
+  './pdf-engine.js',
+  './pdf-reports.js',
   './styles.css',
   './logo.png',
   './logo-mark.png',

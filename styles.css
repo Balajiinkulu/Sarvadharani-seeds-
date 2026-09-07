@@ -251,7 +251,10 @@ table td, table th {
    still guards the actual functions, but hiding the buttons means a phone
    user isn't offered something that will only decline \u2014 the class is
    applied to <html> at startup by the same detection. */
-html.is-phone .print-only-desktop { display: none !important; }
+/* Print controls are visible on phones again now that PDFs are written
+   directly rather than screenshotted. Kept as a no-op rule so the class
+   can stay on the buttons. */
+html.is-phone .print-only-desktop { }
 
 /* Ledger type badge (Party (Vendor), Account (Bank), etc.). This was a
    hardcoded dark navy background with no text colour set, so the label sat
