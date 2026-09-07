@@ -9430,33 +9430,14 @@
         }
     }
 
+    // Every remaining report button still called this screenshot-based
+    // function — Payments & Receipts, Trial Balance, Delivery Notes,
+    // Processed, Raw Purchase, Voucher Entries and the Gap Check. Rather
+    // than rewire each button, printRegion now routes to the same direct
+    // PDF writer the other reports use, so they all behave alike and none
+    // is left on the old image path.
     function printRegion(elementId, title) {
-        if (!canPrintHere()) return;
-        if (!isAdmin() && !hasPermission('exportPrint')) { alert("Only an admin, or a user with 'Export / print' turned on, can print or export."); return; }
-        const el = document.getElementById(elementId);
-        if (!el) return;
-        const prevTitle = document.title;
-        if (title) document.title = title;
-        el.classList.add('print-target');
-        document.body.classList.add('printing-region');
-        const cleanup = () => {
-            document.body.classList.remove('printing-region');
-            el.classList.remove('print-target');
-            document.title = prevTitle;
-            window.removeEventListener('afterprint', cleanup);
-        };
-        window.addEventListener('afterprint', cleanup);
-        return smartPrint(el, title || 'Report', () => {
-            window.print();
-            setTimeout(cleanup, 1000);
-        }).then(() => {
-            // Always clean up now. This used to be standalone-only, because a
-            // browser tab went through window.print() and relied on the
-            // afterprint event instead — but the PDF path runs in the
-            // browser too now, and afterprint never fires for it, which would
-            // leave print-only styling stuck on the live screen.
-            cleanup();
-        });
+        return printTablePdf(elementId, String(title || 'Report').replace(/&amp;/g, '&'));
     }
 
     function csvCell(v) {

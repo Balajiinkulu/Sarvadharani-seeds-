@@ -20,6 +20,37 @@
     return v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  // Wrapping only breaks on whitespace, so a long unbroken token — an
+  // invoice number like SDS/26-27/INV/0012 — can't wrap at all and spills
+  // into the next column. Long tokens are split at punctuation first (which
+  // reads naturally) and by character only as a last resort.
+  function breakLongTokens(str, width, size, bold) {
+    var D = global.SarvaPDF;
+    return String(str == null ? '' : str).split(/\n/).map(function (para) {
+      return para.split(/\s+/).map(function (w) {
+        if (D.widthOf(w, size, bold) <= width) return w;
+        // Prefer breaking after / - . which invoice numbers are full of.
+        var pieces = w.split(/(?<=[\/\-.])/);
+        var out = [], cur = '';
+        pieces.forEach(function (piece) {
+          // A single piece still too wide: chop it by character.
+          while (D.widthOf(piece, size, bold) > width) {
+            var cut = piece.length;
+            while (cut > 1 && D.widthOf(piece.slice(0, cut), size, bold) > width) cut--;
+            if (cur) { out.push(cur); cur = ''; }
+            out.push(piece.slice(0, cut));
+            piece = piece.slice(cut);
+          }
+          var test = cur + piece;
+          if (cur && D.widthOf(test, size, bold) > width) { out.push(cur); cur = piece; }
+          else cur = test;
+        });
+        if (cur) out.push(cur);
+        return out.join(' ');
+      }).join(' ');
+    }).join('\n');
+  }
+
   // Mirrors Doc.wrap()'s line-breaking so height measurement and drawing
   // can never disagree. Explicit newlines start a new line, as they do there.
   function countWrappedLines(str, width, size, bold) {
@@ -102,7 +133,9 @@
           lines = Math.max(lines, String(val).split('\n').length);
           return;
         }
-        lines = Math.max(lines, countWrappedLines(String(val), colX[i].w - 8, 7.5, c.bold));
+        lines = Math.max(lines,
+          countWrappedLines(breakLongTokens(String(val), colX[i].w - 8, 7.5, c.bold),
+                            colX[i].w - 8, 7.5, c.bold));
       });
       var h = Math.max(rowH, lines * 9.5 + 6);
       ensureRoom(h);
@@ -115,7 +148,8 @@
         if (c.align === 'right') cx = colX[i].x + colX[i].w - 4;
         else if (c.align === 'center') cx = colX[i].x + colX[i].w / 2;
         if (c.wrap) {
-          doc.wrap(cx, y + 10, String(val), colX[i].w - 8, { size: 7.5, align: c.align || 'left', lh: 9.5 });
+          doc.wrap(cx, y + 10, breakLongTokens(String(val), colX[i].w - 8, 7.5, c.bold),
+                   colX[i].w - 8, { size: 7.5, align: c.align || 'left', lh: 9.5 });
         } else {
           var parts = String(val).split('\n');
           parts.forEach(function (p, li) {
