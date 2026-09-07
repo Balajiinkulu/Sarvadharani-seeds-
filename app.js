@@ -9322,7 +9322,15 @@
         // boxes — are dropped entirely rather than printed as blank space
         // that pushes the real columns out of alignment.
         const SCREEN_ONLY = /^(action|actions|select|delete|edit|print)$/i;
-        const headCells = [...headRow.children].filter(th => !th.classList.contains('no-print'));
+        // A header cell hidden with display:none (Stock Summary's optional
+        // "Sold in Period" column) still exists in the DOM, but its matching
+        // body cells do not. Including it shifted every value one column to
+        // the left, so hidden headers are skipped along with screen-only ones.
+        const headCells = [...headRow.children].filter(th => {
+            if (th.classList.contains('no-print')) return false;
+            const s = getComputedStyle(th);
+            return s.display !== 'none' && s.visibility !== 'hidden';
+        });
         const keep = [];
         const heads = [];
         headCells.forEach((th, i) => {
@@ -9333,7 +9341,11 @@
         });
 
         const pick = (tr, joiner) => {
-            const cells = [...tr.children].filter(td => !td.classList.contains('no-print'));
+            const cells = [...tr.children].filter(td => {
+                if (td.classList.contains('no-print')) return false;
+                const s = getComputedStyle(td);
+                return s.display !== 'none' && s.visibility !== 'hidden';
+            });
             return keep.map(i => {
                 const td = cells[i];
                 if (!td) return '';
@@ -9356,7 +9368,11 @@
         const headRows = table ? [...table.querySelectorAll('thead tr')] : [];
         const headRow = headRows.length ? headRows[headRows.length - 1] : null;
         if (!headRow) return new Array(count).fill(1);
-        const cells = [...headRow.children].filter(th => !th.classList.contains('no-print'));
+        const cells = [...headRow.children].filter(th => {
+            if (th.classList.contains('no-print')) return false;
+            const s = getComputedStyle(th);
+            return s.display !== 'none' && s.visibility !== 'hidden';
+        });
         const SCREEN_ONLY = /^(action|actions|select|delete|edit|print)$/i;
         const widths = [];
         cells.forEach(th => {
@@ -9368,7 +9384,8 @@
         return widths.map(w => (w / total) * count);
     }
 
-    async function printTablePdf(elementId, title) {
+    async function printTablePdf(elementId, title, opts) {
+        opts = opts || {};
         if (!isAdmin() && !hasPermission('exportPrint')) {
             return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
         }
@@ -9394,6 +9411,14 @@
             wrap: !numericCol(i),
             get: r => (r[i] == null ? '' : r[i])
         }));
+
+        // Rows the caller wants appended — used for the ledger, whose
+        // Debit/Credit/Closing figures live in on-screen tiles outside the
+        // printed table, so the PDF had no totals at all and everything had
+        // to be added up by hand.
+        if (opts.appendRows && opts.appendRows.length) {
+            opts.appendRows.forEach(r => data.bodyRows.push(r));
+        }
 
         const totals = [];
         if (data.footRows.length) {
@@ -9652,7 +9677,38 @@
             const nameEl = document.getElementById('ledgerHeaderDetails');
             const title = (nameEl && nameEl.innerText.trim())
                 ? ('Ledger \u2014 ' + nameEl.innerText.trim()) : 'Ledger Statement';
-            await printTablePdf('ledgerPrintArea', title);
+
+            // Turn the on-screen summary tiles into a real totals row at the
+            // bottom of the printed table.
+            const grab = id => {
+                const el = document.getElementById(id);
+                return el ? el.innerText.trim() : '';
+            };
+            const dr = grab('ledgerTopDebit'), cr = grab('ledgerTopCredit');
+            const bal = grab('ledgerTopBalance'), balLabel = grab('ledgerTopBalanceLabel') || 'Closing Balance';
+
+            const headRow = document.querySelector('#ledgerPrintArea thead tr:last-child');
+            const heads = headRow
+                ? [...headRow.children].filter(th => !th.classList.contains('no-print'))
+                    .map(th => th.innerText.replace(/\s+/g, ' ').trim())
+                : [];
+            const appended = [];
+            if (heads.length) {
+                const findCol = re => heads.findIndex(h => re.test(h));
+                const iDr = findCol(/debit/i), iCr = findCol(/credit/i);
+                const totalRow = new Array(heads.length).fill('');
+                totalRow[heads.length > 1 ? 1 : 0] = 'TOTAL';
+                if (iDr >= 0) totalRow[iDr] = dr;
+                if (iCr >= 0) totalRow[iCr] = cr;
+                appended.push(totalRow);
+                // Put the long label in the wide Particulars column rather
+                // than the narrow Date column, where it overflowed the page.
+                const balRow = new Array(heads.length).fill('');
+                const labelCol = heads.length > 1 ? 1 : 0;
+                balRow[labelCol] = balLabel.toUpperCase() + ': ' + bal;
+                appended.push(balRow);
+            }
+            await printTablePdf('ledgerPrintArea', title, { appendRows: appended });
         } finally {
             state.page = savedPage;
             state.pageSize = savedSize;
@@ -9715,6 +9771,60 @@
 
         const isDN = !!txn.deliveryNote;
         const isSale = (txn.type === 'Sales');
+
+        // Payments and Receipts have no line items, so they get their own
+        // voucher layout rather than an empty goods-invoice grid.
+        if (txn.type === 'Payment' || txn.type === 'Receipt') {
+            const isReceipt = (txn.type === 'Receipt');
+            const pObj = parties.find(p => p.id == txn.partyId);
+            const ref = txn.refInvoiceId
+                ? transactions.find(t => t.id == txn.refInvoiceId) : null;
+
+            const against = [{
+                invNo: txn.refInvoiceNo || (ref ? ref.invNo : '') || 'On Account',
+                date: ref ? ref.date : '',
+                invAmount: ref ? ref.grandTotal : null,
+                paid: Number(txn.grandTotal) || 0
+            }];
+
+            // How much of that invoice is still outstanding after this
+            // voucher — the question the person holding it will ask next.
+            let balanceNote = '';
+            if (ref) {
+                const due = invoiceOutstanding(ref);
+                balanceNote = due > 0.004
+                    ? `Balance still due on ${ref.invNo}: \u20B9${SarvaDocs.money(due)}`.replace('\u20B9', 'Rs. ')
+                    : `${ref.invNo} is now fully settled.`;
+            }
+
+            const vbytes = SarvaDocs.buildVoucherPDF({
+                docTitle: isReceipt ? 'RECEIPT VOUCHER' : 'PAYMENT VOUCHER',
+                numberLabel: isReceipt ? 'Receipt No.' : 'Payment No.',
+                partyLabel: isReceipt ? 'Received From' : 'Paid To',
+                totalLabel: isReceipt ? 'Total Received' : 'Total Paid',
+                leftSign: isReceipt ? "Receiver's Signature" : "Recipient's Signature",
+                sellerName: 'Sarvadharani Seeds',
+                sellerAddress: getCompanyAddress() || '',
+                sellerGstin: '21AFGFS0227N1Z2',
+                sellerPhone: getCompanyMobile() || '',
+                invNo: txn.invNo || '',
+                date: txn.date || '',
+                accountName: txn.accountName || '',
+                mode: 'Cash / Bank',
+                partyName: txn.partyName || txn.accountName || '',
+                partyAddress: (pObj && pObj.address) ? pObj.address : '',
+                against: against,
+                amount: Number(txn.grandTotal) || 0,
+                amountWords: amountInWords(txn.grandTotal, 'INR'),
+                balanceNote: balanceNote,
+                narration: txn.narration || '',
+                footerNote: 'This is a Computer Generated Voucher'
+            });
+            const vname = String(txn.invNo || 'Voucher').replace(/[^\w.-]+/g, '_') + '.pdf';
+            if (SarvaPDF.supportsShare()) await SarvaPDF.share(vbytes, vname, txn.invNo || 'Voucher');
+            else SarvaPDF.open(vbytes);
+            return;
+        }
         const isExempt = (txn.taxType === 'EXEMPT');
         const isInter = (txn.taxType === 'INTER');
         const partyObj = parties.find(p => p.id == txn.partyId);
@@ -9736,7 +9846,9 @@
                 name: it.name || '', hsn: it.hsn || '',
                 gstLabel: isExempt ? '-' : (gr + ' %'),
                 qtyLabel: qty + ' ' + (it.uom || ''),
-                rate: base, uom: it.uom || '', amount: base * qty
+                rate: base,            // inclusive of tax
+                exRate: excl,          // exclusive, shown in its own column
+                uom: it.uom || '', amount: base * qty
             };
         });
 
@@ -9754,15 +9866,46 @@
         }
         if (Math.abs(roundOff) >= 0.005) totalLines.push({ label: 'Round Off', value: roundOff });
 
-        const taxSummary = [];
-        if (isExempt || taxTotal <= 0.004) {
-            taxSummary.push('Nil rated / exempt supply \u2014 no GST charged.');
+        // Tax summary grouped by GST rate — one row per rate actually used,
+        // which is the form a GST return expects.
+        const buckets = {};
+        (txn.items || []).forEach(it => {
+            const gr = Number(it.gstRate) || 0;
+            if (isExempt || gr <= 0) return;
+            const qty = Number(it.qty) || 0;
+            const base = useMaster && it.masterRateAtSale != null
+                ? Number(it.masterRateAtSale) : (Number(it.inclRate) || 0);
+            const mrp = base * qty;
+            const ex = mrp / (1 + gr / 100);
+            if (!buckets[gr]) buckets[gr] = { taxable: 0, tax: 0 };
+            buckets[gr].taxable += ex;
+            buckets[gr].tax += (mrp - ex);
+        });
+        const rateKeys = Object.keys(buckets).sort((a, b) => a - b);
+        let taxRows = null, taxNote = null, taxWords = null;
+        if (rateKeys.length === 0) {
+            taxNote = 'Nil rated / exempt supply \u2014 no GST charged.';
+            taxWords = 'Nil';
         } else {
-            taxSummary.push(`Taxable \u20B9${SarvaDocs.money(taxable)}   `
-                + (isInter ? `IGST \u20B9${SarvaDocs.money(taxTotal)}`
-                           : `CGST \u20B9${SarvaDocs.money(taxTotal / 2)}   SGST \u20B9${SarvaDocs.money(taxTotal / 2)}`)
-                + `   Total Tax \u20B9${SarvaDocs.money(taxTotal)}`);
-            taxSummary.push('Tax Amount (in words) : ' + amountInWords(taxTotal, 'INR'));
+            taxRows = rateKeys.map(k => {
+                const bk = buckets[k];
+                const half = Number(k) / 2;
+                return [
+                    SarvaDocs.money(bk.taxable),
+                    isInter ? '-' : half + '%',
+                    isInter ? '-' : SarvaDocs.money(bk.tax / 2),
+                    isInter ? '-' : half + '%',
+                    isInter ? '-' : SarvaDocs.money(bk.tax / 2),
+                    SarvaDocs.money(bk.tax)
+                ];
+            });
+            if (rateKeys.length > 1) {
+                taxRows.push([
+                    SarvaDocs.money(taxable), '', isInter ? '-' : SarvaDocs.money(taxTotal / 2),
+                    '', isInter ? '-' : SarvaDocs.money(taxTotal / 2), SarvaDocs.money(taxTotal)
+                ]);
+            }
+            taxWords = amountInWords(taxTotal, 'INR');
         }
 
         const bank = [];
@@ -9791,7 +9934,28 @@
             totalLines: totalLines,
             grandTotal: shownTotal,
             amountWords: amountInWords(shownTotal, 'INR'),
-            taxSummary: taxSummary,
+            taxRows: taxRows,
+            taxNote: taxNote,
+            taxWords: taxWords,
+            payment: (() => {
+                // Delivery Notes aren't billed, and the master-rate copy is
+                // for filing rather than collection, so neither shows a
+                // payment position.
+                if (isDN || useMaster) return null;
+                const due = invoiceOutstanding(txn);
+                const total = Number(txn.grandTotal) || 0;
+                const received = Math.max(0, total - due);
+                if (received <= 0.004 && due <= 0.004) return null;
+                return {
+                    received: received,
+                    due: due,
+                    label: due <= 0.004 ? 'PAID IN FULL'
+                         : (received > 0.004 ? 'PART PAID' : 'UNPAID')
+                };
+            })(),
+            sellerTin: getCompanyTin() || '',
+            placeOfSupply: 'Odisha',
+            jurisdiction: 'RAYAGADA',
             bank: bank,
             narration: txn.narration || '',
             footerNote: isDN
