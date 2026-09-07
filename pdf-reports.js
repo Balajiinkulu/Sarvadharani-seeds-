@@ -20,6 +20,22 @@
     return v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  // Mirrors Doc.wrap()'s line-breaking so height measurement and drawing
+  // can never disagree. Explicit newlines start a new line, as they do there.
+  function countWrappedLines(str, width, size, bold) {
+    var D = global.SarvaPDF, total = 0;
+    String(str == null ? '' : str).split(/\n/).forEach(function (para) {
+      var line = '', n = 1;
+      para.split(/\s+/).forEach(function (w) {
+        var test = line ? line + ' ' + w : w;
+        if (D.widthOf(test, size, bold) > width && line) { n++; line = w; }
+        else line = test;
+      });
+      total += n;
+    });
+    return Math.max(1, total);
+  }
+
   /* ------------------------------------------------------------- tables */
 
   // cols: [{ label, width (relative), align, key|get }]
@@ -75,16 +91,20 @@
     header();
 
     rows.forEach(function (r, idx) {
-      // Wrapped cells can make a row taller than the default; measure first
-      // so a tall row is never split across a page break.
+      // Row height must be measured with the SAME word-wrapping the
+      // renderer uses. Estimating by dividing total text width by column
+      // width under-counted lines, so tall cells overflowed into the row
+      // below — the overlap seen in the GST register and Sales Statement.
       var lines = 1;
       cols.forEach(function (c, i) {
         var val = c.get ? c.get(r) : (r[c.key] == null ? '' : String(r[c.key]));
-        var w = D.widthOf(String(val), 7.5, false);
-        var fits = colX[i].w - 8;
-        if (c.wrap && w > fits) lines = Math.max(lines, Math.ceil(w / fits));
+        if (!c.wrap) {
+          lines = Math.max(lines, String(val).split('\n').length);
+          return;
+        }
+        lines = Math.max(lines, countWrappedLines(String(val), colX[i].w - 8, 7.5, c.bold));
       });
-      var h = Math.max(rowH, lines * 10 + 5);
+      var h = Math.max(rowH, lines * 9.5 + 6);
       ensureRoom(h);
 
       if (idx % 2 === 1) doc.rect(M.left, y, usableW, h, 0.97, null);
@@ -97,7 +117,10 @@
         if (c.wrap) {
           doc.wrap(cx, y + 10, String(val), colX[i].w - 8, { size: 7.5, align: c.align || 'left', lh: 9.5 });
         } else {
-          doc.text(cx, y + 10, String(val), { size: 7.5, bold: !!c.bold, align: c.align || 'left' });
+          var parts = String(val).split('\n');
+          parts.forEach(function (p, li) {
+            doc.text(cx, y + 10 + li * 9.5, p, { size: 7.5, bold: !!c.bold, align: c.align || 'left' });
+          });
         }
       });
       doc.line(M.left, y + h, M.left + usableW, y + h, 0.85);

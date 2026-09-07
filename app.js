@@ -7826,6 +7826,11 @@
     // route (Sales Statement, Invoices tile, Ledger, search) leaves this at
     // 'counter' so the customer-facing invoice is unchanged.
     let invoiceRateBasis = 'counter';
+    let invoiceLastRateBasis = 'counter';
+    // Which voucher the invoice popup is showing. There's a separate
+    // currentInvoiceTxnId further down, but it lives in its own later
+    // scope and isn't reachable from here.
+    let openInvoiceTxnId = null;
 
     function printInvoiceFromGst(txnId) {
         invoiceRateBasis = 'master';
@@ -7998,6 +8003,8 @@
         // Captured now, then reset immediately, so a single flagged open
         // can't leak into the next invoice opened from somewhere else.
         const rateBasis = invoiceRateBasis;
+        invoiceLastRateBasis = rateBasis;   // the PDF builder reads this
+        openInvoiceTxnId = txn.id;
         invoiceRateBasis = 'counter';
 
         const isFormalSale = (txn.type === 'Sales');
@@ -9311,23 +9318,35 @@
         const headRows = [...table.querySelectorAll('thead tr')].filter(visible);
         const headRow = headRows.length ? headRows[headRows.length - 1] : null;
         if (!headRow) return null;
-        const heads = [...headRow.children]
-            .filter(th => !th.classList.contains('no-print'))
-            .map(th => th.innerText.replace(/\s+/g, ' ').trim());
+        // Columns that only make sense on screen — Action buttons, tick
+        // boxes — are dropped entirely rather than printed as blank space
+        // that pushes the real columns out of alignment.
+        const SCREEN_ONLY = /^(action|actions|select|delete|edit|print)$/i;
+        const headCells = [...headRow.children].filter(th => !th.classList.contains('no-print'));
+        const keep = [];
+        const heads = [];
+        headCells.forEach((th, i) => {
+            const label = th.innerText.replace(/\s+/g, ' ').trim();
+            if (SCREEN_ONLY.test(label)) return;
+            keep.push(i);
+            heads.push(label);
+        });
 
-        const bodyRows = [...table.querySelectorAll('tbody tr')]
-            .filter(visible)
-            .map(tr => [...tr.children]
-                .filter(td => !td.classList.contains('no-print'))
-                .map(td => td.innerText.replace(/\s*\n\s*/g, ' \u00b7 ').replace(/\s+/g, ' ').trim()));
+        const pick = (tr, joiner) => {
+            const cells = [...tr.children].filter(td => !td.classList.contains('no-print'));
+            return keep.map(i => {
+                const td = cells[i];
+                if (!td) return '';
+                return td.innerText.replace(/\s*\n\s*/g, joiner).replace(/[ \t]+/g, ' ').trim();
+            });
+        };
+        // Item detail lines stay on their own lines rather than being run
+        // together — the GST register's per-item breakdown was becoming one
+        // very long string that overlapped the next column.
+        const bodyRows = [...table.querySelectorAll('tbody tr')].filter(visible).map(tr => pick(tr, '\n'));
+        const footRows = [...table.querySelectorAll('tfoot tr')].filter(visible).map(tr => pick(tr, ' '));
 
-        const footRows = [...table.querySelectorAll('tfoot tr')]
-            .filter(visible)
-            .map(tr => [...tr.children]
-                .filter(td => !td.classList.contains('no-print'))
-                .map(td => td.innerText.replace(/\s+/g, ' ').trim()));
-
-        return { heads, bodyRows, footRows };
+        return { heads, bodyRows, footRows, keep };
     }
 
     // Column widths from the rendered table, so the PDF keeps roughly the
@@ -9338,7 +9357,13 @@
         const headRow = headRows.length ? headRows[headRows.length - 1] : null;
         if (!headRow) return new Array(count).fill(1);
         const cells = [...headRow.children].filter(th => !th.classList.contains('no-print'));
-        const widths = cells.map(th => Math.max(1, th.getBoundingClientRect().width));
+        const SCREEN_ONLY = /^(action|actions|select|delete|edit|print)$/i;
+        const widths = [];
+        cells.forEach(th => {
+            const label = th.innerText.replace(/\s+/g, ' ').trim();
+            if (SCREEN_ONLY.test(label)) return;
+            widths.push(Math.max(1, th.getBoundingClientRect().width));
+        });
         const total = widths.reduce((s, w) => s + w, 0) || 1;
         return widths.map(w => (w / total) * count);
     }
@@ -9360,7 +9385,7 @@
         // they read on screen.
         const numericCol = i => data.bodyRows.length > 0 && data.bodyRows
             .filter(r => r[i] != null && r[i] !== '' && r[i] !== '\u2014')
-            .every(r => /^[\u20B9\s\-()0-9.,%]+$/.test(r[i]));
+            .every(r => /^[\u20B9\s\-()0-9.,%]+$/.test(String(r[i]).replace(/\n/g, ' ')));
 
         const columns = data.heads.map((h, i) => ({
             label: h,
@@ -9630,40 +9655,23 @@
     }
 
     async function printLedger() {
-        if (!canPrintHere()) return;
         if (!isAdmin() && !hasPermission('exportPrint')) return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
         const ledgerEl = document.getElementById('ledgerPrintArea');
         if (ledgerEl.style.display !== 'block') {
             return alert("Please view a party's ledger statement first.");
         }
-        // Same fix as the other reports: the ledger paginates on screen too,
-        // so without this, only whatever page you happened to be viewing
-        // got captured \u2014 a party with more transactions than fit on one
-        // page would silently lose everything past it.
+        // Expanded to every row first: the ledger paginates on screen, so
+        // without this only the page being viewed would be exported.
         const state = pageStateFor('ledgerStatement');
         const savedPage = state.page, savedSize = state.pageSize;
         state.page = 1;
         state.pageSize = 999999;
         if (lastLedger) openLedgerStatement(lastLedger.kind, lastLedger.id);
-        document.body.classList.add('printing-ledger');
-        const cleanup = () => {
-            document.body.classList.remove('printing-ledger');
-            window.removeEventListener('afterprint', cleanup);
-        };
-        window.addEventListener('afterprint', cleanup);
         try {
-            await smartPrint(ledgerEl, 'Ledger', () => {
-                window.print();
-                // Fallback for browsers that don't fire afterprint reliably
-                setTimeout(cleanup, 1000);
-            }).then(() => {
-            // Always clean up now. This used to be standalone-only, because a
-            // browser tab went through window.print() and relied on the
-            // afterprint event instead — but the PDF path runs in the
-            // browser too now, and afterprint never fires for it, which would
-            // leave print-only styling stuck on the live screen.
-            cleanup();
-        });
+            const nameEl = document.getElementById('ledgerHeaderDetails');
+            const title = (nameEl && nameEl.innerText.trim())
+                ? ('Ledger \u2014 ' + nameEl.innerText.trim()) : 'Ledger Statement';
+            await printTablePdf('ledgerPrintArea', title);
         } finally {
             state.page = savedPage;
             state.pageSize = savedSize;
@@ -9712,8 +9720,107 @@
     // Receipt) and routes to whichever print path was chosen — Classic
     // is the existing printInvoiceDoc() flow, completely unchanged;
     // Formal is the new alternate layout, also unchanged by this change.
-    function printInvoiceCurrentStyle() {
-        printInvoiceDoc();
+    // Builds the invoice as a real PDF rather than screenshotting the
+    // on-screen layout. The old image route produced the squeezed, broken
+    // output — narrow columns wrapping one letter per line, the tax summary
+    // overlapping — because it captured a layout meant for a phone screen
+    // and forced it onto A4.
+    async function printInvoiceCurrentStyle() {
+        if (!isAdmin() && !hasPermission('exportPrint')) {
+            return alert("Only an admin, or a user with 'Export / print' turned on, can print or export.");
+        }
+        const txn = transactions.find(t => t.id == openInvoiceTxnId);
+        if (!txn) return alert('Open an invoice first.');
+
+        const isDN = !!txn.deliveryNote;
+        const isSale = (txn.type === 'Sales');
+        const isExempt = (txn.taxType === 'EXEMPT');
+        const isInter = (txn.taxType === 'INTER');
+        const partyObj = parties.find(p => p.id == txn.partyId);
+
+        // Same master-rate basis the GST reports use when the invoice was
+        // opened from there, so the two can never disagree.
+        const useMaster = (invoiceLastRateBasis === 'master');
+
+        let taxable = 0, taxTotal = 0;
+        const items = (txn.items || []).map(it => {
+            const qty = Number(it.qty) || 0;
+            const base = useMaster && it.masterRateAtSale != null
+                ? Number(it.masterRateAtSale) : (Number(it.inclRate) || 0);
+            const gr = Number(it.gstRate) || 0;
+            const excl = (!isExempt && gr > 0) ? base / (1 + gr / 100) : base;
+            taxable += excl * qty;
+            taxTotal += (!isExempt && gr > 0) ? (base * qty - excl * qty) : 0;
+            return {
+                name: it.name || '', hsn: it.hsn || '',
+                gstLabel: isExempt ? '-' : (gr + ' %'),
+                qtyLabel: qty + ' ' + (it.uom || ''),
+                rate: base, uom: it.uom || '', amount: base * qty
+            };
+        });
+
+        const lineSum = taxable + taxTotal;
+        const shownTotal = useMaster ? lineSum : (Number(txn.grandTotal) || 0);
+        const roundOff = useMaster ? 0 : (shownTotal - lineSum);
+
+        const totalLines = [{ label: 'Taxable Value', value: taxable }];
+        if (!isExempt && taxTotal > 0.004) {
+            if (isInter) totalLines.push({ label: 'IGST', value: taxTotal });
+            else {
+                totalLines.push({ label: 'CGST', value: taxTotal / 2 });
+                totalLines.push({ label: 'SGST', value: taxTotal / 2 });
+            }
+        }
+        if (Math.abs(roundOff) >= 0.005) totalLines.push({ label: 'Round Off', value: roundOff });
+
+        const taxSummary = [];
+        if (isExempt || taxTotal <= 0.004) {
+            taxSummary.push('Nil rated / exempt supply \u2014 no GST charged.');
+        } else {
+            taxSummary.push(`Taxable \u20B9${SarvaDocs.money(taxable)}   `
+                + (isInter ? `IGST \u20B9${SarvaDocs.money(taxTotal)}`
+                           : `CGST \u20B9${SarvaDocs.money(taxTotal / 2)}   SGST \u20B9${SarvaDocs.money(taxTotal / 2)}`)
+                + `   Total Tax \u20B9${SarvaDocs.money(taxTotal)}`);
+            taxSummary.push('Tax Amount (in words) : ' + amountInWords(taxTotal, 'INR'));
+        }
+
+        const bank = [];
+        const bName = getCompanyBankName(), bAcc = getCompanyBankAcc(), bIfsc = getCompanyBankIfsc();
+        if (bName || bAcc || bIfsc) {
+            bank.push("A/c Holder's Name : Sarvadharani Seeds");
+            if (bName) bank.push('Bank Name : ' + bName);
+            if (bAcc) bank.push('A/c No. : ' + bAcc);
+            if (bIfsc) bank.push('Branch & IFS Code : ' + bIfsc);
+        }
+
+        const bytes = SarvaDocs.buildInvoicePDF({
+            docTitle: isDN ? 'DELIVERY NOTE' : 'TAX INVOICE',
+            numberLabel: isDN ? 'Challan No.' : 'Invoice No.',
+            grandLabel: isDN ? 'Value of Goods' : 'Total',
+            sellerName: 'Sarvadharani Seeds',
+            sellerAddress: getCompanyAddress() || '',
+            sellerGstin: '21AFGFS0227N1Z2',
+            sellerPhone: getCompanyMobile() || '',
+            invNo: txn.invNo || '',
+            date: txn.date || '',
+            partyName: txn.partyName || txn.accountName || 'Retail Sale',
+            partyAddress: (partyObj && partyObj.address) ? partyObj.address : '',
+            partyGstin: (partyObj && partyObj.gstin) ? String(partyObj.gstin).trim() : '',
+            items: items,
+            totalLines: totalLines,
+            grandTotal: shownTotal,
+            amountWords: amountInWords(shownTotal, 'INR'),
+            taxSummary: taxSummary,
+            bank: bank,
+            narration: txn.narration || '',
+            footerNote: isDN
+                ? 'Delivery Note \u2014 dispatch record only. Not a tax invoice; no GST charged.'
+                : 'This is a Computer Generated Invoice'
+        });
+
+        const name = String(txn.invNo || 'Invoice').replace(/[^\w.-]+/g, '_') + '.pdf';
+        if (SarvaPDF.supportsShare()) await SarvaPDF.share(bytes, name, txn.invNo || 'Invoice');
+        else SarvaPDF.open(bytes);
     }
 
     // Renders the Formal print layout INSIDE this same page, in a full-
