@@ -5215,7 +5215,14 @@
         } else {
             const field = (mode === 'discount') ? disc : over;
             field.value = '';
-            field.focus();
+            // scrollIntoView first, THEN focus on the next frame. Focusing
+            // straight away summons the keyboard immediately, which shrinks
+            // the visible area before the scroll has settled — on a long
+            // edit form the field can end up hidden behind the keyboard or
+            // off the bottom of the screen, so tapping the dropdown looked
+            // like nothing had happened.
+            field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            setTimeout(() => field.focus(), 300);
         }
     }
 
@@ -6332,6 +6339,9 @@
                 const itemsDetail = (t.items && t.items.length)
                     ? t.items.map(it => `<div class="item-detail-line">${escapeHtml(it.name)}: ${it.qty}${it.uom ? ' ' + escapeHtml(it.uom) : ''} @ \u20B9${(it.inclRate || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}</div>`).join('')
                     : '<span style="color:var(--text-muted);">&mdash;</span>';
+                const narrCell = t.narration
+                    ? `<span style="font-style:italic;">${escapeHtml(t.narration)}</span>`
+                    : '<span style="color:var(--text-muted);">&mdash;</span>';
                 body.insertAdjacentHTML('beforeend', `
                     <tr style="cursor:pointer;">
                         <td class="no-print" data-select-col="salesStatement" style="display:none;" onclick="event.stopPropagation();">
@@ -6342,6 +6352,7 @@
                         <td style="color:var(--accent); text-decoration:underline;" onclick="event.stopPropagation(); openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
                         <td onclick="printInvoice(${t.id})">${cat}</td>
                         <td onclick="printInvoice(${t.id})">${itemsDetail}</td>
+                        <td onclick="printInvoice(${t.id})">${narrCell}</td>
                         <td onclick="printInvoice(${t.id})">\u20B9${money(t.taxable)}</td>
                         <td onclick="printInvoice(${t.id})">\u20B9${money(t.totalTax)}</td>
                         <td onclick="printInvoice(${t.id})" style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
