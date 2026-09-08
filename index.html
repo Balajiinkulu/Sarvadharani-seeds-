@@ -2690,6 +2690,15 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                  into Category — "All Time" hides the Sold column entirely
                  rather than showing every sale ever made against it, which
                  would just restate the obvious. -->
+            <!-- Zero-quantity items are hidden by default: a long list of
+                 items you don't currently hold makes the ones you do hold
+                 harder to find. Still available on demand, since a zero row
+                 is meaningful when checking what has run out. -->
+            <label for="stockZeroFilter" style="font-size:0.78rem; color:var(--text-muted); margin:0;">Show</label>
+            <select id="stockZeroFilter" onchange="pageStateFor('stockSummary').page = 1; renderStockSummary();" style="width:auto; padding:8px 10px; font-size:0.85rem;">
+                <option value="nonzero" selected>Items in stock only</option>
+                <option value="all">Include zero-stock items</option>
+            </select>
             <label for="stockSoldPeriod" style="font-size:0.78rem; color:var(--text-muted); margin:0;">Sold in period</label>
             <select id="stockSoldPeriod" onchange="onStockSoldPeriodChange()" style="width:auto; padding:8px 10px; font-size:0.85rem;">
                 <option value="">All Time (hide Sold column)</option>
@@ -2705,6 +2714,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <button onclick="printAllRows('panelStock','Stock Summary','stockSummary',renderStockSummary)" class="btn-success print-only-desktop" style="width:auto; padding:8px 14px; font-size:0.8rem;">Save as PDF</button>
             <button onclick="resetAllOpeningQuantities()" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--warning); border-color:rgba(255,255,255,0.3);" title="Fix items where Opening Qty was set incorrectly">Fix Opening Qty</button>
         </div>
+        <div id="stockZeroNote" class="no-print" style="display:none; font-size:0.76rem; color:var(--text-muted); margin-bottom:8px;"></div>
         <div id="stockSoldSummary" style="display:none; font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;"></div>
         <div class="table-responsive">
             <table>
@@ -3474,6 +3484,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 <script src="pdf-engine.js?v=1"></script>
 <script src="pdf-reports.js?v=7"></script>
-<script src="app.js?v=98"></script>
+<script src="app.js?v=99"></script>
 </body>
 </html>

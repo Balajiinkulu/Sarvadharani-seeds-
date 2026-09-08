@@ -675,11 +675,20 @@
         }
 
         const selectedGroup = filterSelect.value;
-        const filteredItems = !selectedGroup
+        let filteredItems = !selectedGroup
             ? stockItems
             : selectedGroup === '__uncategorized__'
                 ? stockItems.filter(i => !i.groupId)
                 : stockItems.filter(i => i.groupId == selectedGroup);
+
+        // Hide zero-stock items unless asked for. Negative quantities are
+        // deliberately kept even in "in stock only" mode — an oversold item
+        // is a problem to notice, not clutter to hide.
+        const zeroSel = document.getElementById('stockZeroFilter');
+        const showZeros = zeroSel && zeroSel.value === 'all';
+        const hiddenZeroCount = showZeros ? 0
+            : filteredItems.filter(i => (Number(i.qty) || 0) === 0).length;
+        if (!showZeros) filteredItems = filteredItems.filter(i => (Number(i.qty) || 0) !== 0);
 
         // Sold-in-period: a separate, optional column. "All Time" hides it
         // entirely rather than showing lifetime sales, since that number
@@ -698,8 +707,19 @@
         const stockBody = document.getElementById('stockSummaryBody');
         stockBody.innerHTML = '';
 
+        const zeroNoteEl = document.getElementById('stockZeroNote');
+        if (zeroNoteEl) {
+            zeroNoteEl.innerText = hiddenZeroCount > 0
+                ? `${hiddenZeroCount} item${hiddenZeroCount === 1 ? '' : 's'} with zero stock hidden \u2014 choose "Include zero-stock items" to see them.`
+                : '';
+            zeroNoteEl.style.display = hiddenZeroCount > 0 ? 'block' : 'none';
+        }
+
         if (filteredItems.length === 0) {
-            stockBody.innerHTML = `<tr><td colspan="${showSold ? 8 : 7}" style="text-align:center; color:var(--text-muted);">No items in this category.</td></tr>`;
+            const emptyMsg = (!showZeros && hiddenZeroCount > 0)
+                ? 'Nothing currently in stock in this category.'
+                : 'No items in this category.';
+            stockBody.innerHTML = `<tr><td colspan="${showSold ? 8 : 7}" style="text-align:center; color:var(--text-muted);">${emptyMsg}</td></tr>`;
         } else {
             const pageRows = paginateRows('stockSummary', filteredItems);
             pageRows.forEach(i => {
