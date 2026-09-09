@@ -696,6 +696,16 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <button type="submit" id="itemSubmitBtn" class="btn-success col-2">Create Stock Item</button>
             <button type="button" id="itemCancelBtn" onclick="cancelItemEdit()" style="display:none; background:#64748b; color:#fff;" class="col-2">Cancel Edit</button>
         </form>
+        <!-- Maintenance tool, kept with the item master rather than on the
+             Stock Summary report: it ALTERS opening quantities, so it
+             belongs where items are edited, not on a screen for reading
+             stock figures. -->
+        <div class="no-print" style="margin-top:22px; padding-top:16px; border-top:1px solid var(--border);">
+            <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:10px;">
+                If an item's Opening Qty was entered wrongly and its stock figure looks off, this resets every item's Opening Qty to zero so the balance is driven purely by posted vouchers.
+            </div>
+            <button type="button" onclick="resetAllOpeningQuantities()" style="width:auto; padding:9px 16px; font-size:0.82rem; background:var(--warning); border-color:rgba(255,255,255,0.3);">Fix Opening Qty</button>
+        </div>
     </div>
 
     <!-- Stock Group -->
@@ -2713,7 +2723,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <input type="date" id="stockSoldTo" onchange="pageStateFor('stockSummary').page = 1; renderStockSummary();">
             </div>
             <button onclick="printAllRows('panelStock','Stock Summary','stockSummary',renderStockSummary)" class="btn-success print-only-desktop" style="width:auto; padding:8px 14px; font-size:0.8rem;">Save as PDF</button>
-            <button onclick="resetAllOpeningQuantities()" style="width:auto; padding:8px 14px; font-size:0.8rem; background:var(--warning); border-color:rgba(255,255,255,0.3);" title="Fix items where Opening Qty was set incorrectly">Fix Opening Qty</button>
+
         </div>
         <div id="stockZeroNote" class="no-print" style="display:none; font-size:0.76rem; color:var(--text-muted); margin-bottom:8px;"></div>
         <div id="stockSoldSummary" style="display:none; font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;"></div>
@@ -3486,6 +3496,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 <script src="pdf-engine.js?v=1"></script>
 <script src="pdf-reports.js?v=7"></script>
-<script src="app.js?v=102"></script>
+<script src="app.js?v=103"></script>
 </body>
 </html>

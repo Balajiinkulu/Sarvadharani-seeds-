@@ -2808,8 +2808,13 @@
     // through to whatever the next real field is, so e.g. Post Voucher
     // lands on Voucher Type rather than Date.
     function autofocusFirstField(panel) {
+        // Selects are deliberately excluded: focusing a <select> on a phone
+        // pops its option list open, so opening a screen whose first field
+        // is a dropdown (Stock Summary's Category filter) threw the picker
+        // up before the person had even looked at the page. Text inputs are
+        // still focused, since a keyboard there is usually what's wanted.
         const field = panel.querySelector(
-            'input:not([type="hidden"]):not([type="date"]):not([disabled]):not([readonly]), select:not([disabled]), textarea:not([disabled])'
+            'input:not([type="hidden"]):not([type="date"]):not([disabled]):not([readonly]), textarea:not([disabled])'
         );
         if (!field) return;
         // A short delay lets the panel's own layout/scroll settle first —
