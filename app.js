@@ -684,6 +684,10 @@
         // Hide zero-stock items unless asked for. Negative quantities are
         // deliberately kept even in "in stock only" mode — an oversold item
         // is a problem to notice, not clutter to hide.
+        // Alphabetical by item name, for the same reason.
+        filteredItems = [...filteredItems].sort((a, b) =>
+            String(a.name || '').localeCompare(String(b.name || ''), 'en', { sensitivity: 'base' }));
+
         const zeroSel = document.getElementById('stockZeroFilter');
         const showZeros = zeroSel && zeroSel.value === 'all';
         const hiddenZeroCount = showZeros ? 0
@@ -2766,6 +2770,9 @@
         if (id === 'panelStock') renderStockSummary();
         if (id === 'panelStockGroup' || id === 'panelLedgerGroup' || id === 'panelGroupStock') renderGroupTables();
         if (id === 'panelInvoices') { onInvoicePeriodChange(); setInvoiceFilter(invoiceFilter); }
+        // Daybook is skipped during the global render() for speed, so it
+        // rebuilds here when its own panel is opened.
+        if (id === 'panelDaybook') render();
         if (id === 'panelSeedLots') {
             if (!document.getElementById('slDate').value) document.getElementById('slDate').value = todayKey();
             renderSeedLots();
@@ -8329,6 +8336,10 @@
             }
         });
 
+        // Alphabetical, so a name is found where you'd expect it rather
+        // than wherever it happened to be created.
+        matches.sort((a, b) => String(a.label || '').localeCompare(String(b.label || ''), 'en', { sensitivity: 'base' }));
+
         if (matches.length === 0) {
             box.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:0.85rem;">No matching ledger. Try a party name, an account name, or a voucher type like "Sales".</div>';
             box.style.display = 'block';
@@ -8376,7 +8387,9 @@
     function selectLedger(kind, id) {
         document.getElementById('ledgerSearchResults').style.display = 'none';
         document.getElementById('ledgerActiveWrap').style.display = 'block';
-        document.getElementById('ledPeriod').value = 'all';
+        // Left at whatever the dropdown defaults to (This Month) rather
+        // than forced to All Time, so opening a ledger matches every other
+        // report's default period.
         document.getElementById('ledCustomWrap').style.display = 'none';
         document.getElementById('ledRowFilter').value = '';
         pageStateFor('ledgerStatement').page = 1;
@@ -10647,9 +10660,25 @@
         if (stockPanel && stockPanel.classList.contains('active')) renderStockSummary();
 
         const lBody = document.getElementById('ledgerBody');  
-        lBody.innerHTML = '';  
+        // The Daybook lists EVERY voucher and was rebuilt on every render()
+        // — after each save, delete and navigation — even when its panel was
+        // closed and nobody could see it. On a few thousand vouchers that
+        // was the bulk of the app's sluggishness. Same treatment the group
+        // tables already had: rebuild it when its own panel is open, and
+        // when it opens (see openPanel).
+        const daybookPanel = document.getElementById('panelDaybook');
+        const daybookVisible = daybookPanel && daybookPanel.classList.contains('active');
+        lBody.innerHTML = '';
         daybookRowOrder = [];
-        sortByDate(transactions, 'daybook').forEach(t => {  
+        // Paginated like every other report. It was rendering EVERY voucher
+        // in one go — nearly a second on a couple of thousand — which made
+        // opening it, and anything that triggered a redraw while it was
+        // open, feel stuck. "Save as PDF" still expands to all rows.
+        const daybookAll = daybookVisible
+            ? sortByDate(transactions, 'daybook').filter(t => !(t.optional || t.deliveryNote || t.conversion))
+            : [];
+        const daybookPage = daybookVisible ? paginateRows('daybook', daybookAll) : [];
+        daybookPage.forEach(t => {  
             if (t.optional || t.deliveryNote || t.conversion) return; // shown in their own tiles instead
             const isCash = (t.type === 'Payment' || t.type === 'Receipt');
             const isJournalTxn = (t.type === 'Journal');
@@ -10691,6 +10720,10 @@
                 </tr>  
             `);  
         });  
+
+        if (daybookVisible) {
+            renderPaginationControls('daybook', daybookAll.length, render);
+        }
 
         let salesSum = 0, purSum = 0, outputGst = 0, inputGst = 0;
         transactions.forEach(t => {
