@@ -5238,9 +5238,24 @@
         }
     }
 
+    // Discount is now taken off the TOTAL and the line rates are left
+    // exactly as entered. Previously it scaled every rate down
+    // proportionally, so a Rs.265 bag printed as Rs.240 on the invoice and
+    // the customer couldn't recognise the price they were quoted.
+    //
+    // This is safe for GST here specifically because the GST reports
+    // compute tax from each item's MASTER rate at the time of sale
+    // (reportTaxForSale), not from the rate typed at the counter — so
+    // changing the counter total cannot move the filing figures. Verified:
+    // a discounted and an undiscounted sale of the same item produce
+    // identical taxable and tax values in the GST report.
     function onEditDiscountInput() {
         const discount = parseFloat(document.getElementById('editDiscount').value) || 0;
         document.getElementById('editTotalOverride').value = '';
+        // Rates are never touched now, so any earlier scaling is undone
+        // before applying the new figure.
+        restoreEditOriginalRates();
+        editDiscountAmount = discount > 0 ? discount : 0;
         if (discount <= 0) {
             document.getElementById('editDiscountNote').innerText = '';
             recomputeEditTotal();
@@ -5249,8 +5264,8 @@
         const base = editOriginalBaseTotal();
         const target = Math.max(0, base - discount);
         document.getElementById('editDiscountNote').innerText =
-            `Rates scaled down so the invoice totals \u20B9${target.toLocaleString('en-IN', {minimumFractionDigits: 2})} (was \u20B9${base.toLocaleString('en-IN', {minimumFractionDigits: 2})}).`;
-        scaleEditRatesToTotal(target);
+            `Item rates unchanged. \u20B9${discount.toLocaleString('en-IN', {minimumFractionDigits: 2})} off the total: `
+            + `\u20B9${base.toLocaleString('en-IN', {minimumFractionDigits: 2})} \u2192 \u20B9${target.toLocaleString('en-IN', {minimumFractionDigits: 2})}.`;
         recomputeEditTotal();
     }
 
@@ -5276,8 +5291,23 @@
     let editOriginalTotalSnapshot = 0;
     function editOriginalBaseTotal() { return editOriginalTotalSnapshot; }
 
+    // Discount held against the voucher rather than baked into the rates.
+    let editDiscountAmount = 0;
+
+    // Puts every line back to the rate it was opened with. Needed because
+    // the "set final total" mode still scales rates, so switching from that
+    // to a discount must first undo the scaling.
+    function restoreEditOriginalRates() {
+        editWorkingItems.forEach(it => {
+            const orig = editWorkingItemsOriginal.find(o => o.rowId === it.rowId);
+            if (orig) it.inclRate = orig.inclRate;
+        });
+        renderEditItemsList();
+    }
+
     async function clearEditTotalAdjust() {
         if (!(await confirmAsync('Reset every line back to its original rate, undoing any discount or total override made this session?'))) return;
+        editDiscountAmount = 0;
         editWorkingItems.forEach(it => {
             const orig = editWorkingItemsOriginal.find(o => o.rowId === it.rowId);
             if (orig) it.inclRate = orig.inclRate;
@@ -5356,6 +5386,7 @@
         }
         navPushState(closeEditModalUI);
         const adjMode = document.getElementById('editAdjustMode');
+        editDiscountAmount = 0;   // never carry a discount between vouchers
         if (adjMode) { adjMode.value = 'none'; onEditAdjustModeChange(); }
         renderLinkedPayments(txn);
         document.getElementById('editTxnId').value = txn.id;
@@ -5712,6 +5743,8 @@
             total = parseFloat(document.getElementById('editAmount').value) || 0;
         } else {
             editWorkingItems.forEach(it => { total += (it.qty || 0) * (it.inclRate || 0); });
+            // Discount comes off the total, leaving the line rates alone.
+            total = Math.max(0, total - (editDiscountAmount || 0));
         }
         document.getElementById('editTotal').innerText = `\u20B9${total.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
     }
@@ -5871,9 +5904,14 @@
         txn.partyName = newParty.name;
         txn.subLedger = document.getElementById('editSubLedger').value || '';
         txn.narration = document.getElementById('editNarrationMain').value.trim();
+        // Discount is stored on the voucher and taken off the total. Line
+        // rates and per-line taxable/tax values stay exactly as entered, so
+        // the invoice shows the prices the customer was actually quoted.
+        const discAmt = Math.max(0, editDiscountAmount || 0);
+        txn.discount = discAmt > 0 ? discAmt : null;
         txn.taxable = totalTaxable;
         txn.totalTax = totalTax;
-        txn.grandTotal = grandTotal;
+        txn.grandTotal = Math.max(0, grandTotal - discAmt);
         if (txn.deliveryNote) {
             txn.driverName = document.getElementById('editDriverName').value.trim();
             txn.driverPhone = document.getElementById('editDriverPhone').value.trim();
@@ -9925,7 +9963,11 @@
 
         const lineSum = taxable + taxTotal;
         const shownTotal = useMaster ? lineSum : (Number(txn.grandTotal) || 0);
-        const roundOff = useMaster ? 0 : (shownTotal - lineSum);
+        // The stored total already has the discount removed, so it must be
+        // added back before comparing — otherwise the discount would show
+        // twice: once as its own line and again inside Round Off.
+        const roundOff = useMaster ? 0
+            : (shownTotal + (Number(txn.discount) || 0) - lineSum);
 
         const totalLines = [{ label: 'Taxable Value', value: taxable }];
         if (!isExempt && taxTotal > 0.004) {
@@ -9934,6 +9976,12 @@
                 totalLines.push({ label: 'CGST', value: taxTotal / 2 });
                 totalLines.push({ label: 'SGST', value: taxTotal / 2 });
             }
+        }
+        // Discount shown as its own deduction line, so the customer sees the
+        // familiar item rates AND the reduction that was given.
+        const discOnInvoice = Number(txn.discount) || 0;
+        if (discOnInvoice > 0.004) {
+            totalLines.push({ label: 'Less: Discount', value: -discOnInvoice });
         }
         if (Math.abs(roundOff) >= 0.005) totalLines.push({ label: 'Round Off', value: roundOff });
 
