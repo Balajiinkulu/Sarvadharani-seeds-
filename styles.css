@@ -273,6 +273,13 @@ html.is-phone .print-only-desktop { }
 #panelVoucher[data-vtype] #vType {
     border-left: 4px solid var(--v-accent, var(--accent));
 }
+/* The panel head's dark divider is dropped once the form is colour-tinted:
+   a near-black rule cutting across a soft red or green panel reads as a
+   stray line rather than a separator, and the coloured banner directly
+   below it already marks where the header ends. */
+#panelVoucher[data-vtype] .panel-head {
+    border-bottom: none;
+}
 .vtype-banner {
     display: none;
     align-items: center;
@@ -287,17 +294,90 @@ html.is-phone .print-only-desktop { }
 }
 #panelVoucher[data-vtype] .vtype-banner { display: flex; }
 
+/* The whole form takes the type's colour, not just the accents. Each type
+   redefines the same surface tokens the rest of the app uses, so every
+   field, card and tint inside this panel follows automatically — no need
+   to restyle each element. Tints are kept very light so dark text stays
+   comfortably readable on them. */
+#panelVoucher[data-vtype] {
+    background: var(--v-bg, var(--bg-card));
+    --bg-tint: var(--v-tint);
+    --bg-input: var(--v-input);
+    --bg-hover: var(--v-hover);
+    --surface-data: var(--v-tint);
+    --surface-nav: var(--v-input);
+    --accent: var(--v-accent);
+    --accent-soft: var(--v-accent-soft);
+    transition: background-color 200ms ease;
+}
+#panelVoucher[data-vtype] input,
+#panelVoucher[data-vtype] select,
+#panelVoucher[data-vtype] textarea { background: var(--v-input); }
+#panelVoucher[data-vtype] table thead th { background: var(--v-tint); }
+
 /* Money OUT — payments and purchases reduce cash or create what you owe. */
-#panelVoucher[data-vtype="Payment"]      { --v-accent: #DC2626; --v-accent-soft: rgba(220,38,38,0.10); }
-#panelVoucher[data-vtype="Purchase"]     { --v-accent: #D97706; --v-accent-soft: rgba(217,119,6,0.12); }
-#panelVoucher[data-vtype="RawPurchase"]  { --v-accent: #B4682A; --v-accent-soft: rgba(180,104,42,0.12); }
+#panelVoucher[data-vtype="Payment"] {
+    --v-accent: #DC2626; --v-accent-soft: rgba(220,38,38,0.10);
+    --v-bg: #FFF7F7; --v-tint: #FDE8E8; --v-input: #FEF2F2; --v-hover: #FBD5D5;
+}
+#panelVoucher[data-vtype="Purchase"] {
+    --v-accent: #D97706; --v-accent-soft: rgba(217,119,6,0.12);
+    --v-bg: #FFFBF4; --v-tint: #FCEBD2; --v-input: #FEF6E9; --v-hover: #F8DDB4;
+}
+#panelVoucher[data-vtype="RawPurchase"] {
+    --v-accent: #B4682A; --v-accent-soft: rgba(180,104,42,0.12);
+    --v-bg: #FFFBF6; --v-tint: #F5E3D0; --v-input: #FBF1E6; --v-hover: #EED6BC;
+}
 /* Money IN */
-#panelVoucher[data-vtype="Receipt"]      { --v-accent: #16A34A; --v-accent-soft: rgba(22,163,74,0.12); }
+#panelVoucher[data-vtype="Receipt"] {
+    --v-accent: #16A34A; --v-accent-soft: rgba(22,163,74,0.12);
+    --v-bg: #F7FDF9; --v-tint: #DCF5E4; --v-input: #EDFBF1; --v-hover: #C4ECD1;
+}
 /* Neither — kept visually distinct from the money movements above. */
-#panelVoucher[data-vtype="Journal"]        { --v-accent: #7C3AED; --v-accent-soft: rgba(124,58,237,0.10); }
-#panelVoucher[data-vtype="DeliveryNote"]   { --v-accent: #0EA5E9; --v-accent-soft: rgba(14,165,233,0.12); }
+#panelVoucher[data-vtype="Journal"] {
+    --v-accent: #7C3AED; --v-accent-soft: rgba(124,58,237,0.10);
+    --v-bg: #FCFAFF; --v-tint: #EBE2FB; --v-input: #F5F0FE; --v-hover: #DCCDF7;
+}
+#panelVoucher[data-vtype="DeliveryNote"] {
+    --v-accent: #0EA5E9; --v-accent-soft: rgba(14,165,233,0.12);
+    --v-bg: #F8FDFF; --v-tint: #D9F0FB; --v-input: #EBF8FE; --v-hover: #BEE5F7;
+}
 #panelVoucher[data-vtype="OptionalSales"],
-#panelVoucher[data-vtype="OptionalPurchase"] { --v-accent: #64748B; --v-accent-soft: rgba(100,116,139,0.12); }
+#panelVoucher[data-vtype="OptionalPurchase"] {
+    --v-accent: #64748B; --v-accent-soft: rgba(100,116,139,0.12);
+    --v-bg: #FAFBFC; --v-tint: #E6EAEF; --v-input: #F2F4F7; --v-hover: #D3DAE2;
+}
+/* Sales keeps the app's own palette — it's the default, most-used voucher
+   and recolouring it would make the normal case feel like a special one. */
+#panelVoucher[data-vtype="Sales"] {
+    --v-accent: #2457FF; --v-accent-soft: rgba(36,87,255,0.10);
+    --v-bg: var(--bg-card); --v-tint: #DFF7FF; --v-input: #EAF9FF; --v-hover: #C9EFFB;
+}
+
+/* Dark mode: same hues, darkened so text stays legible. */
+body.dark-mode #panelVoucher[data-vtype="Payment"] {
+    --v-bg: #221618; --v-tint: #33201F; --v-input: #2A1A1B; --v-hover: #3D2624;
+}
+body.dark-mode #panelVoucher[data-vtype="Receipt"] {
+    --v-bg: #14201A; --v-tint: #1C3025; --v-input: #18261E; --v-hover: #23402F;
+}
+body.dark-mode #panelVoucher[data-vtype="Purchase"],
+body.dark-mode #panelVoucher[data-vtype="RawPurchase"] {
+    --v-bg: #221C14; --v-tint: #33291C; --v-input: #2A2218; --v-hover: #3D3022;
+}
+body.dark-mode #panelVoucher[data-vtype="Journal"] {
+    --v-bg: #1B1726; --v-tint: #271F3A; --v-input: #201A2E; --v-hover: #322747;
+}
+body.dark-mode #panelVoucher[data-vtype="DeliveryNote"] {
+    --v-bg: #101F26; --v-tint: #172E39; --v-input: #13252D; --v-hover: #1D3A47;
+}
+body.dark-mode #panelVoucher[data-vtype="Sales"] {
+    --v-bg: var(--bg-card); --v-tint: #16202B; --v-input: #1B2733; --v-hover: #1F2E3D;
+}
+body.dark-mode #panelVoucher[data-vtype="OptionalSales"],
+body.dark-mode #panelVoucher[data-vtype="OptionalPurchase"] {
+    --v-bg: #1A1D20; --v-tint: #24282D; --v-input: #1F2327; --v-hover: #2E343A;
+}
 
 /* Ledger type badge (Party (Vendor), Account (Bank), etc.). This was a
    hardcoded dark navy background with no text colour set, so the label sat
