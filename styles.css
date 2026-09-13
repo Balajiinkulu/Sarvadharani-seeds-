@@ -270,9 +270,9 @@ html.is-phone .print-only-desktop { }
     border-color: var(--v-accent, var(--accent));
     color: #fff;
 }
-#panelVoucher[data-vtype] #vType {
-    border-left: 4px solid var(--v-accent, var(--accent));
-}
+/* No coloured bar on the dropdown itself: the whole form is already tinted
+   and the banner above states the type, so a stripe on the select only
+   broke up its rounded edge. */
 /* The panel head's dark divider is dropped once the form is colour-tinted:
    a near-black rule cutting across a soft red or green panel reads as a
    stray line rather than a separator, and the coloured banner directly
