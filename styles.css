@@ -256,6 +256,49 @@ table td, table th {
    can stay on the buttons. */
 html.is-phone .print-only-desktop { }
 
+/* Voucher entry colour-coding. The form recolours to match the voucher
+   type being posted, so money-in and money-out are distinguishable at a
+   glance before saving — posting a Receipt as a Payment is an easy mistake
+   at a busy counter and a tedious one to unpick afterwards.
+   Only the accent surfaces change; text and status colours stay put. */
+#panelVoucher[data-vtype] .panel-head h3 {
+    border-left: 5px solid var(--v-accent, var(--accent));
+    padding-left: 10px;
+}
+#panelVoucher[data-vtype] #postVoucherBtn {
+    background: var(--v-accent, var(--accent));
+    border-color: var(--v-accent, var(--accent));
+    color: #fff;
+}
+#panelVoucher[data-vtype] #vType {
+    border-left: 4px solid var(--v-accent, var(--accent));
+}
+.vtype-banner {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 14px;
+    background: var(--v-accent-soft, var(--bg-tint));
+    color: var(--v-accent, var(--text-main));
+}
+#panelVoucher[data-vtype] .vtype-banner { display: flex; }
+
+/* Money OUT — payments and purchases reduce cash or create what you owe. */
+#panelVoucher[data-vtype="Payment"]      { --v-accent: #DC2626; --v-accent-soft: rgba(220,38,38,0.10); }
+#panelVoucher[data-vtype="Purchase"]     { --v-accent: #D97706; --v-accent-soft: rgba(217,119,6,0.12); }
+#panelVoucher[data-vtype="RawPurchase"]  { --v-accent: #B4682A; --v-accent-soft: rgba(180,104,42,0.12); }
+/* Money IN */
+#panelVoucher[data-vtype="Receipt"]      { --v-accent: #16A34A; --v-accent-soft: rgba(22,163,74,0.12); }
+/* Neither — kept visually distinct from the money movements above. */
+#panelVoucher[data-vtype="Journal"]        { --v-accent: #7C3AED; --v-accent-soft: rgba(124,58,237,0.10); }
+#panelVoucher[data-vtype="DeliveryNote"]   { --v-accent: #0EA5E9; --v-accent-soft: rgba(14,165,233,0.12); }
+#panelVoucher[data-vtype="OptionalSales"],
+#panelVoucher[data-vtype="OptionalPurchase"] { --v-accent: #64748B; --v-accent-soft: rgba(100,116,139,0.12); }
+
 /* Ledger type badge (Party (Vendor), Account (Bank), etc.). This was a
    hardcoded dark navy background with no text colour set, so the label sat
    as dark text on a dark chip and was effectively unreadable. Now uses the

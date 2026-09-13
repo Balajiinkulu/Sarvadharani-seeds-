@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=68">
+    <link rel="stylesheet" href="styles.css?v=69">
 </head>
 <body>
 <script>
@@ -2456,6 +2456,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <!-- Voucher -->
     <div class="panel" id="panelVoucher">
         <div class="panel-head"><h3>Post Sales / Purchase / Payment / Receipt</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <!-- Restates the voucher type in its own colour, so what's being
+             posted is obvious without re-reading the dropdown. -->
+        <div class="vtype-banner" id="vTypeBanner"><span id="vTypeBannerText"></span></div>
         <div class="form-grid">
             <div>
                 <label>Date</label>
@@ -3496,6 +3499,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 <script src="pdf-engine.js?v=1"></script>
 <script src="pdf-reports.js?v=7"></script>
-<script src="app.js?v=104"></script>
+<script src="app.js?v=105"></script>
 </body>
 </html>

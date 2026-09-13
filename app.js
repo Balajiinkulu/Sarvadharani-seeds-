@@ -4179,8 +4179,36 @@
         }
     }
 
+    // Labels for the coloured banner. Money-in and money-out are spelled
+    // out rather than left to the colour alone, since colour on its own
+    // isn't much help to anyone who can't distinguish red from green.
+    const VTYPE_BANNER = {
+        Sales:            'SALES INVOICE  \u00b7  stock out, money due in',
+        Purchase:         'PURCHASE  \u00b7  stock in, money owed out',
+        RawPurchase:      'RAW PURCHASE  \u00b7  raw seed in',
+        Receipt:          'RECEIPT  \u00b7  MONEY IN',
+        Payment:          'PAYMENT  \u00b7  MONEY OUT',
+        Journal:          'JOURNAL  \u00b7  adjustment between ledgers',
+        DeliveryNote:     'DELIVERY NOTE  \u00b7  dispatch only, not a bill',
+        OptionalSales:    'OPTIONAL SALE  \u00b7  not in main books',
+        OptionalPurchase: 'OPTIONAL PURCHASE  \u00b7  not in main books'
+    };
+
+    function applyVoucherTypeColour(type) {
+        const panel = document.getElementById('panelVoucher');
+        if (!panel) return;
+        // Custom voucher types fall back to the plain look rather than
+        // borrowing a colour that means something else.
+        const known = Object.prototype.hasOwnProperty.call(VTYPE_BANNER, type);
+        if (known) panel.setAttribute('data-vtype', type);
+        else panel.removeAttribute('data-vtype');
+        const txt = document.getElementById('vTypeBannerText');
+        if (txt) txt.innerText = known ? VTYPE_BANNER[type] : '';
+    }
+
     function toggleVoucherMode() {
         const type = document.getElementById('vType').value;
+        applyVoucherTypeColour(type);
         refreshSettleBlock();
         const customType = customVoucherTypes.find(v => v.id === type);
         const isCash = (type === 'Payment' || type === 'Receipt');
