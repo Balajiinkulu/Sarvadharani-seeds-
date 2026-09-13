@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=73">
+    <link rel="stylesheet" href="styles.css?v=72">
 </head>
 <body>
 <script>
@@ -216,86 +216,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         <span class="spinner" aria-hidden="true" style="width:14px; height:14px; flex:none; border:2px solid var(--accent); border-top-color:transparent; border-radius:50%; animation:spin 0.7s linear infinite;"></span>
         <span>Loading your latest data from the cloud — figures below may not be final yet.</span>
     </div>
-
-    <!-- MOBILE DASHBOARD — replaces the legacy home layout on phones.
-         All figures are rendered from the existing accounting data; no
-         placeholder business numbers are hard-coded here. -->
-    <section id="mobileDashboard" class="mobile-dashboard" aria-label="Business dashboard">
-        <div class="mobile-hero">
-            <div class="mobile-brand-row">
-                <button type="button" class="mobile-menu-btn" onclick="openMobileMenu()" aria-label="Open menu">☰</button>
-                <img src="logo.png" class="mobile-brand-logo" alt="Sarvadharani Seeds">
-                <div class="mobile-brand-copy">
-                    <div class="mobile-brand-name">Sarvadharani Seeds</div>
-                    <div class="mobile-brand-sub">Books &amp; Inventory</div>
-                </div>
-                <button type="button" class="mobile-notify-btn" onclick="openMobileMore()" aria-label="More">⋮</button>
-            </div>
-            <div class="mobile-greeting-row">
-                <div>
-                    <div class="mobile-greeting" id="mobileGreeting">Good Morning!</div>
-                    <div class="mobile-greeting-sub">Here’s your business overview for today.</div>
-                </div>
-                <div class="mobile-date-pill" id="mobileDatePill">Today</div>
-            </div>
-            <div class="mobile-slogan">Good Seeds<br><span>Brighter Tomorrows</span></div>
-        </div>
-
-        <div class="mobile-kpi-grid">
-            <button class="mobile-kpi kpi-sales" onclick="openMobileVoucher('Sales')">
-                <span class="kpi-icon">🛒</span><span class="kpi-copy"><b>Today’s Sales</b><strong id="mSales">₹0.00</strong><small id="mSalesCount">0 sales</small></span>
-            </button>
-            <button class="mobile-kpi kpi-purchase" onclick="openMobileVoucher('Purchase')">
-                <span class="kpi-icon">🛍️</span><span class="kpi-copy"><b>Today’s Purchases</b><strong id="mPurchases">₹0.00</strong><small id="mPurchasesCount">0 purchases</small></span>
-            </button>
-            <button class="mobile-kpi kpi-receipt" onclick="openMobileVoucher('Receipt')">
-                <span class="kpi-icon">💵</span><span class="kpi-copy"><b>Today’s Receipts</b><strong id="mReceipts">₹0.00</strong><small id="mReceiptsCount">0 receipts</small></span>
-            </button>
-            <button class="mobile-kpi kpi-payment" onclick="openMobileVoucher('Payment')">
-                <span class="kpi-icon">💳</span><span class="kpi-copy"><b>Today’s Payments</b><strong id="mPayments">₹0.00</strong><small id="mPaymentsCount">0 payments</small></span>
-            </button>
-            <button class="mobile-kpi kpi-receivable" onclick="openPanel('panelPendingReceivable')">
-                <span class="kpi-icon">👥</span><span class="kpi-copy"><b>Outstanding Receivables</b><strong id="mReceivable">₹0.00</strong><small id="mReceivableCount">0 customers</small></span><span class="kpi-arrow">›</span>
-            </button>
-            <button class="mobile-kpi kpi-payable" onclick="openPanel('panelPendingPayable')">
-                <span class="kpi-icon">👥</span><span class="kpi-copy"><b>Outstanding Payables</b><strong id="mPayable">₹0.00</strong><small id="mPayableCount">0 suppliers</small></span><span class="kpi-arrow">›</span>
-            </button>
-        </div>
-
-        <div class="mobile-two-col">
-            <section class="mobile-card mobile-stock-card">
-                <div class="mobile-card-head"><h3>⚠️ Stock Alerts</h3><button onclick="openPanel('panelStock')">View All</button></div>
-                <div id="mobileStockAlerts"></div>
-            </section>
-            <section class="mobile-card mobile-cash-card">
-                <div class="mobile-card-head"><h3>🏦 Cash &amp; Bank</h3><button onclick="openGroup('groupMasters')">View</button></div>
-                <div id="mobileCashBank"></div>
-            </section>
-        </div>
-
-        <section class="mobile-card mobile-recent-card">
-            <div class="mobile-card-head"><h3>◷ Recent Transactions</h3><button onclick="openPanel('panelDaybook')">View All</button></div>
-            <div id="mobileRecentTransactions"></div>
-        </section>
-
-        <section class="mobile-card mobile-actions-card">
-            <div class="mobile-card-head"><h3>⚡ Quick Actions</h3></div>
-            <div class="mobile-action-grid">
-                <button onclick="openMobileVoucher('Sales')"><span>🛒</span>New Sale</button>
-                <button onclick="openMobileVoucher('Purchase')"><span>🛍️</span>New Purchase</button>
-                <button onclick="openMobileVoucher('Receipt')"><span>💵</span>New Receipt</button>
-                <button onclick="openMobileVoucher('Payment')"><span>💳</span>New Payment</button>
-            </div>
-        </section>
-    </section>
-
-    <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Main navigation">
-        <button class="active" onclick="goMobileHome()"><span>⌂</span>Home</button>
-        <button onclick="openPanel('panelInvoices')"><span>▤</span>Sales</button>
-        <button onclick="openPanel('panelPurchaseReport')"><span>🛒</span>Purchases</button>
-        <button onclick="openPanel('panelStock')"><span>◇</span>Stock</button>
-        <button onclick="openMobileMore()"><span>▦</span>More</button>
-    </nav>
 
     <!-- Dashboard Metrics -->
     <!-- Today's sales sits above the two pending tiles: it's the figure
@@ -2536,24 +2456,15 @@ if (localStorage.getItem('sds_theme') === 'dark') {
     <!-- Voucher -->
     <div class="panel" id="panelVoucher">
         <div class="panel-head"><h3>Post Sales / Purchase / Payment / Receipt</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
-        <div class="sales-mobile-hero" aria-label="Sales voucher header">
-            <div class="sales-mobile-hero-logo"><img src="./logo.png" alt="Sarvadharani Seeds"></div>
-            <div class="sales-mobile-hero-copy">
-                <div class="sales-mobile-kicker">SALES</div>
-                <div class="sales-mobile-title">Sale Voucher</div>
-                <div class="sales-mobile-subtitle">Create a new sales invoice</div>
-            </div>
-            <div class="sales-mobile-type">&#128196; Invoice <span>&#9662;</span></div>
-        </div>
         <!-- Restates the voucher type in its own colour, so what's being
              posted is obvious without re-reading the dropdown. -->
         <div class="vtype-banner" id="vTypeBanner"><span id="vTypeBannerText"></span></div>
         <div class="form-grid">
-            <div class="sales-field-date">
+            <div>
                 <label>Date</label>
                 <input type="date" id="vDate" required>
             </div>
-            <div class="sales-field-type">
+            <div>
                 <label>Voucher Type</label>
                 <select id="vType" onchange="toggleVoucherMode()">
                     <option value="Sales">Sales Invoice (Stock Out)</option>
@@ -2593,7 +2504,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     </div>
                 </div>
             </div>
-            <div class="sales-field-party" style="position:relative;" id="vPartyWrap">
+            <div style="position:relative;" id="vPartyWrap">
                 <label>Select Party</label>
                 <div style="position:relative;">
                     <input type="text" id="vPartySearch" placeholder="Type to search party..." autocomplete="off"
@@ -2610,7 +2521,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </div>
                 <input type="hidden" id="vParty">
             </div>
-            <div class="sales-field-tax" id="taxTypeWrap">
+            <div id="taxTypeWrap">
                 <label>Tax Type</label>
                 <select id="vTaxType" onchange="onRateModeChange()">
                     <option value="INTRA">Intra-state (CGST + SGST)</option>
@@ -2699,7 +2610,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
 
             <!-- Item Builder Box -->
-            <div class="col-2 item-builder sales-item-builder" id="itemBuilder">
+            <div class="col-2 item-builder" id="itemBuilder">
                 <div id="itemBuilderTitle" style="font-weight:600; font-size:0.85rem; color: var(--accent); margin-bottom:8px;">Add Line Item (Inclusive Rates)</div>
                 <div style="display:grid; grid-template-columns: 2fr 1fr 1.5fr auto; gap:8px; align-items:end;">
                     <div style="position:relative;">
@@ -2722,7 +2633,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
 
             <!-- Temporary Items Table -->
-            <div class="col-2 table-responsive sales-items-table" id="tempItemsWrap">
+            <div class="col-2 table-responsive" id="tempItemsWrap">
                 <table>
                     <thead>
                         <tr>
@@ -2741,7 +2652,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 </table>
             </div>
 
-            <div class="col-2 sales-totals" id="totalsBox" style="background: var(--bg-input); padding: 14px; border-radius: 16px; border: none;">
+            <div class="col-2" id="totalsBox" style="background: var(--bg-input); padding: 14px; border-radius: 16px; border: none;">
                 <div style="font-size:0.85rem; color:var(--text-muted);">
                     Taxable: <span id="lblTaxable" style="color:var(--accent); font-weight:600;">&#8377;0.00</span> |
                     Total Tax: <span id="lblTax" style="color:var(--accent); font-weight:600;">&#8377;0.00</span>
@@ -2770,12 +2681,12 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div id="vSettleHint" style="display:none; font-size:0.78rem; color:var(--text-muted); margin-top:6px;"></div>
             </div>
 
-            <div class="col-2 sales-narration" id="vNarrationWrap">
+            <div class="col-2" id="vNarrationWrap">
                 <label>Narration (Optional)</label>
                 <input type="text" id="vNarrationMain" placeholder="e.g. Urgent delivery, quality checked, discount given">
             </div>
 
-            <button type="button" id="postVoucherBtn" onclick="postVoucherGuarded()" class="col-2 btn-success sales-post-btn" style="padding:14px;">&#10003; Save &amp; Post</button>
+            <button type="button" id="postVoucherBtn" onclick="postVoucherGuarded()" class="col-2 btn-success" style="padding:14px;">Post Voucher Entry</button>
         </div>
     </div>
 

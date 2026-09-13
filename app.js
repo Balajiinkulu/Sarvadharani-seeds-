@@ -1818,84 +1818,6 @@
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
-
-    // ---- Mobile dashboard ----
-    function moneyMobile(n) {
-        return `₹${(Number(n) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
-    function mobileTypeIcon(type) {
-        return type === 'Sales' ? '🧾' : type === 'Purchase' || type === 'RawPurchase' ? '🛒' : type === 'Receipt' ? '↙' : type === 'Payment' ? '▣' : '•';
-    }
-    function openMobileVoucher(type) {
-        openPanel('panelVoucher');
-        const sel = document.getElementById('vType');
-        if (sel) { sel.value = type; toggleVoucherMode(); }
-    }
-    function setMobileNavActive(label) {
-        document.querySelectorAll('#mobileBottomNav button').forEach(b => b.classList.toggle('active', b.textContent.trim().startsWith(label)));
-    }
-    function goMobileHome() {
-        if (navBackStack.length) { history.go(-navBackStack.length); return; }
-        hideAllMenus();
-        const tile = document.getElementById('tileMenu'); if (tile) tile.style.display = 'none';
-        setHomeDashboardVisible(true); renderMobileDashboard(); setMobileNavActive('Home');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    function openMobileMenu() { openGroup('groupMasters'); setMobileNavActive('More'); }
-    function openMobileMore() { openGroup('groupSettings'); setMobileNavActive('More'); }
-
-    function renderMobileDashboard() {
-        const root = document.getElementById('mobileDashboard');
-        if (!root) return;
-        const now = new Date();
-        const hour = now.getHours();
-        const greeting = hour < 12 ? 'Good Morning!' : hour < 18 ? 'Good Afternoon!' : 'Good Evening!';
-        const greetEl = document.getElementById('mobileGreeting'); if (greetEl) greetEl.textContent = greeting;
-        const dateEl = document.getElementById('mobileDatePill');
-        if (dateEl) dateEl.textContent = `Today · ${now.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'})}`;
-        const today = todayKey();
-        const active = transactions.filter(t => t.date === today && !t.cancelled);
-        const sum = type => active.filter(t => t.type === type).reduce((a,t) => a + (Number(t.grandTotal)||0), 0);
-        const count = type => active.filter(t => t.type === type).length;
-        const values = { Sales:sum('Sales'), Purchase:sum('Purchase') + sum('RawPurchase'), Receipt:sum('Receipt'), Payment:sum('Payment') };
-        [['mSales',values.Sales],['mPurchases',values.Purchase],['mReceipts',values.Receipt],['mPayments',values.Payment]].forEach(([id,v])=>{ const e=document.getElementById(id); if(e)e.textContent=moneyMobile(v); });
-        [['mSalesCount','Sales',count('Sales')],['mPurchasesCount','Purchase',count('Purchase')+count('RawPurchase')],['mReceiptsCount','Receipt',count('Receipt')],['mPaymentsCount','Payment',count('Payment')]].forEach(([id,type,n])=>{ const e=document.getElementById(id); if(e)e.textContent=`${n} ${type.toLowerCase()}${n===1?'':'s'}`; });
-
-        let receivable = 0, payable = 0, recvCount = 0, payCount = 0;
-        parties.forEach(p => {
-            const pTx = transactions.filter(t => t.partyId == p.id);
-            const sales = pTx.filter(t => t.type === 'Sales').reduce((a,c)=>a+(Number(c.grandTotal)||0),0);
-            const receipts = pTx.filter(t => t.type === 'Receipt').reduce((a,c)=>a+(Number(c.grandTotal)||0),0);
-            const purchases = pTx.filter(t => t.type === 'Purchase' || t.type === 'RawPurchase').reduce((a,c)=>a+(Number(c.grandTotal)||0),0);
-            const payments = pTx.filter(t => t.type === 'Payment').reduce((a,c)=>a+(Number(c.grandTotal)||0),0);
-            const r = sales - receipts, q = purchases - payments;
-            if (r > 0) { receivable += r; recvCount++; }
-            if (q > 0) { payable += q; payCount++; }
-        });
-        const setText=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-        setText('mReceivable',moneyMobile(receivable)); setText('mPayable',moneyMobile(payable));
-        setText('mReceivableCount',`${recvCount} customer${recvCount===1?'':'s'}`); setText('mPayableCount',`${payCount} supplier${payCount===1?'':'s'}`);
-
-        const stockEl = document.getElementById('mobileStockAlerts');
-        if (stockEl) {
-            const alerts = [...stockItems].filter(i => Number(i.qty) <= 10).sort((a,b)=>(Number(a.qty)||0)-(Number(b.qty)||0)).slice(0,4);
-            stockEl.innerHTML = alerts.length ? alerts.map(i => `<div class="mobile-stock-row"><div class="mobile-stock-icon">🌱</div><div><div class="mobile-stock-name">${escapeHtml(i.name||'Unnamed item')}</div><div class="mobile-stock-qty">${Number(i.qty)||0} ${escapeHtml(i.uom||'units')} left</div></div></div>`).join('') : '<div class="mobile-empty">No low-stock items.</div>';
-        }
-        const cashEl = document.getElementById('mobileCashBank');
-        if (cashEl) {
-            const relevant = accounts.filter(a => a.type === 'Cash' || a.type === 'Bank').slice(0,4);
-            const rows = relevant.map(a => `<div class="mobile-bank-row"><span class="mobile-bank-name">${escapeHtml(a.name)}</span><span class="mobile-bank-amt">${moneyMobile(accountBalance(a.id))}</span></div>`).join('');
-            const total = relevant.reduce((a,x)=>a+Math.max(0,Number(accountBalance(x.id))||0),0);
-            cashEl.innerHTML = rows || '<div class="mobile-empty">No cash or bank accounts.</div>';
-            if (relevant.length) cashEl.innerHTML += `<div class="mobile-bank-total"><span>Total</span><span>${moneyMobile(total)}</span></div>`;
-        }
-        const recentEl = document.getElementById('mobileRecentTransactions');
-        if (recentEl) {
-            const recent = [...transactions].filter(t=>!t.cancelled).sort((a,b)=>(Number(b.id)||0)-(Number(a.id)||0)).slice(0,5);
-            recentEl.innerHTML = recent.length ? recent.map(t => `<div class="mobile-txn-row"><span class="mobile-txn-date">${t.date ? new Date(t.date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short'}) : ''}</span><span class="mobile-txn-icon">${mobileTypeIcon(t.type)}</span><span class="mobile-txn-main"><span class="mobile-txn-type">${escapeHtml(t.type||'Transaction')}</span><span class="mobile-txn-no">${escapeHtml(t.invNo||t.partyName||'')}</span></span><span class="mobile-txn-amt">${moneyMobile(t.grandTotal)}</span></div>`).join('') : '<div class="mobile-empty">No transactions yet.</div>';
-        }
-    }
-
     function renderRecentTransactions() {
         const listEl = document.getElementById('recentTxnList');
         if (!listEl) return;
@@ -2679,7 +2601,7 @@
     }
 
     function setHomeDashboardVisible(visible) {
-        const ids = ['todaySalesCard', 'homeDashboardSummary', 'extrasBar', 'backupBanner', 'recentTxnCard', 'dataLoadingBanner', 'mobileDashboard', 'mobileBottomNav'];
+        const ids = ['todaySalesCard', 'homeDashboardSummary', 'extrasBar', 'backupBanner', 'recentTxnCard', 'dataLoadingBanner'];
         ids.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.style.display = visible ? '' : 'none';
@@ -4287,8 +4209,6 @@
     function toggleVoucherMode() {
         const type = document.getElementById('vType').value;
         applyVoucherTypeColour(type);
-        const salesHero = document.querySelector('#panelVoucher .sales-mobile-hero');
-        if (salesHero) salesHero.style.display = (type === 'Sales') ? '' : 'none';
         refreshSettleBlock();
         const customType = customVoucherTypes.find(v => v.id === type);
         const isCash = (type === 'Payment' || type === 'Receipt');
@@ -10916,7 +10836,6 @@
         document.getElementById('statReceivable').innerText = `\u20B9${totalReceivable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         document.getElementById('statPayable').innerText = `\u20B9${totalPayable.toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
         renderRecentTransactions();
-        renderMobileDashboard();
         // Net GST Liability is now shown only in Reports > GST Liability
         // (see panelGstLiability / renderGstLiability), not on the
         // dashboard, so there's no #statGst element to write to any more.
