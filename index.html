@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" href="icon-512.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-    <link rel="stylesheet" href="styles.css?v=72">
+    <link rel="stylesheet" href="styles.css?v=73">
 </head>
 <body>
 <script>
@@ -2976,6 +2976,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <div id="ledgerCompanyAddress" style="display:none; color:var(--text-muted); font-size:0.75rem; margin-top:2px;"></div>
                         <div id="ledgerCompanyMobile" style="display:none; color:var(--text-muted); font-size:0.75rem;"></div>
                         <div class="no-print" style="display:flex; gap:6px; margin-top:8px; align-items:center; justify-content:flex-end; flex-wrap:wrap;">
+                            <button type="button" id="ledgerAddVoucherBtn" onclick="addVoucherFromLedger()" class="btn-success" style="display:none; width:30px; height:30px; padding:0; font-size:1.1rem; font-weight:700; line-height:1;" title="Add a new voucher for this ledger">+</button>
                             <button type="button" data-select-togglebtn="ledgerStatement" onclick="toggleSelectMode('ledgerStatement')" style="width:auto; padding:6px 14px; font-size:0.8rem; background:var(--bg-tint); color:var(--text-main); border:none;">Select</button>
                             <span data-select-count="ledgerStatement" style="display:none; font-size:0.75rem; color:var(--accent); font-weight:600;"></span>
                             <button type="button" data-select-printbtn="ledgerStatement" onclick="printSelected('ledgerStatement', ledgerCurrentRowOrder)" disabled style="display:none; width:auto; padding:6px 14px; font-size:0.8rem; opacity:0.5;">Print Selected</button>
@@ -3499,6 +3500,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 <script src="pdf-engine.js?v=1"></script>
 <script src="pdf-reports.js?v=7"></script>
-<script src="app.js?v=105"></script>
+<script src="app.js?v=107"></script>
 </body>
 </html>

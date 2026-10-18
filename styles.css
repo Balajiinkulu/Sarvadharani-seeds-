@@ -261,10 +261,6 @@ html.is-phone .print-only-desktop { }
    glance before saving — posting a Receipt as a Payment is an easy mistake
    at a busy counter and a tedious one to unpick afterwards.
    Only the accent surfaces change; text and status colours stay put. */
-#panelVoucher[data-vtype] .panel-head h3 {
-    border-left: 5px solid var(--v-accent, var(--accent));
-    padding-left: 10px;
-}
 #panelVoucher[data-vtype] #postVoucherBtn {
     background: var(--v-accent, var(--accent));
     border-color: var(--v-accent, var(--accent));

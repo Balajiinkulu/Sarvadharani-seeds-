@@ -2833,6 +2833,16 @@
             const g = document.getElementById(previousGroupId);
             g.classList.add('active');
             playNav(g, 'nav-back');
+            // Restoring a panel this way just re-shows its existing DOM —
+            // unlike openPanel(), it doesn't re-run that panel's render
+            // function. For the ledger specifically that matters: the "+"
+            // button above can post a new voucher and come straight back
+            // here, so the statement needs to reload, not show what it had
+            // before that voucher existed.
+            if (previousGroupId === 'panelLedger' && lastLedger
+                && document.getElementById('ledgerPrintArea').style.display === 'block') {
+                openLedgerStatement(lastLedger.kind, lastLedger.id);
+            }
         } else {
             currentGroup = null;
             document.getElementById('tileMenu').style.display = 'block';
@@ -8711,6 +8721,13 @@
                 )
             );
         }
+        // Quick "+" to post a voucher straight from this ledger — only
+        // meaningful for one specific party/account, not an aggregate
+        // register like "Sales (All Parties)" which has no single ledger
+        // to pre-fill.
+        const addBtn = document.getElementById('ledgerAddVoucherBtn');
+        if (addBtn) addBtn.style.display = isAggregate ? 'none' : 'inline-flex';
+
         document.getElementById('ledgerHeaderDetails').innerText = headerText;
         document.getElementById('ledgerAccountLabel').innerText = isAggregate ? 'Voucher Register' : 'Ledger Account';
         document.getElementById('ledgerSearchInput').value = headerText;
@@ -9006,6 +9023,34 @@
         document.getElementById('ledgerPrintArea').style.display = 'block';
         if (!document.getElementById('panelLedger').classList.contains('active')) {
             openPanel('panelLedger');
+        }
+    }
+
+    // Quick-add: jumps to Post Voucher with this ledger's party or account
+    // already filled in, so adding an entry while looking at a ledger
+    // doesn't mean leaving it and searching for the same party again.
+    function addVoucherFromLedger() {
+        if (!lastLedger || (lastLedger.kind !== 'party' && lastLedger.kind !== 'account')) return;
+        const { kind, id } = lastLedger;
+        openPanel('panelVoucher');
+        if (kind === 'party') {
+            const party = parties.find(p => p.id == id);
+            if (!party) return;
+            document.getElementById('vType').value = 'Sales';
+            toggleVoucherMode();
+            document.getElementById('vPartySearch').value = party.name;
+            document.getElementById('vParty').value = party.id;
+            const clearBtn = document.getElementById('vPartyClearBtn');
+            if (clearBtn) clearBtn.style.display = 'block';
+        } else {
+            const acc = accounts.find(a => a.id == id);
+            if (!acc) return;
+            // Receipt (money in) is the far more common reason to jump
+            // straight to an account from its ledger; Payment is one tap
+            // away via the Voucher Type dropdown if that's what's needed.
+            document.getElementById('vType').value = 'Receipt';
+            toggleVoucherMode();
+            document.getElementById('vAccount').value = acc.id;
         }
     }
 
@@ -10851,7 +10896,41 @@
         if (rawPanel && rawPanel.classList.contains('active')) {
             populateRawPurchaseDropdowns();
         }
-    }  
+
+        // Every other report/list panel — these used to go stale after an
+        // edit or delete until the person backed out and reopened them
+        // (which calls these same functions via openPanel). render() is
+        // called from nearly every save/delete path, so refreshing
+        // whichever one of these is actually on screen here fixes it
+        // everywhere at once instead of hand-listing it per save/delete.
+        const isActive = id => { const el = document.getElementById(id); return el && el.classList.contains('active'); };
+        if (isActive('panelPayments')) renderCashList('Payment');
+        if (isActive('panelReceipts')) renderCashList('Receipt');
+        if (isActive('panelOptional')) renderOptional();
+        if (isActive('panelSubLedgerReport')) renderSubLedgerReport();
+        if (isActive('panelPendingReceivable')) renderPendingReceivable();
+        if (isActive('panelPendingPayable')) renderPendingPayable();
+        if (isActive('panelSalesStatement')) renderSalesStatement();
+        if (isActive('panelPurchaseReport')) renderPurchaseReport();
+        if (isActive('panelGstLiability')) renderGstLiability();
+        if (isActive('panelGstItemWise')) onGiwFilterChange();
+        if (isActive('panelDeliveryNotes')) renderDeliveryNotes();
+        if (isActive('panelCashReport')) renderCashReport();
+        if (isActive('panelVoucherTypes')) renderVoucherTypes();
+        if (isActive('panelAlterVoucher')) renderAlterVoucherSearch();
+        if (isActive('panelProcessedReport')) renderProcessedReport();
+        if (isActive('panelRawPurchaseReport')) renderRawPurchaseReport();
+        if (isActive('panelTrialBalance')) renderTrialBalance();
+        if (isActive('panelInvoiceGapCheck')) renderInvoiceGapCheck();
+        if (isActive('panelCustomVoucherList')) renderCustomVoucherList();
+        if (isActive('panelAuditTrail')) renderAuditTrail();
+        if (isActive('panelInvoices')) { onInvoicePeriodChange(); setInvoiceFilter(invoiceFilter); }
+        if (isActive('panelStockItemView') && currentStockItemViewId) viewStockItem(currentStockItemViewId);
+        if (isActive('panelCategoryDetail') && currentCategoryDetail) openCategoryDetail(currentCategoryDetail);
+        if (isActive('panelLedger') && document.getElementById('ledgerPrintArea').style.display === 'block' && lastLedger) {
+            openLedgerStatement(lastLedger.kind, lastLedger.id);
+        }
+    }
   
     render();  
 
