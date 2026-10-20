@@ -1031,6 +1031,24 @@
         renderInvoicesList();
     }
 
+    // Same "stay in sync with whatever categories actually exist" approach
+    // as populateGstSubLedgerOptions() — reused here rather than a fixed
+    // Seeds/Fertiliser/Pesticides list, so it stays correct if categories
+    // are ever renamed or added to.
+    function populateInvoiceCategoryOptions() {
+        const sel = document.getElementById('invCategory');
+        if (!sel) return;
+        const keep = sel.value;
+        sel.innerHTML = '<option value="">All Categories</option>'
+            + subLedgers.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        if (keep && subLedgers.includes(keep)) sel.value = keep;
+    }
+
+    function onInvoiceCategoryChange() {
+        pageStateFor('invoicesList').page = 1;
+        renderInvoicesList();
+    }
+
     function renderInvoicesList() {
         const list = document.getElementById('invoicesList');
         const summary = document.getElementById('invoicesSummary');
@@ -1040,6 +1058,8 @@
         const range = periodRange(document.getElementById('invPeriod').value,
                                   document.getElementById('invFrom').value,
                                   document.getElementById('invTo').value);
+        populateInvoiceCategoryOptions();
+        const categoryFilter = document.getElementById('invCategory').value;
 
         // Newest first, with how much is still owed on each — reusing
         // invoiceOutstanding() so this list can never disagree with the
@@ -1048,7 +1068,8 @@
             // Cancelled placeholders carry no value and nothing is owed on
             // them — listing them here would just add zero-value noise to a
             // screen that exists to show what still needs paying.
-            .filter(t => t.type === kind && !t.cancelled && inRange(t.date, range))
+            .filter(t => t.type === kind && !t.cancelled && inRange(t.date, range)
+                         && (!categoryFilter || t.subLedger === categoryFilter))
             .map(t => {
                 const due = invoiceOutstanding(t);
                 const total = Number(t.grandTotal) || 0;
@@ -9053,6 +9074,23 @@
             document.getElementById('vAccount').value = acc.id;
         }
     }
+
+    // ---- Generic action-menu dropdown (used by the ledger "Actions" button) ----
+    function toggleActionMenu(id) {
+        const list = document.getElementById(id);
+        if (!list) return;
+        const wasOpen = list.classList.contains('open');
+        closeActionMenus();
+        if (!wasOpen) list.classList.add('open');
+    }
+    function closeActionMenus() {
+        document.querySelectorAll('.action-menu-list.open').forEach(el => el.classList.remove('open'));
+    }
+    // Close any open action menu when tapping/clicking outside it.
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.action-menu-wrap')) return;
+        closeActionMenus();
+    });
 
     // Opens the underlying voucher for a ledger-statement row: the Tax
     // Invoice view for Sales/Purchase, or the Payment/Receipt voucher view
