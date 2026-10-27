@@ -2478,9 +2478,33 @@
         navBackStack.push(uiBackFn);
         history.pushState({ nb: navBackStack.length }, document.title);
     }
+    // If a queued back-handler throws (e.g. a modal trying to reopen
+    // against a voucher that's since changed), silently swallowing it used
+    // to leave whatever was on screen frozen — nothing responding to
+    // further taps, since the stack of what-to-show-next was now out of
+    // step with the browser's actual history position. The only way out
+    // was to force-close and reopen the app. This puts the app back on a
+    // working screen instead, every time.
+    function recoverFromBrokenBack() {
+        try {
+            ['editModal', 'appNoticeModal', 'appConfirmModal'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            unlockBodyScroll();
+            if (!document.querySelector('.panel.active, .submenu.active')) {
+                hideAllMenus();
+                currentGroup = null;
+                document.getElementById('tileMenu').style.display = 'block';
+                setHomeDashboardVisible(true);
+            }
+        } catch (e) { /* nothing more we can safely do here */ }
+    }
     window.addEventListener('popstate', function () {
         const fn = navBackStack.pop();
-        if (fn) { try { fn(); } catch (e) {} }
+        if (fn) {
+            try { fn(); } catch (e) { console.error('Back navigation failed:', e); recoverFromBrokenBack(); }
+        }
         // A caller that needs to close the current screen and then open a
         // different one (e.g. the invoice modal's "Edit" button) defers the
         // "open" half until the close has actually finished, instead of
@@ -2488,7 +2512,7 @@
         if (navPendingAfterBack) {
             const next = navPendingAfterBack;
             navPendingAfterBack = null;
-            try { next(); } catch (e) {}
+            try { next(); } catch (e) { console.error('Back navigation (pending) failed:', e); recoverFromBrokenBack(); }
         }
     });
 
@@ -4642,8 +4666,13 @@
             haptic('success');
             showSyncToast('ok', `${customNoPartyDef ? (customTypeDef.name || 'Expense') : type} posted \u2022 ${cashTxn.invNo}`);
 
+            // Only refresh in place if the ledger panel is genuinely what's
+            // on screen — see the matching comment at the Sales/Purchase
+            // post site below for why the display-style check alone isn't
+            // enough (e.g. posting via the ledger's own "+ New Voucher").
             if (lastLedger && lastLedger.kind === 'party' && lastLedger.id == partyId
-                && document.getElementById('ledgerPrintArea').style.display === 'block') {
+                && document.getElementById('ledgerPrintArea').style.display === 'block'
+                && document.getElementById('panelLedger').classList.contains('active')) {
                 openLedgerStatement('party', partyId);
             }
             return;
@@ -4977,9 +5006,16 @@
         }
         showSyncToast('ok', `${type === 'Sales' ? 'Sale' : isRawPurchase ? 'Raw purchase' : 'Purchase'} posted \u2022 ${txn.invNo}`);
         
-        // Refresh Ledger if open
+        // Refresh Ledger if open — but only if it's genuinely the panel on
+        // screen right now, not just still carrying its old display style
+        // from before something else (e.g. this very voucher, posted via
+        // the ledger's own "+ New Voucher") opened on top of it. Without
+        // this check, posting would yank the person straight back to the
+        // ledger and leave the Back button pointing at a stale Post
+        // Voucher screen instead of wherever they actually came from.
         if (lastLedger && lastLedger.kind === 'party' && lastLedger.id == partyId
-            && document.getElementById('ledgerPrintArea').style.display === 'block') {
+            && document.getElementById('ledgerPrintArea').style.display === 'block'
+            && document.getElementById('panelLedger').classList.contains('active')) {
             openLedgerStatement('party', partyId);
         }
     }
@@ -6013,8 +6049,14 @@
             if (p.id === 'panelCustomVoucherList') renderCustomVoucherList();
             if (p.id === 'panelVoucherTypes') renderVoucherTypes();
         });
-        // refresh open ledger statement
-        if (document.getElementById('ledgerPrintArea').style.display === 'block' && typeof lastLedger !== 'undefined' && lastLedger) {
+        // refresh open ledger statement — only if the ledger panel is
+        // genuinely the one on screen right now. ledgerPrintArea's display
+        // style stays 'block' even once another panel has opened on top of
+        // it, so checking that alone would yank the person back to the
+        // ledger they've since navigated away from (openLedgerStatement()
+        // jumps to panelLedger whenever it isn't already the active panel).
+        if (document.getElementById('ledgerPrintArea').style.display === 'block' && typeof lastLedger !== 'undefined' && lastLedger
+            && document.getElementById('panelLedger').classList.contains('active')) {
             openLedgerStatement(lastLedger.kind, lastLedger.id);
         }
         // (success alert is fired by navPendingAfterBack above, once the
