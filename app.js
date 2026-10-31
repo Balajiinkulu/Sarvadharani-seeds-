@@ -4464,6 +4464,21 @@
         // If an item is already picked, refresh its suggested rate now that
         // the party (and therefore any rate history) has changed.
         if (document.getElementById('vItem').value) autoFillItem();
+        warnIfPartyOwes(p.id);
+    }
+
+    // Pop-up when a Sales or Payment voucher is started for a Sundry Debtor
+    // who still owes money. Informational only; never blocks posting.
+    function warnIfPartyOwes(partyId) {
+        const type = document.getElementById('vType').value;
+        if (type !== 'Sales' && type !== 'Payment') return;
+        const party = parties.find(x => x.id == partyId);
+        if (!party) return;
+        const group = ledgerGroups.find(g => g.id == party.groupId);
+        if (!group || group.name !== 'Sundry Debtors') return;
+        const bal = partyBalance(party.id);
+        if (bal <= 0.005) return;
+        alert(`${party.name} still owes you \u20B9${bal.toLocaleString('en-IN', {minimumFractionDigits: 2})}.`);
     }
 
     function handlePartyKeydown(e) {
@@ -9105,6 +9120,7 @@
             document.getElementById('vParty').value = party.id;
             const clearBtn = document.getElementById('vPartyClearBtn');
             if (clearBtn) clearBtn.style.display = 'block';
+            warnIfPartyOwes(party.id);
         } else {
             const acc = accounts.find(a => a.id == id);
             if (!acc) return;
