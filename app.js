@@ -1124,7 +1124,7 @@
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                         <div class="due">${dueLine}</div>
-                        ${(kind === 'Sales' && t.partyId && r.due > 0.001) ? `<button type="button" class="btn-success" style="width:auto; padding:2px 10px; font-size:0.65rem; border-radius:8px;" onclick="event.stopPropagation(); sendSmsReminder(${t.partyId})">SMS</button>` : ''}
+                        ${(kind === 'Sales' && t.partyId && r.due > 0.001) ? `<button type="button" class="btn-success" style="width:auto; min-height:0; height:auto; padding:3px 12px; font-size:0.6rem; font-weight:700; letter-spacing:0.03em; line-height:1.3; border-radius:20px;" onclick="event.stopPropagation(); sendSmsReminder(${t.partyId})">SMS</button>` : ''}
                     </div>
                     ${t.narration ? `<div class="inv-narr">${escapeHtml(t.narration)}</div>` : ''}
                 </div>`;
