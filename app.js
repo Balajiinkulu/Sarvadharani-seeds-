@@ -1124,7 +1124,7 @@
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                         <div class="due">${dueLine}</div>
-                        ${(kind === 'Sales' && t.partyId && r.due > 0.001) ? `<button type="button" class="btn-success" style="width:auto; min-height:0; height:auto; padding:3px 12px; font-size:0.6rem; font-weight:700; letter-spacing:0.03em; line-height:1.3; border-radius:20px;" onclick="event.stopPropagation(); sendSmsReminder(${t.partyId})">SMS</button>` : ''}
+                        ${(kind === 'Sales' && t.partyId && r.due > 0.001) ? `<button type="button" class="btn-success" style="width:auto; min-height:0; height:auto; padding:3px 12px; font-size:0.6rem; font-weight:700; letter-spacing:0.03em; line-height:1.3; border-radius:20px;" onclick="event.stopPropagation(); sendSmsReminder(${t.partyId})" aria-label="Send SMS reminder" title="Send SMS reminder"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="display:block;"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>` : ''}
                     </div>
                     ${t.narration ? `<div class="inv-narr">${escapeHtml(t.narration)}</div>` : ''}
                 </div>`;
