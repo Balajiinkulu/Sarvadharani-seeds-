@@ -1123,6 +1123,7 @@
                         <span class="inv-badge ${badge}">${label}</span>
                     </div>
                     <div class="due">${dueLine}</div>
+                    ${(kind === 'Sales' && t.partyId && r.due > 0.001) ? `<button type="button" class="btn-success" style="width:auto; padding:4px 12px; font-size:0.75rem; margin-top:6px;" onclick="event.stopPropagation(); sendSmsReminder(${t.partyId})">SMS Reminder</button>` : ''}
                     ${t.narration ? `<div class="inv-narr">${escapeHtml(t.narration)}</div>` : ''}
                 </div>`;
         }).join('');
