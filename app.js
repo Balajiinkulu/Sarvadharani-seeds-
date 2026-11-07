@@ -1122,8 +1122,10 @@
                         <span class="meta">${escapeHtml(t.invNo || '')} \u00b7 ${escapeHtml(t.date || '')}</span>
                         <span class="inv-badge ${badge}">${label}</span>
                     </div>
-                    <div class="due">${dueLine}</div>
-                    ${(kind === 'Sales' && t.partyId && r.due > 0.001) ? `<button type="button" class="btn-success" style="width:auto; padding:4px 12px; font-size:0.75rem; margin-top:6px;" onclick="event.stopPropagation(); sendSmsReminder(${t.partyId})">SMS Reminder</button>` : ''}
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <div class="due">${dueLine}</div>
+                        ${(kind === 'Sales' && t.partyId && r.due > 0.001) ? `<button type="button" class="btn-success" style="width:auto; padding:2px 10px; font-size:0.65rem; border-radius:8px;" onclick="event.stopPropagation(); sendSmsReminder(${t.partyId})">SMS</button>` : ''}
+                    </div>
                     ${t.narration ? `<div class="inv-narr">${escapeHtml(t.narration)}</div>` : ''}
                 </div>`;
         }).join('');
