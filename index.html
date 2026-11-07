@@ -1466,6 +1466,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                         <th>Total Invoiced</th>
                         <th>Received So Far</th>
                         <th>Outstanding</th>
+                        <th>Remind</th>
                     </tr>
                 </thead>
                 <tbody id="pendingReceivableBody"></tbody>
@@ -2991,6 +2992,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                                 <div class="action-menu-list" id="ledgerActionMenu">
                                     <button type="button" id="ledgerAddVoucherBtn" class="action-menu-item" style="display:none;" onclick="closeActionMenus(); addVoucherFromLedger()">+ New Voucher</button>
                                     <button type="button" data-select-togglebtn="ledgerStatement" class="action-menu-item" onclick="closeActionMenus(); toggleSelectMode('ledgerStatement')">Select</button>
+                                    <button type="button" id="ledgerSmsBtn" class="action-menu-item" style="display:none;" onclick="closeActionMenus(); sendSmsReminder(lastLedger.id)">Send SMS Reminder</button>
                                     <button type="button" class="action-menu-item" onclick="closeActionMenus(); printLedger()">Save as PDF</button>
                                 </div>
                             </div>
@@ -3513,6 +3515,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 <script src="pdf-engine.js?v=1"></script>
 <script src="pdf-reports.js?v=7"></script>
-<script src="app.js?v=114"></script>
+<script src="app.js?v=116"></script>
 </body>
 </html>

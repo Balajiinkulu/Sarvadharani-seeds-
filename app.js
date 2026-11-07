@@ -1970,6 +1970,7 @@
                         <td>\u20B9${money(r.totalInvoiced)}</td>
                         <td style="color:var(--text-muted);">\u20B9${received.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                         <td style="color:var(--success); font-weight:bold;">\u20B9${money(r.totalDue)}</td>
+                        <td><button type="button" class="btn-success" style="width:auto; padding:4px 10px; font-size:0.75rem;" onclick="event.stopPropagation(); sendSmsReminder(${r.partyId}, ${r.totalDue})">SMS</button></td>
                     </tr>
                 `);
             });
@@ -4494,6 +4495,34 @@
         onPartyChange();
         updateNarrationPartyBtn();
         render();
+    }
+
+    // Opens the phone's normal Messages app with a payment-reminder SMS
+    // already typed for the party; the person still taps Send themselves
+    // (a web app cannot send SMS silently). "Rs." instead of the rupee sign
+    // keeps the text in plain SMS encoding so it isn't split into extra parts.
+    function sendSmsReminder(partyId, amount) {
+        const party = parties.find(p => p.id == partyId);
+        if (!party) return;
+        let phone = (party.phone || '').replace(/[^\d+]/g, '');
+        if (!phone) return alert(`No phone number saved for ${party.name}. Add one from the Parties screen first.`);
+        if (/^\d{10}$/.test(phone)) phone = '+91' + phone;
+        const due = amount != null ? amount : partyBalance(party.id);
+        if (!(due > 0.005)) return alert(`${party.name} has nothing outstanding.`);
+        const amt = due.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        // Unpaid invoice numbers, oldest first (first 5; the rest are counted).
+        const unpaid = transactions
+            .filter(t => t.type === 'Sales' && !t.cancelled && t.partyId == party.id && invoiceOutstanding(t) > 0.001)
+            .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+            .map(t => t.invNo).filter(Boolean);
+        let invText = '';
+        if (unpaid.length) {
+            invText = ` against invoice ${unpaid.slice(0, 5).join(', ')}`
+                + (unpaid.length > 5 ? ` and ${unpaid.length - 5} more` : '');
+        }
+        const body = `Namaste ${party.name}, Rs. ${amt} is pending${invText} at Sarvadharani Seeds. Kindly pay at your earliest. Thank you.`;
+        const sep = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? '&' : '?';
+        window.location.href = `sms:${phone}${sep}body=${encodeURIComponent(body)}`;
     }
 
     function clearPartySelection() {
@@ -8855,6 +8884,8 @@
         // meaningful for one specific party/account, not an aggregate
         // register like "Sales (All Parties)" which has no single ledger
         // to pre-fill.
+        const smsBtn = document.getElementById('ledgerSmsBtn');
+        if (smsBtn) smsBtn.style.display = (kind === 'party' && partyBalance(id) > 0.005) ? 'block' : 'none';
         const addBtn = document.getElementById('ledgerAddVoucherBtn');
         if (addBtn) addBtn.style.display = isAggregate ? 'none' : 'inline-flex';
 
