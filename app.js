@@ -4263,6 +4263,7 @@
 
     function toggleVoucherMode() {
         const type = document.getElementById('vType').value;
+        updateNarrationPartyBtn();
         applyVoucherTypeColour(type);
         refreshSettleBlock();
         const customType = customVoucherTypes.find(v => v.id === type);
@@ -4405,6 +4406,7 @@
     // Called when the party changes on the voucher form
     function onPartyChange() {
         const type = document.getElementById('vType').value;
+        updateNarrationPartyBtn();
         if (type === 'Payment' || type === 'Receipt') populateRefInvoices();
     }
 
@@ -4442,6 +4444,54 @@
             `).join('');
         }
         listEl.style.display = 'block';
+    }
+
+    // "Name: Ramesh Patra" typed in the narration of a Sales / Payment /
+    // Receipt voucher offers a one-tap "create this party" button. Works on
+    // new vouchers only, and only when no party has been picked yet.
+    function narrationPartyName(inputId) {
+        const m = /name\s*:\s*([^,;\n]+)/i.exec(document.getElementById(inputId).value);
+        return m ? m[1].trim() : '';
+    }
+
+    function updateNarrationPartyBtn() {
+        const type = document.getElementById('vType').value;
+        const inputId = type === 'Sales' ? 'vNarrationMain' : (type === 'Payment' || type === 'Receipt') ? 'vNarration' : '';
+        document.querySelectorAll('.narr-party-create').forEach(el => { el.style.display = 'none'; el.innerHTML = ''; });
+        if (!inputId || document.getElementById('vParty').value) return;
+        const name = narrationPartyName(inputId);
+        if (!name) return;
+        const box = document.getElementById(inputId).parentElement.querySelector('.narr-party-create');
+        if (!box) return;
+        box.innerHTML = '<button type="button" class="btn-success" style="width:auto; padding:6px 14px; font-size:0.8rem;" onclick="createPartyFromNarration()">+ Create party \u201C' + escapeHtml(name) + '\u201D</button>';
+        box.style.display = 'block';
+    }
+
+    async function createPartyFromNarration() {
+        const type = document.getElementById('vType').value;
+        const inputId = type === 'Sales' ? 'vNarrationMain' : 'vNarration';
+        const name = narrationPartyName(inputId);
+        if (!name) return;
+
+        let party = parties.find(p => normalizeNameForDupCheck(p.name) === normalizeNameForDupCheck(name));
+        if (party) {
+            if (!(await confirmAsync(`A party named "${party.name}" already exists.\n\nUse that party for this voucher?`))) return;
+        } else {
+            const groupName = type === 'Payment' ? 'Sundry Creditors' : 'Sundry Debtors';
+            const group = ledgerGroups.find(g => g.name === groupName);
+            if (!group) return alert(`Ledger group "${groupName}" not found. Create the party from the Parties screen instead.`);
+            party = { id: newId(parties), type: type === 'Payment' ? 'Vendor' : 'Customer', name,
+                      phone: '', gstin: '', address: '', groupId: group.id, opening: 0, openingAsOf: '2000-01-01' };
+            parties.push(party);
+            localStorage.setItem('tally_mob_parties', JSON.stringify(parties));
+            syncCloud();
+        }
+        document.getElementById('vParty').value = party.id;
+        document.getElementById('vPartySearch').value = party.name;
+        document.getElementById('vPartyClearBtn').style.display = 'block';
+        onPartyChange();
+        updateNarrationPartyBtn();
+        render();
     }
 
     function clearPartySelection() {

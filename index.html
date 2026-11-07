@@ -2609,7 +2609,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     </div>
                     <div class="col-2" style="grid-column: span 2;">
                         <label>Narration (Optional)</label>
-                        <input type="text" id="vNarration" placeholder="e.g. Part payment against invoice">
+                        <input type="text" id="vNarration" oninput="updateNarrationPartyBtn()" placeholder="e.g. Part payment against invoice">
+                        <div class="narr-party-create" style="display:none; margin-top:6px;"></div>
                     </div>
                     <div class="col-2" id="refOutstandingWrap" style="grid-column: span 2; display:none; font-size:0.8rem; color:var(--text-muted);"></div>
                 </div>
@@ -2689,7 +2690,8 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
             <div class="col-2" id="vNarrationWrap">
                 <label>Narration (Optional)</label>
-                <input type="text" id="vNarrationMain" placeholder="e.g. Urgent delivery, quality checked, discount given">
+                <input type="text" id="vNarrationMain" oninput="updateNarrationPartyBtn()" placeholder="e.g. Urgent delivery, quality checked, discount given">
+                <div class="narr-party-create" style="display:none; margin-top:6px;"></div>
             </div>
 
             <button type="button" id="postVoucherBtn" onclick="postVoucherGuarded()" class="col-2 btn-success" style="padding:14px;">Post Voucher Entry</button>
@@ -3511,6 +3513,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 <script src="pdf-engine.js?v=1"></script>
 <script src="pdf-reports.js?v=7"></script>
-<script src="app.js?v=111"></script>
+<script src="app.js?v=112"></script>
 </body>
 </html>
