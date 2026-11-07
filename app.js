@@ -4450,8 +4450,10 @@
     // Receipt voucher offers a one-tap "create this party" button. Works on
     // new vouchers only, and only when no party has been picked yet.
     function narrationPartyName(inputId) {
-        const m = /name\s*:\s*([^,;\n]+)/i.exec(document.getElementById(inputId).value);
-        return m ? m[1].trim() : '';
+        // Capital "N:" marks the customer name, e.g. "N: Ramesh Patra, 2 bags".
+        // The name runs up to the first comma / semicolon / new line.
+        const m = /\bN\s*:\s*([^,;\n]+)/.exec(document.getElementById(inputId).value);
+        return m ? m[1].trim().slice(0, 60) : '';
     }
 
     function updateNarrationPartyBtn() {
