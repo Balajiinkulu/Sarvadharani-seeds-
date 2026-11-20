@@ -98,7 +98,9 @@
         { name: 'stockGroups',        lsKey: 'tally_mob_stockgroups',  get: () => stockGroups,        set: v => { stockGroups = v; } },
         { name: 'ledgerGroups',       lsKey: 'tally_mob_ledgergroups', get: () => ledgerGroups,       set: v => { ledgerGroups = v; } },
         { name: 'customVoucherTypes', lsKey: 'tally_mob_vouchertypes', get: () => customVoucherTypes, set: v => { customVoucherTypes = v; } },
-        { name: 'seedLots',           lsKey: 'tally_mob_seedlots',     get: () => seedLots,           set: v => { seedLots = v; } }
+        { name: 'seedLots',           lsKey: 'tally_mob_seedlots',     get: () => seedLots,           set: v => { seedLots = v; } },
+        { name: 'dealerSchemes',      lsKey: 'tally_mob_dealerschemes', get: () => dealerSchemes,     set: v => { dealerSchemes = v; } },
+        { name: 'dealerEntries',      lsKey: 'tally_mob_dealerentries', get: () => dealerEntries,     set: v => { dealerEntries = v; } }
     ];
     MASTER_SPECS.forEach(s => {
         s.ref = cloudDb.collection('sarvadharaniSeeds_' + s.name);
@@ -581,6 +583,10 @@
     // growers, because drying and processing happen per lot rather than per
     // purchase. Lot numbers are assigned by the plant, not by SSCA.
     let seedLots = JSON.parse(localStorage.getItem('tally_mob_seedlots')) || [];
+    // Dealer scheme: the month-% table (one record) and the dealer / return /
+    // company-paid-adjustment records. See the DEALER SCHEME section.
+    let dealerSchemes = JSON.parse(localStorage.getItem('tally_mob_dealerschemes')) || [];
+    let dealerEntries = JSON.parse(localStorage.getItem('tally_mob_dealerentries')) || [];
     let ledgerGroups = JSON.parse(localStorage.getItem('tally_mob_ledgergroups')) || [];
     let refCounter = JSON.parse(localStorage.getItem('tally_mob_refcounter')) || { Payment: 0, Receipt: 0 };
     let subLedgers = JSON.parse(localStorage.getItem('tally_mob_subledgers')) || [];
@@ -2365,7 +2371,8 @@
         panelPendingReceivable: 'viewReports', panelPendingPayable: 'viewReports',
         panelTrialBalance: 'viewReports', panelCategoryDetail: 'viewReports',
         panelDaybook: 'viewReports', panelDeliveryNotes: 'viewReports',
-        panelInvoiceGapCheck: 'viewReports'
+        panelInvoiceGapCheck: 'viewReports',
+        panelDealerScheme: 'dealerScheme'   // no one but an admin has this key, so admin-only
     };
 
     // ================================================================
@@ -2793,6 +2800,7 @@
         if (id === 'panelVoucher') toggleVoucherMode();
         if (id === 'panelPayments') renderCashList('Payment');
         if (id === 'panelReceipts') renderCashList('Receipt');
+        if (id === 'panelDealerScheme') dsRender();
         if (id === 'panelDaybook') clearSelection('daybook');
         if (id === 'panelOptional') renderOptional();
         if (id === 'panelSubLedgerReport') renderSubLedgerReport();
@@ -4266,6 +4274,7 @@
     }
 
     function toggleVoucherMode() {
+        updateSchemeTick();
         const type = document.getElementById('vType').value;
         updateNarrationPartyBtn();
         applyVoucherTypeColour(type);
@@ -4408,8 +4417,24 @@
     }
 
     // Called when the party changes on the voucher form
+    function dsIsDealer(pid) {
+        return !!pid && dealerEntries.some(e => e.kind === 'dealer' && e.partyId == pid);
+    }
+    // The tick box only matters for a Sales voucher to a dealer in the scheme.
+    function updateSchemeTick() {
+        const w = document.getElementById('vSchemeWrap');
+        const show = document.getElementById('vType').value === 'Sales' && dsIsDealer(document.getElementById('vParty').value);
+        if (w) w.style.display = show ? 'block' : 'none';
+        if (!show) document.getElementById('vInScheme').checked = true;
+    }
+    function updateEditSchemeTick() {
+        const txn = transactions.find(t => t.id == document.getElementById('editTxnId').value);
+        const show = !!txn && txn.type === 'Sales' && dsIsDealer(document.getElementById('editParty').value);
+        document.getElementById('editSchemeWrap').style.display = show ? 'block' : 'none';
+    }
     function onPartyChange() {
         const type = document.getElementById('vType').value;
+        updateSchemeTick();
         updateNarrationPartyBtn();
         if (type === 'Payment' || type === 'Receipt') populateRefInvoices();
     }
@@ -5027,6 +5052,7 @@
             narration: document.getElementById('vNarrationMain').value.trim(),
             partyId: partyObj ? partyObj.id : null,
             partyName: partyObj ? partyObj.name : 'Cash Party',
+            ...((type === 'Sales' && partyObj && dsIsDealer(partyObj.id)) ? { inScheme: document.getElementById('vInScheme').checked } : {}),
             items: processedItems,
             taxable: totalTaxable,
             totalTax: totalTax,
@@ -5041,6 +5067,7 @@
         renderTempItems();
         document.getElementById('vSubLedger').value = '';
         document.getElementById('vNarrationMain').value = '';
+        document.getElementById('vInScheme').checked = true;
         document.getElementById('vDate').valueAsDate = new Date();
         render();
         logAudit('Created', txn);
@@ -5608,6 +5635,8 @@
         document.getElementById('editSubLedgerWrap').style.display = isInv ? 'block' : 'none';
         document.getElementById('editNarrationMainWrap').style.display = isInv ? 'block' : 'none';
         if (isInv) document.getElementById('editNarrationMain').value = txn.narration || '';
+        document.getElementById('editInScheme').checked = txn.inScheme !== false;
+        updateEditSchemeTick();
         document.getElementById('editTransportWrap').style.display = (txn.deliveryNote) ? 'block' : 'none';
         if (txn.deliveryNote) {
             document.getElementById('editDriverName').value = txn.driverName || '';
@@ -6098,6 +6127,8 @@
         txn.partyName = newParty.name;
         txn.subLedger = document.getElementById('editSubLedger').value || '';
         txn.narration = document.getElementById('editNarrationMain').value.trim();
+        if (txn.type === 'Sales' && newParty && dsIsDealer(newParty.id)) txn.inScheme = document.getElementById('editInScheme').checked;
+        else delete txn.inScheme;
         // Discount is stored on the voucher and taken off the total. Line
         // rates and per-line taxable/tax values stay exactly as entered, so
         // the invoice shows the prices the customer was actually quoted.
@@ -10891,6 +10922,395 @@
     }
 
     let daybookRowOrder = [];
+
+    // ================================================================
+    // DEALER SCHEME
+    //
+    // Company-to-dealer discount scheme. Nothing is entered twice: a dealer
+    // is an ordinary party, "taken" comes from that party's Sales vouchers,
+    // and "paid" from that party's Receipt vouchers. The scheme discount is
+    // worked out from each receipt's MONTH using the month table below, and
+    // is shown only on the dealer statement — it never touches the books,
+    // stock or GST. What the vouchers can't hold (returns, company-paid
+    // adjustments, which parties are dealers, the month table) lives in
+    // dealerEntries / dealerSchemes and syncs like the other masters.
+    // ================================================================
+    const DS_MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    let dsUI = { tab: 'dealers', pid: null, q: '' };
+
+    const dsNum = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x; };
+    const dsR2 = v => Math.round((v + Number.EPSILON) * 100) / 100;
+    const dsFmt = v => dsR2(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const dsMonthKey = d => String(d).slice(0, 7);
+    const dsMonthLabel = k => DS_MON[+k.slice(5, 7) - 1] + '-' + k.slice(0, 4);
+    const dsDmy = d => { const p = String(d).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : d; };
+    const dsToday = () => { const d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+
+    function dsScheme() {
+        return dealerSchemes[0] || { id: 1, name: '', start: '', pct: 14, step: 1, months: 7, table: {} };
+    }
+    function dsSave() {
+        localStorage.setItem('tally_mob_dealerschemes', JSON.stringify(dealerSchemes));
+        localStorage.setItem('tally_mob_dealerentries', JSON.stringify(dealerEntries));
+        syncCloud();
+    }
+    function dsSaveScheme(sc) {
+        dealerSchemes = [sc];
+        dsSave();
+    }
+    function dsGenTable(sc) {
+        const t = {};
+        if (!/^\d{4}-\d{2}$/.test(sc.start)) return t;
+        let y = +sc.start.slice(0, 4), m = +sc.start.slice(5, 7);
+        for (let i = 0; i < sc.months; i++) {
+            t[y + '-' + ('0' + m).slice(-2)] = Math.max(0, dsR2(sc.pct - sc.step * i));
+            m++; if (m > 12) { m = 1; y++; }
+        }
+        return t;
+    }
+    function dsDealers() {
+        return dealerEntries.filter(e => e.kind === 'dealer')
+            .map(e => parties.find(p => p.id == e.partyId))
+            .filter(Boolean)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    // Everything for one dealer, from the vouchers plus the module's own entries.
+    function dsCalc(pid) {
+        const sc = dsScheme();
+        const from = /^\d{4}-\d{2}$/.test(sc.start) ? sc.start + '-01' : '';
+        const inSeason = d => !from || String(d) >= from;
+        const groups = {}, ledger = [], pays = [], adjs = [], missing = new Set();
+        let salesAmt = 0, invDiff = 0, paid = 0, schemeDisc = 0, adjAmt = 0;
+
+        const row = (cat, itemId, name, uom, rate) => {
+            groups[cat] = groups[cat] || {};
+            return groups[cat][itemId + '|' + rate] = groups[cat][itemId + '|' + rate] ||
+                { name, uom, taken: 0, ret: 0, rate };
+        };
+        const catOf = itemId => {
+            const st = stockItems.find(s => s.id == itemId);
+            const g = st && stockGroups.find(x => x.id == st.groupId);
+            return g ? g.name : 'Other';
+        };
+
+        transactions.forEach(t => {
+            if (t.partyId != pid || t.cancelled || !inSeason(t.date)) return;
+            if (t.type === 'Sales') {
+                if (t.inScheme === false) return;   // ticked off on the voucher: not part of the scheme
+                let lines = 0;
+                (t.items || []).forEach(it => {
+                    const rate = it.inclRate || 0;
+                    row(catOf(it.itemId), it.itemId, it.name, it.uom || '', rate).taken += (it.qty || 0);
+                    lines += (it.qty || 0) * rate;
+                });
+                // grandTotal carries any invoice discount / round-off, so the
+                // item rows can differ from it; track the gap to show it.
+                invDiff += (t.grandTotal || 0) - lines;
+                salesAmt += t.grandTotal || 0;
+                ledger.push({ date: t.date, text: 'Invoice ' + (t.invNo || ''), debit: t.grandTotal || 0, credit: 0 });
+            } else if (t.type === 'Receipt') {
+                const mk = dsMonthKey(t.date);
+                const known = Object.prototype.hasOwnProperty.call(sc.table, mk);
+                const pct = known ? sc.table[mk] : 0;
+                if (!known) missing.add(mk);
+                const amount = t.grandTotal || 0, disc = amount * pct / 100;
+                paid += amount; schemeDisc += disc;
+                pays.push({ date: t.date, month: dsMonthLabel(mk), pct, known, amount, disc });
+                ledger.push({ date: t.date, text: 'Payment received' + (t.invNo ? ' (' + t.invNo + ')' : ''), debit: 0, credit: amount });
+                if (disc) ledger.push({ date: t.date, text: `Scheme discount ${pct}% on ${dsFmt(amount)}`, debit: 0, credit: disc });
+            }
+        });
+
+        dealerEntries.forEach(e => {
+            if (e.dealerId != pid || !inSeason(e.date)) return;
+            if (e.kind === 'return') {
+                const st = stockItems.find(s => s.id == e.itemId);
+                const amt = e.qty * e.rate;
+                row(catOf(e.itemId), e.itemId, st ? st.name : 'Item', st ? st.uom : '', e.rate).ret += e.qty;
+                salesAmt -= amt;
+                ledger.push({ date: e.date, text: `Return: ${st ? st.name : 'Item'} (${e.qty} @ ${dsFmt(e.rate)})`, debit: 0, credit: amt, id: e.id });
+            } else if (e.kind === 'adj') {
+                adjAmt += e.amount; adjs.push(e);
+                ledger.push({ date: e.date, text: e.label, debit: 0, credit: e.amount, id: e.id });
+            }
+        });
+
+        ledger.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+        let run = 0;
+        ledger.forEach(l => { run += l.debit - l.credit; l.bal = run; });
+        const totalDisc = schemeDisc + adjAmt;
+        return { groups, salesAmt, invDiff, paid, schemeDisc, adjAmt, adjs, pays, totalDisc,
+                 net: salesAmt - paid - totalDisc, ledger, missing: [...missing].sort() };
+    }
+
+    // ---- views ----
+    function dsTabs() {
+        const tabs = [['dealers', 'Dealers'], ['statement', 'Statement'], ['summary', 'Summary'], ['scheme', 'Scheme setup']];
+        document.getElementById('dsTabs').innerHTML = tabs.map(([k, label]) =>
+            `<button type="button" onclick="dsGo('${k}')" style="width:auto; padding:9px 14px; font-size:0.8rem;${dsUI.tab === k ? '' : ' background:var(--bg-tint); color:var(--text-main); border:none;'}">${label}</button>`
+        ).join('');
+    }
+
+    function dsViewDealers() {
+        const q = dsUI.q.toLowerCase();
+        const have = new Set(dsDealers().map(p => String(p.id)));
+        const options = parties.filter(p => p.type !== 'Vendor' && !have.has(String(p.id)))
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+        const rows = dsDealers().filter(p => p.name.toLowerCase().includes(q)).map(p => `
+            <tr>
+                <td><a href="#" onclick="dsOpen(${p.id}); return false;">${escapeHtml(p.name)}</a></td>
+                <td style="text-align:right;">${dsFmt(dsCalc(p.id).net)}</td>
+                <td><button class="btn-danger" onclick="dsRemoveDealer(${p.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Remove</button></td>
+            </tr>`).join('');
+        return `
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:14px;">
+                <div style="flex:1; min-width:200px;"><label>Add a dealer (from your parties)</label>
+                    <select id="dsAddParty"><option value="">Select party...</option>${options}</select></div>
+                <button type="button" onclick="dsAddDealer()" style="width:auto; padding:9px 14px;">Add dealer</button>
+            </div>
+            <input type="text" placeholder="Search dealer" value="${escapeHtml(dsUI.q)}" oninput="dsSearch(this)" style="margin-bottom:10px;">
+            <div class="table-responsive"><table>
+                <thead><tr><th>Dealer</th><th style="text-align:right;">Net balance (&#8377;)</th><th></th></tr></thead>
+                <tbody>${rows || '<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">No dealers yet.</td></tr>'}</tbody>
+            </table></div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">Dealers are your normal parties. Their Sales vouchers count as "taken" and their Receipt vouchers count as payments, from the scheme's first month onward.</div>`;
+    }
+
+    function dsViewScheme() {
+        const sc = dsScheme();
+        const rows = Object.keys(sc.table).sort().map(k => `
+            <tr><td>${dsMonthLabel(k)}</td>
+            <td><input type="number" step="any" min="0" data-dsslab="${k}" value="${sc.table[k]}" style="width:110px;"> %</td></tr>`).join('');
+        return `
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; align-items:end; margin-bottom:12px;">
+                <div><label>Season / scheme name</label><input type="text" id="dsName" value="${escapeHtml(sc.name)}" placeholder="Kharif 2027"></div>
+                <div><label>First month</label><input type="month" id="dsStart" value="${escapeHtml(sc.start)}"></div>
+                <div><label>First-month %</label><input type="number" step="any" id="dsPct" value="${sc.pct}"></div>
+                <div><label>Step down per month (%)</label><input type="number" step="any" id="dsStep" value="${sc.step}"></div>
+                <div><label>Number of months</label><input type="number" id="dsMonths" value="${sc.months}"></div>
+                <button type="button" onclick="dsGenerate()" style="width:auto; padding:9px 14px;">Generate month table</button>
+            </div>
+            <h4 style="margin:14px 0 6px;">Month-wise discount %</h4>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:8px;">Each payment gets the % of the month it was received in. Edit a month if the company changes it, then save &mdash; payments already received in that month are recalculated. Months not listed get 0%.</div>
+            <div class="table-responsive"><table>
+                <thead><tr><th>Payment month</th><th>Discount</th></tr></thead>
+                <tbody>${rows || '<tr><td colspan="2" style="text-align:center; color:var(--text-muted);">Generate the table above.</td></tr>'}</tbody>
+            </table></div>
+            <button type="button" onclick="dsSaveSlabs()" style="width:auto; padding:9px 14px; margin-top:8px;">Save month table</button>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">Only vouchers dated on or after the first month are counted.</div>`;
+    }
+
+    function dsStmtDoc(pid) {
+        const p = parties.find(x => x.id == pid), c = dsCalc(pid), sc = dsScheme();
+        let h = `<div class="table-responsive" id="dsStmtDoc"><div style="font-weight:700; margin:10px 0 6px;">${escapeHtml(p.name)}${sc.name ? ' &mdash; ' + escapeHtml(sc.name) : ''}</div>`;
+        Object.keys(c.groups).sort().forEach(cat => {
+            const g = c.groups[cat], list = Object.values(g);
+            const units = new Set(list.map(x => x.uom));
+            const same = units.size === 1;
+            let tq = 0, tr = 0, ta = 0;
+            h += `<table><thead><tr><th colspan="7">${escapeHtml(cat)}</th></tr>
+                <tr><th>Variety</th><th>Unit</th><th style="text-align:right;">Taken</th><th style="text-align:right;">Return</th><th style="text-align:right;">Balance</th><th style="text-align:right;">Rate</th><th style="text-align:right;">Amount</th></tr></thead><tbody>`;
+            list.forEach(x => {
+                const bal = x.taken - x.ret, amt = bal * x.rate;
+                tq += x.taken; tr += x.ret; ta += amt;
+                h += `<tr><td>${escapeHtml(x.name)}</td><td>${escapeHtml(x.uom)}</td><td style="text-align:right;">${dsR2(x.taken)}</td><td style="text-align:right;">${dsR2(x.ret)}</td><td style="text-align:right;">${dsR2(bal)}</td><td style="text-align:right;">${dsFmt(x.rate)}</td><td style="text-align:right;">${dsFmt(amt)}</td></tr>`;
+            });
+            h += `</tbody><tfoot><tr><th>Total</th><th></th><th style="text-align:right;">${same ? dsR2(tq) : ''}</th><th style="text-align:right;">${same ? dsR2(tr) : ''}</th><th style="text-align:right;">${same ? dsR2(tq - tr) : ''}</th><th></th><th style="text-align:right;">${dsFmt(ta)}</th></tr></tfoot></table>`;
+        });
+        if (Math.abs(c.invDiff) > 0.005) {
+            h += `<div style="font-size:0.8rem; margin:4px 0 10px;">Invoice-level discount / round-off / tax: <b>${dsFmt(c.invDiff)}</b></div>`;
+        }
+        h += `<table><thead><tr><th colspan="5">Payment details</th></tr><tr><th>Date</th><th>Month</th><th style="text-align:right;">Disc %</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Discount</th></tr></thead><tbody>`;
+        c.pays.forEach(x => {
+            h += `<tr><td>${dsDmy(x.date)}</td><td>${x.month}</td><td style="text-align:right;">${x.known ? x.pct : '&mdash;'}</td><td style="text-align:right;">${dsFmt(x.amount)}</td><td style="text-align:right;">${dsFmt(x.disc)}</td></tr>`;
+        });
+        c.adjs.forEach(a => {
+            h += `<tr><td>${dsDmy(a.date)}</td><td colspan="3">${escapeHtml(a.label)}</td><td style="text-align:right;">${dsFmt(a.amount)}</td></tr>`;
+        });
+        h += `</tbody><tfoot><tr><th colspan="3">Total</th><th style="text-align:right;">${dsFmt(c.paid)}</th><th style="text-align:right;">${dsFmt(c.totalDisc)}</th></tr></tfoot></table>`;
+        if (c.missing.length) {
+            h += `<div style="font-size:0.75rem; color:var(--danger); margin-bottom:8px;">No scheme % set for ${c.missing.map(dsMonthLabel).join(', ')} &mdash; those payments got 0% discount.</div>`;
+        }
+        h += `<table><tbody>
+            <tr><td>Total sales</td><td style="text-align:right;">${dsFmt(c.salesAmt)}</td></tr>
+            <tr><td>Total payments</td><td style="text-align:right;">${dsFmt(c.paid)}</td></tr>
+            <tr><td>Total discount (scheme ${dsFmt(c.schemeDisc)} + company-paid ${dsFmt(c.adjAmt)})</td><td style="text-align:right;">${dsFmt(c.totalDisc)}</td></tr>
+            </tbody><tfoot><tr><th>Net balance (dealer owes)</th><th style="text-align:right;">${dsFmt(c.net)}</th></tr></tfoot></table></div>`;
+        return h;
+    }
+
+    function dsViewStatement() {
+        const list = dsDealers();
+        if (!list.length) return '<div style="color:var(--text-muted);">Add a dealer first.</div>';
+        if (!list.some(p => p.id == dsUI.pid)) dsUI.pid = list[0].id;
+        const c = dsCalc(dsUI.pid);
+        const opts = list.map(p => `<option value="${p.id}"${p.id == dsUI.pid ? ' selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+        const itemOpts = [...stockItems].sort((a, b) => a.name.localeCompare(b.name))
+            .map(s => `<option value="${s.id}">${escapeHtml(s.name)}${s.uom ? ' (' + escapeHtml(s.uom) + ')' : ''}</option>`).join('');
+        const led = c.ledger.map(l => `
+            <tr><td>${dsDmy(l.date)}</td><td>${escapeHtml(l.text)}</td>
+            <td style="text-align:right;">${l.debit ? dsFmt(l.debit) : ''}</td><td style="text-align:right;">${l.credit ? dsFmt(l.credit) : ''}</td>
+            <td style="text-align:right;">${dsFmt(l.bal)}</td>
+            <td class="no-print">${l.id ? `<button class="btn-danger" onclick="dsDeleteEntry(${l.id})" style="padding:4px 10px; font-size:0.75rem; width:auto;">Delete</button>` : ''}</td></tr>`).join('');
+        const f = 'display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;';
+        return `
+            <div style="${f} margin-bottom:12px;">
+                <button type="button" onclick="dsStep(-1)" style="width:auto; padding:9px 14px; background:var(--bg-tint); color:var(--text-main); border:none;">&laquo; Prev</button>
+                <div style="flex:1; min-width:160px;"><select id="dsDealerSel" onchange="dsPick(this.value)">${opts}</select></div>
+                <button type="button" onclick="dsStep(1)" style="width:auto; padding:9px 14px; background:var(--bg-tint); color:var(--text-main); border:none;">Next &raquo;</button>
+                <button type="button" onclick="dsPrintStatement()" class="btn-success" style="width:auto; padding:9px 14px;">Save as PDF</button>
+            </div>
+            <details style="margin-bottom:8px;"><summary style="cursor:pointer; font-weight:600;">Add sales return</summary>
+                <div style="${f} margin-top:8px;">
+                    <div><label>Date</label><input type="date" id="dsRetDate" value="${dsToday()}"></div>
+                    <div style="flex:1; min-width:150px;"><label>Item</label><select id="dsRetItem" onchange="dsRetItemChange()">${itemOpts}</select></div>
+                    <div><label>Return qty</label><input type="number" step="any" min="0" id="dsRetQty"></div>
+                    <div><label>Rate</label><input type="number" step="any" min="0" id="dsRetRate"></div>
+                    <button type="button" onclick="dsAddReturn()" style="width:auto; padding:9px 14px;">Add</button>
+                </div>
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:6px;">Returns reduce this dealer's scheme sales only. They don't change stock or the party ledger &mdash; pass a credit note / journal for that separately.</div>
+            </details>
+            <details style="margin-bottom:12px;"><summary style="cursor:pointer; font-weight:600;">Add company-paid adjustment (e.g. transportation)</summary>
+                <div style="${f} margin-top:8px;">
+                    <div><label>Date</label><input type="date" id="dsAdjDate" value="${dsToday()}"></div>
+                    <div style="flex:1; min-width:150px;"><label>Description</label><input type="text" id="dsAdjLabel" value="Transportation"></div>
+                    <div><label>Amount</label><input type="number" step="any" min="0" id="dsAdjAmt"></div>
+                    <button type="button" onclick="dsAddAdj()" style="width:auto; padding:9px 14px;">Add</button>
+                </div>
+            </details>
+            ${dsStmtDoc(dsUI.pid)}
+            <h4 style="margin:14px 0 6px;">Ledger</h4>
+            <div class="table-responsive" id="dsLedgerWrap"><table>
+                <thead><tr><th>Date</th><th>Particulars</th><th style="text-align:right;">Debit</th><th style="text-align:right;">Credit</th><th style="text-align:right;">Balance</th><th class="no-print"></th></tr></thead>
+                <tbody>${led || '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No entries yet.</td></tr>'}</tbody>
+            </table></div>`;
+    }
+
+    function dsViewSummary() {
+        let ts = 0, tp = 0, td = 0, tn = 0;
+        const rows = dsDealers().map(p => {
+            const c = dsCalc(p.id); ts += c.salesAmt; tp += c.paid; td += c.totalDisc; tn += c.net;
+            return `<tr><td><a href="#" onclick="dsOpen(${p.id}); return false;">${escapeHtml(p.name)}</a></td>
+                <td style="text-align:right;">${dsFmt(c.salesAmt)}</td><td style="text-align:right;">${dsFmt(c.paid)}</td>
+                <td style="text-align:right;">${dsFmt(c.totalDisc)}</td><td style="text-align:right;">${dsFmt(c.net)}</td></tr>`;
+        }).join('');
+        return `
+            <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                <button type="button" onclick="printTablePdf('dsSummaryWrap','Dealer Scheme Summary')" class="btn-success" style="width:auto; padding:9px 14px;">Save as PDF</button>
+            </div>
+            <div class="table-responsive" id="dsSummaryWrap"><table>
+                <thead><tr><th>Dealer</th><th style="text-align:right;">Sales</th><th style="text-align:right;">Paid</th><th style="text-align:right;">Discount</th><th style="text-align:right;">Net balance</th></tr></thead>
+                <tbody>${rows || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No dealers yet.</td></tr>'}</tbody>
+                <tfoot><tr><th>Total</th><th style="text-align:right;">${dsFmt(ts)}</th><th style="text-align:right;">${dsFmt(tp)}</th><th style="text-align:right;">${dsFmt(td)}</th><th style="text-align:right;">${dsFmt(tn)}</th></tr></tfoot>
+            </table></div>`;
+    }
+
+    function dsRender() {
+        const body = document.getElementById('dsBody');
+        if (!body) return;
+        dsTabs();
+        body.innerHTML = { dealers: dsViewDealers, statement: dsViewStatement, summary: dsViewSummary, scheme: dsViewScheme }[dsUI.tab]();
+    }
+
+    // ---- actions ----
+    function dsGo(tab) { dsUI.tab = tab; dsRender(); }
+    function dsOpen(pid) { dsUI.pid = pid; dsGo('statement'); }
+    function dsPick(v) { dsUI.pid = v; dsRender(); }
+    function dsStep(dir) {
+        const ids = dsDealers().map(p => p.id), i = ids.findIndex(x => x == dsUI.pid);
+        if (!ids.length) return;
+        dsUI.pid = ids[(i + dir + ids.length) % ids.length]; dsRender();
+    }
+    function dsSearch(el) {
+        dsUI.q = el.value; const pos = el.selectionStart;
+        dsRender();
+        const n = document.querySelector('#dsBody input[type="text"]');
+        if (n) { n.focus(); n.setSelectionRange(pos, pos); }
+    }
+    function dsAddDealer() {
+        const v = document.getElementById('dsAddParty').value;
+        if (!v) return alert('Select a party first.');
+        dealerEntries.push({ id: newId(dealerEntries), kind: 'dealer', partyId: Number(v) });
+        dsSave(); dsRender();
+    }
+    async function dsRemoveDealer(pid) {
+        const own = dealerEntries.filter(e => e.dealerId == pid).length;
+        const p = parties.find(x => x.id == pid);
+        const msg = `Remove ${p ? p.name : 'this dealer'} from the scheme?` +
+            (own ? ` Their ${own} return/adjustment entr${own === 1 ? 'y' : 'ies'} will be deleted too.` : '') +
+            ' Vouchers are not affected.';
+        if (!(await confirmAsync(msg, { danger: true, okText: 'Remove' }))) return;
+        dealerEntries = dealerEntries.filter(e => !(e.kind === 'dealer' && e.partyId == pid) && e.dealerId != pid);
+        dsSave(); dsRender();
+    }
+    function dsRetItemChange() {
+        const id = document.getElementById('dsRetItem').value;
+        // Offer the rate this dealer was last sold the item at, else the master rate.
+        let rate = '';
+        transactions.forEach(t => {
+            if (t.type === 'Sales' && !t.cancelled && t.partyId == dsUI.pid) (t.items || []).forEach(it => { if (it.itemId == id) rate = it.inclRate; });
+        });
+        if (rate === '') { const s = stockItems.find(x => x.id == id); rate = s ? s.rate : ''; }
+        document.getElementById('dsRetRate').value = rate;
+    }
+    function dsAddReturn() {
+        const date = document.getElementById('dsRetDate').value;
+        const itemId = document.getElementById('dsRetItem').value;
+        const qty = dsNum(document.getElementById('dsRetQty').value);
+        const rate = dsNum(document.getElementById('dsRetRate').value);
+        if (!date || !itemId) return alert('Choose a date and an item.');
+        if (qty <= 0) return alert('Enter a return quantity.');
+        dealerEntries.push({ id: newId(dealerEntries), kind: 'return', dealerId: Number(dsUI.pid), date, itemId: Number(itemId), qty, rate });
+        dsSave(); dsRender();
+    }
+    function dsAddAdj() {
+        const date = document.getElementById('dsAdjDate').value;
+        const label = document.getElementById('dsAdjLabel').value.trim() || 'Adjustment';
+        const amount = dsNum(document.getElementById('dsAdjAmt').value);
+        if (!date) return alert('Choose a date.');
+        if (amount <= 0) return alert('Enter an amount.');
+        dealerEntries.push({ id: newId(dealerEntries), kind: 'adj', dealerId: Number(dsUI.pid), date, label, amount });
+        dsSave(); dsRender();
+    }
+    async function dsDeleteEntry(id) {
+        if (!(await confirmAsync('Delete this entry?', { danger: true, okText: 'Delete' }))) return;
+        dealerEntries = dealerEntries.filter(e => e.id != id);
+        dsSave(); dsRender();
+    }
+    async function dsGenerate() {
+        const sc = Object.assign({}, dsScheme());
+        sc.name = document.getElementById('dsName').value.trim();
+        sc.start = document.getElementById('dsStart').value;
+        sc.pct = dsNum(document.getElementById('dsPct').value);
+        sc.step = dsNum(document.getElementById('dsStep').value);
+        sc.months = Math.max(1, Math.min(24, parseInt(document.getElementById('dsMonths').value, 10) || 1));
+        if (!/^\d{4}-\d{2}$/.test(sc.start)) return alert('Choose the first month.');
+        if (Object.keys(dsScheme().table).length &&
+            !(await confirmAsync('This replaces the current month table, including any months you edited. Continue?', { okText: 'Replace' }))) return;
+        sc.table = dsGenTable(sc);
+        dsSaveScheme(sc); dsRender();
+    }
+    function dsSaveSlabs() {
+        const sc = Object.assign({}, dsScheme());
+        sc.table = Object.assign({}, sc.table);
+        document.querySelectorAll('[data-dsslab]').forEach(el => { sc.table[el.getAttribute('data-dsslab')] = Math.max(0, dsNum(el.value)); });
+        dsSaveScheme(sc); dsRender();
+        alert('Month table saved.');
+    }
+    async function dsPrintStatement() {
+        const p = parties.find(x => x.id == dsUI.pid);
+        if (!p) return;
+        const c = dsCalc(p.id);
+        await printTablePdf('dsLedgerWrap', 'Dealer Statement - ' + p.name, { appendRows: [
+            ['', 'Total sales', '', '', dsFmt(c.salesAmt)],
+            ['', 'Total payments', '', '', dsFmt(c.paid)],
+            ['', `Total discount (scheme ${dsFmt(c.schemeDisc)} + company-paid ${dsFmt(c.adjAmt)})`, '', '', dsFmt(c.totalDisc)],
+            ['', 'Net balance (dealer owes)', '', '', dsFmt(c.net)]
+        ] });
+    }
+
     function render() {  
         recalcStockFromLedger(); // keep "In Stock" mathematically tied to Purchased/Sold on every redraw — see definition above
         populateGroupDropdowns();
@@ -11086,6 +11506,7 @@
         // whichever one of these is actually on screen here fixes it
         // everywhere at once instead of hand-listing it per save/delete.
         const isActive = id => { const el = document.getElementById(id); return el && el.classList.contains('active'); };
+        if (isActive('panelDealerScheme')) dsRender();
         if (isActive('panelPayments')) renderCashList('Payment');
         if (isActive('panelReceipts')) renderCashList('Receipt');
         if (isActive('panelOptional')) renderOptional();

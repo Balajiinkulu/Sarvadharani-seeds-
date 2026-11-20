@@ -252,6 +252,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="dash-menu-item" onclick="openGroup('groupTransactions')">Transactions</div>
             <div class="dash-menu-item" onclick="openGroup('groupReports')">Reports</div>
             <div class="dash-menu-item" onclick="openGroup('groupSeedProcessing')">Seed Processing</div>
+            <div class="dash-menu-item" onclick="openPanel('panelDealerScheme')">Dealer Scheme</div>
             <div class="dash-menu-item" onclick="openPanel('panelInvoices')">Invoices</div>
             <div class="dash-menu-item" onclick="openPanel('panelLedger')">Ledger</div>
             <div class="dash-menu-item" onclick="openGroup('groupSettings')">Admin</div>
@@ -1502,6 +1503,13 @@ if (localStorage.getItem('sds_theme') === 'dark') {
         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:10px;">Click a vendor to open their full ledger statement, where every individual voucher is listed.</div>
     </div>
 
+    <!-- Dealer Scheme -->
+    <div class="panel" id="panelDealerScheme">
+        <div class="panel-head"><h3>Dealer Scheme</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
+        <div id="dsTabs" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;"></div>
+        <div id="dsBody"></div>
+    </div>
+
     <!-- Sales Statement -->
     <div class="panel" id="panelSalesStatement">
         <div class="panel-head"><h3>Sales Statement</h3><button class="back-btn" onclick="closePanel()">&#8592; Back</button></div>
@@ -2695,6 +2703,10 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                 <div class="narr-party-create" style="display:none; margin-top:6px;"></div>
             </div>
 
+            <div class="col-2" id="vSchemeWrap" style="display:none;">
+                <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer;"><input type="checkbox" id="vInScheme" checked style="width:auto; margin:0;"> Include this sale in the dealer scheme</label>
+            </div>
+
             <button type="button" id="postVoucherBtn" onclick="postVoucherGuarded()" class="col-2 btn-success" style="padding:14px;">Post Voucher Entry</button>
         </div>
     </div>
@@ -3344,7 +3356,7 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             </div>
             <div id="editPartyWrap">
                 <label>Party</label>
-                <select id="editParty"><option value="">-- Choose Party --</option></select>
+                <select id="editParty" onchange="updateEditSchemeTick()"><option value="">-- Choose Party --</option></select>
             </div>
 
             <!-- Sub-ledger (inventory vouchers only) -->
@@ -3397,6 +3409,9 @@ if (localStorage.getItem('sds_theme') === 'dark') {
             <div class="col-2" id="editNarrationMainWrap">
                 <label>Narration (Optional)</label>
                 <input type="text" id="editNarrationMain">
+            </div>
+            <div class="col-2" id="editSchemeWrap" style="display:none;">
+                <label style="display:flex; align-items:center; gap:8px; margin:0; cursor:pointer;"><input type="checkbox" id="editInScheme" style="width:auto; margin:0;"> Include this sale in the dealer scheme</label>
             </div>
 
             <!-- Transport details (Delivery Note only) -->
@@ -3515,6 +3530,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 <script src="pdf-engine.js?v=1"></script>
 <script src="pdf-reports.js?v=7"></script>
-<script src="app.js?v=121"></script>
+<script src="app.js?v=123"></script>
 </body>
 </html>
