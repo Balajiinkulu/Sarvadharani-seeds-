@@ -11016,7 +11016,7 @@
                 if (!known) missing.add(mk);
                 const amount = t.grandTotal || 0, disc = amount * pct / 100;
                 paid += amount; schemeDisc += disc;
-                pays.push({ date: t.date, month: dsMonthLabel(mk), pct, known, amount, disc });
+                pays.push({ date: t.date, mk, month: dsMonthLabel(mk), pct, known, amount, disc });
                 ledger.push({ date: t.date, text: 'Payment received' + (t.invNo ? ' (' + t.invNo + ')' : ''), debit: 0, credit: amount });
                 if (disc) ledger.push({ date: t.date, text: `Scheme discount ${pct}% on ${dsFmt(amount)}`, debit: 0, credit: disc });
             }
@@ -11105,31 +11105,40 @@
     function dsStmtDoc(pid) {
         const p = parties.find(x => x.id == pid), c = dsCalc(pid), sc = dsScheme();
         let h = `<div class="table-responsive" id="dsStmtDoc"><div style="font-weight:700; margin:10px 0 6px;">${escapeHtml(p.name)}${sc.name ? ' &mdash; ' + escapeHtml(sc.name) : ''}</div>`;
+        // Category tables sit side by side on a wide screen and stack on a phone.
+        h += '<div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start;">';
         Object.keys(c.groups).sort().forEach(cat => {
             const g = c.groups[cat], list = Object.values(g);
             const units = new Set(list.map(x => x.uom));
             const same = units.size === 1;
             let tq = 0, tr = 0, ta = 0;
-            h += `<table><thead><tr><th colspan="7">${escapeHtml(cat)}</th></tr>
+            h += `<div style="flex:1 1 440px; min-width:0; overflow-x:auto;"><table style="margin:0;"><thead><tr><th colspan="7">${escapeHtml(cat)}</th></tr>
                 <tr><th>Variety</th><th>Unit</th><th style="text-align:right;">Taken</th><th style="text-align:right;">Return</th><th style="text-align:right;">Balance</th><th style="text-align:right;">Rate</th><th style="text-align:right;">Amount</th></tr></thead><tbody>`;
             list.forEach(x => {
                 const bal = x.taken - x.ret, amt = bal * x.rate;
                 tq += x.taken; tr += x.ret; ta += amt;
                 h += `<tr><td>${escapeHtml(x.name)}</td><td>${escapeHtml(x.uom)}</td><td style="text-align:right;">${dsR2(x.taken)}</td><td style="text-align:right;">${dsR2(x.ret)}</td><td style="text-align:right;">${dsR2(bal)}</td><td style="text-align:right;">${dsFmt(x.rate)}</td><td style="text-align:right;">${dsFmt(amt)}</td></tr>`;
             });
-            h += `</tbody><tfoot><tr><th>Total</th><th></th><th style="text-align:right;">${same ? dsR2(tq) : ''}</th><th style="text-align:right;">${same ? dsR2(tr) : ''}</th><th style="text-align:right;">${same ? dsR2(tq - tr) : ''}</th><th></th><th style="text-align:right;">${dsFmt(ta)}</th></tr></tfoot></table>`;
+            h += `</tbody><tfoot><tr><th>Total</th><th></th><th style="text-align:right;">${same ? dsR2(tq) : ''}</th><th style="text-align:right;">${same ? dsR2(tr) : ''}</th><th style="text-align:right;">${same ? dsR2(tq - tr) : ''}</th><th></th><th style="text-align:right;">${dsFmt(ta)}</th></tr></tfoot></table></div>`;
         });
+        h += '</div>';
         if (Math.abs(c.invDiff) > 0.005) {
             h += `<div style="font-size:0.8rem; margin:4px 0 10px;">Invoice-level discount / round-off / tax: <b>${dsFmt(c.invDiff)}</b></div>`;
         }
-        h += `<table><thead><tr><th colspan="5">Payment details</th></tr><tr><th>Date</th><th>Month</th><th style="text-align:right;">Disc %</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Discount</th></tr></thead><tbody>`;
-        c.pays.forEach(x => {
-            h += `<tr><td>${dsDmy(x.date)}</td><td>${x.month}</td><td style="text-align:right;">${x.known ? x.pct : '&mdash;'}</td><td style="text-align:right;">${dsFmt(x.amount)}</td><td style="text-align:right;">${dsFmt(x.disc)}</td></tr>`;
+        // One row per scheme month (plus any other month a payment fell in),
+        // with that month's payments and the discount on them.
+        const byMonth = {};
+        c.pays.forEach(x => { const m = byMonth[x.mk] = byMonth[x.mk] || { amount: 0, disc: 0, pct: x.pct, known: x.known }; m.amount += x.amount; m.disc += x.disc; });
+        Object.keys(sc.table).forEach(k => { if (!byMonth[k]) byMonth[k] = { amount: 0, disc: 0, pct: sc.table[k], known: true }; });
+        h += `<table><thead><tr><th colspan="4">Payment details</th></tr><tr><th>Month</th><th style="text-align:right;">Disc %</th><th style="text-align:right;">Amount</th><th style="text-align:right;">Discount</th></tr></thead><tbody>`;
+        Object.keys(byMonth).sort().forEach(k => {
+            const m = byMonth[k];
+            h += `<tr><td>${dsMonthLabel(k)}</td><td style="text-align:right;">${m.known ? m.pct : '&mdash;'}</td><td style="text-align:right;">${dsFmt(m.amount)}</td><td style="text-align:right;">${dsFmt(m.disc)}</td></tr>`;
         });
-        c.adjs.forEach(a => {
-            h += `<tr><td>${dsDmy(a.date)}</td><td colspan="3">${escapeHtml(a.label)}</td><td style="text-align:right;">${dsFmt(a.amount)}</td></tr>`;
+        c.adjs.forEach(x => {
+            h += `<tr><td colspan="3">${escapeHtml(x.label)} (${dsDmy(x.date)})</td><td style="text-align:right;">${dsFmt(x.amount)}</td></tr>`;
         });
-        h += `</tbody><tfoot><tr><th colspan="3">Total</th><th style="text-align:right;">${dsFmt(c.paid)}</th><th style="text-align:right;">${dsFmt(c.totalDisc)}</th></tr></tfoot></table>`;
+        h += `</tbody><tfoot><tr><th colspan="2">Total</th><th style="text-align:right;">${dsFmt(c.paid)}</th><th style="text-align:right;">${dsFmt(c.totalDisc)}</th></tr></tfoot></table>`;
         if (c.missing.length) {
             h += `<div style="font-size:0.75rem; color:var(--danger); margin-bottom:8px;">No scheme % set for ${c.missing.map(dsMonthLabel).join(', ')} &mdash; those payments got 0% discount.</div>`;
         }
