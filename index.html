@@ -671,6 +671,11 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     <option value="__CUSTOM__">Custom...</option>
                 </select>
             </div>
+            <div>
+                <label>Pack weight (kg) &mdash; optional</label>
+                <input type="number" id="itemPackKg" min="0" step="any" placeholder="e.g. 20">
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px;">For bag items: lets a sale be entered in quintals. If left empty, a weight in the name (e.g. "20KG") is used.</div>
+            </div>
             <div id="customUomWrap" style="display:none;">
                 <label>Custom Unit Name</label>
                 <input type="text" id="itemUomCustom" placeholder="e.g. Quintal, Dozen">
@@ -2638,13 +2643,18 @@ if (localStorage.getItem('sds_theme') === 'dark') {
                     </div>
                     <div>
                         <label>Qty</label>
-                        <input type="number" id="vQty" value="1" min="1">
+                        <input type="number" id="vQty" value="1" min="1" oninput="onVQtyInput()">
                     </div>
                     <div>
                         <label id="vRateLabel">Rate/Unit (&#8377; Incl. GST)</label>
                         <input type="number" id="vRate" step="any">
                     </div>
                     <button type="button" onclick="addItemToVoucher()" style="padding:11px;">Add Item</button>
+                </div>
+                <div id="vQtlRow" style="display:none; margin-top:8px; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <label style="margin:0;">Or enter in Quintal</label>
+                    <input type="number" id="vQtl" step="any" min="0" oninput="onVQtlInput()" style="width:110px;">
+                    <span id="vQtlHint" style="font-size:0.78rem; color:var(--text-muted);"></span>
                 </div>
             </div>
 
@@ -3530,6 +3540,6 @@ if (localStorage.getItem('sds_theme') === 'dark') {
 
 <script src="pdf-engine.js?v=1"></script>
 <script src="pdf-reports.js?v=7"></script>
-<script src="app.js?v=124"></script>
+<script src="app.js?v=125"></script>
 </body>
 </html>

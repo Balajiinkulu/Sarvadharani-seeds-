@@ -3118,7 +3118,8 @@
             uom: uom,  
             openingQty: desiredQty - netSoFar,
             rate: parseFloat(document.getElementById('itemRate').value) || 0,  
-            gstRate: parseFloat(document.getElementById('itemGst').value) || 0  
+            gstRate: parseFloat(document.getElementById('itemGst').value) || 0,
+            packKg: parseFloat(document.getElementById('itemPackKg').value) || 0
         };
 
         if (editId) {
@@ -3150,6 +3151,7 @@
         document.getElementById('itemQty').value = item.qty;
         document.getElementById('itemRate').value = item.rate;
         document.getElementById('itemGst').value = item.gstRate;
+        document.getElementById('itemPackKg').value = item.packKg || '';
 
         const uomSel = document.getElementById('itemUom');
         const preset = Array.from(uomSel.options).some(o => o.value === item.uom && o.value !== '__CUSTOM__');
@@ -3973,9 +3975,45 @@
         renderGroupTables();
     }
   
+    // Weight of one pack in kg, for bag-type items: the item's own Pack weight,
+    // else a weight written in its name ("MTU-1001 20KG LVS" -> 20). 0 = not a pack item.
+    function itemPackKg(item) {
+        if (!item || !/^(bag|pkt|pcs|box)$/i.test(item.uom || '')) return 0;
+        if (item.packKg > 0) return item.packKg;
+        const m = /(\d+(?:\.\d+)?)\s*kgs?\b/i.exec(item.name || '');
+        return m ? parseFloat(m[1]) : 0;
+    }
+    function updateQtlRow() {
+        const item = stockItems.find(s => s.id == document.getElementById('vItem').value);
+        const kg = itemPackKg(item);
+        document.getElementById('vQtlRow').style.display = kg ? 'flex' : 'none';
+        document.getElementById('vQtl').value = '';
+        document.getElementById('vQtlHint').textContent = '';
+        if (kg) onVQtyInput();
+    }
+    function onVQtyInput() {
+        const kg = itemPackKg(stockItems.find(s => s.id == document.getElementById('vItem').value));
+        if (!kg) return;
+        const q = parseFloat(document.getElementById('vQty').value) || 0;
+        document.getElementById('vQtl').value = q ? Math.round(q * kg) / 100 : '';
+        document.getElementById('vQtlHint').textContent = `1 ${stockItems.find(s => s.id == document.getElementById('vItem').value).uom} = ${kg} kg`;
+    }
+    function onVQtlInput() {
+        const item = stockItems.find(s => s.id == document.getElementById('vItem').value);
+        const kg = itemPackKg(item);
+        if (!kg) return;
+        const qtl = parseFloat(document.getElementById('vQtl').value) || 0;
+        const packs = qtl * 100 / kg, whole = Math.abs(packs - Math.round(packs)) < 0.005;
+        document.getElementById('vQty').value = qtl ? Math.round(packs * 100) / 100 : '';
+        const hint = document.getElementById('vQtlHint');
+        hint.textContent = whole ? `= ${Math.round(packs)} ${item.uom} of ${kg} kg` : `= ${Math.round(packs * 100) / 100} ${item.uom} \u2014 not a whole number of packs`;
+        hint.style.color = whole ? 'var(--text-muted)' : 'var(--danger)';
+    }
+
     function autoFillItem() {  
         const id = document.getElementById('vItem').value;  
         const item = stockItems.find(s => s.id == id);
+        updateQtlRow();
         if (!item) { document.getElementById('vRate').value = ''; return; }
 
         // Prefer the rate this exact party paid/was charged for this exact
@@ -4149,6 +4187,7 @@
         document.getElementById('vItemSearch').value = '';
         document.getElementById('vQty').value = '1';
         document.getElementById('vRate').value = '';
+        updateQtlRow();
         renderTempItems();
     }
 
@@ -4181,7 +4220,7 @@
             tableBody.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td>${escapeHtml(it.name)}</td>
-                    <td>${it.qty} ${escapeHtml(it.uom)}</td>
+                    <td>${it.qty} ${escapeHtml(it.uom)}${itemPackKg(stockItems.find(s => s.id == it.itemId)) ? `<div style="font-size:0.72rem; color:var(--text-muted);">${Math.round(it.qty * itemPackKg(stockItems.find(s => s.id == it.itemId))) / 100} Qtl</div>` : ''}</td>
                     <td>\u20B9${money(it.inclRate)}</td>
                     <td>\u20B9${taxDetails.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                     <td>\u20B9${taxDetails.taxAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})} (${it.gstRate}%)</td>
