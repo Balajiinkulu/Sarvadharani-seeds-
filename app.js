@@ -7882,6 +7882,16 @@
     }
 
     let customVoucherListRowOrder = [];
+    // Title for a voucher made from a custom voucher type: the type's own name,
+    // plus (OFF-BOOK) when the type is kept off the main books. The type
+    // definition is checked too, so vouchers saved before the flag existed
+    // are still labelled.
+    function customVoucherTitle(txn) {
+        const ct = customVoucherTypes.find(v => v.id == txn.customVoucherTypeId);
+        const off = txn.inMainBooks === false || (ct && ct.inMainBooks === 'no');
+        return (txn.customVoucherTypeName || (ct && ct.name) || 'CUSTOM VOUCHER').toUpperCase() + (off ? ' (OFF-BOOK)' : '');
+    }
+
     function renderCustomVoucherList() {
         if (!currentCustomTypeId) return;
         const range = periodRange(document.getElementById('cvPeriod').value,
@@ -7901,7 +7911,9 @@
         }
         customVoucherListRowOrder = rows.map(t => t.id);
         rows.forEach(t => {
-            const itemList = (t.items || []).map(it => `${escapeHtml(it.name)} (${it.qty} ${escapeHtml(it.uom)})`).join(', ');
+            const lines = (t.items || []).map(it => `${escapeHtml(it.name)} (${it.qty} ${escapeHtml(it.uom)})`);
+            // A long bill would make the row taller than the screen; show the first item and count the rest.
+            const itemList = lines.length > 1 ? `<span title="${lines.join(', ').replace(/"/g, '&quot;')}">${lines[0]} <b>+${lines.length - 1} more</b></span>` : lines.join(', ');
             body.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td class="no-print" data-select-col="customVoucherList" style="display:none;">
@@ -7910,7 +7922,7 @@
                     <td>${t.date}</td>
                     <td>${escapeHtml(t.invNo)}</td>
                     <td style="color:var(--accent); text-decoration:underline; cursor:pointer;" onclick="openPartyLedgerFromReport(${t.partyId})" title="Open party ledger">${escapeHtml(t.partyName)}</td>
-                    <td style="white-space:normal; max-width:280px;">${itemList}</td>
+                    <td style="white-space:normal; max-width:170px;">${itemList}</td>
                     <td style="font-weight:bold;">\u20B9${money(t.grandTotal)}</td>
                     <td style="display:flex; gap:6px;">
                         <button onclick="printInvoice(${t.id})" class="btn-success" style="padding:4px 10px; font-size:0.72rem;">Invoice</button>
@@ -8210,7 +8222,7 @@
             : isOptional
                 ? (txn.type === 'OptionalSales' ? 'OPTIONAL SALE (OFF-BOOK)' : 'OPTIONAL PURCHASE (OFF-BOOK)')
             : txn.customVoucherTypeId
-                ? (txn.customVoucherTypeName || 'CUSTOM VOUCHER').toUpperCase() + (txn.inMainBooks === false ? ' (OFF-BOOK)' : '')
+                ? customVoucherTitle(txn)
                 : 'TAX INVOICE';
         // A Delivery Note isn't an invoice and charges nothing, so calling
         // its number "Invoice No" and its value "Grand Total" contradicts
@@ -10362,8 +10374,18 @@
         }
 
         const bytes = SarvaDocs.buildInvoicePDF({
-            docTitle: isDN ? 'DELIVERY NOTE' : 'TAX INVOICE',
+            // A voucher made from a custom voucher type prints under that type's
+            // own name (e.g. SALES ORDER) rather than TAX INVOICE.
+            docTitle: isDN ? 'DELIVERY NOTE'
+                : txn.customVoucherTypeId
+                    ? customVoucherTitle(txn)
+                    : 'TAX INVOICE',
             numberLabel: isDN ? 'Challan No.' : 'Invoice No.',
+            // Fixed defaults for the header boxes; Delivery Note is left blank.
+            payTerms: isDN ? '' : 'Cash / Bank',
+            refNo: txn.invNo || '',
+            otherRef: 'N/A',
+            termsOfDelivery: 'N/A',
             grandLabel: isDN ? 'Value of Goods' : 'Total',
             sellerName: 'Sarvadharani Seeds',
             sellerAddress: getCompanyAddress() || '',
