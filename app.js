@@ -7768,6 +7768,13 @@
         if (editId) {
             const vt = customVoucherTypes.find(v => v.id === editId);
             if (vt) Object.assign(vt, data);
+            // Each voucher stores the type name it was made under, so a rename
+            // has to be carried onto the existing vouchers (as Alter Unit does).
+            let renamed = 0;
+            transactions.forEach(t => {
+                if (t.customVoucherTypeId === editId && t.customVoucherTypeName !== name) { t.customVoucherTypeName = name; renamed++; }
+            });
+            if (renamed) localStorage.setItem('tally_mob_db', JSON.stringify(transactions));
         } else {
             // The internal id is a stable slug derived from the name, used as
             // the <option value> in the Voucher Type dropdown and stored on
