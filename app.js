@@ -7882,14 +7882,11 @@
     }
 
     let customVoucherListRowOrder = [];
-    // Title for a voucher made from a custom voucher type: the type's own name,
-    // plus (OFF-BOOK) when the type is kept off the main books. The type
-    // definition is checked too, so vouchers saved before the flag existed
-    // are still labelled.
+    // Title for a voucher made from a custom voucher type: just the type's own
+    // name. Off-book vouchers deliberately don't say so on the printout.
     function customVoucherTitle(txn) {
         const ct = customVoucherTypes.find(v => v.id == txn.customVoucherTypeId);
-        const off = txn.inMainBooks === false || (ct && ct.inMainBooks === 'no');
-        return (txn.customVoucherTypeName || (ct && ct.name) || 'CUSTOM VOUCHER').toUpperCase() + (off ? ' (OFF-BOOK)' : '');
+        return (txn.customVoucherTypeName || (ct && ct.name) || 'CUSTOM VOUCHER').toUpperCase();
     }
 
     function renderCustomVoucherList() {
